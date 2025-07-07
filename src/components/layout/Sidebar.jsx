@@ -53,7 +53,7 @@ function MenuItem({ icon, text, active, isCollapsed }) {
 }
 
 // --- Componente principal de la Barra Lateral ---
-function Sidebar({ logoUrl }) {
+function Sidebar({ logoUrl, user }) {
     // Estado para controlar si la barra lateral está contraída.
     const [isCollapsed, setIsCollapsed] = useState(false);
     // Estado para controlar el enlace activo.
@@ -62,9 +62,9 @@ function Sidebar({ logoUrl }) {
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
     // Datos del usuario (serán dinámicos en el futuro).
-    const userName = "Nombre Apellido";
-    const userEmail = "usuario@dominio.com";
-    const userInitials = userName.split(' ').map(n => n[0]).join('');
+    const userName = user?.name || "Usuario";
+    const userEmail = user?.email || "email@ejemplo.com";
+    const userInitials = userName?.initials || "U";
 
     // El componente retorna la estructura JSX.
     return (
