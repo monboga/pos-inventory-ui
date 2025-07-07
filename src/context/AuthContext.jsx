@@ -1,5 +1,3 @@
-// src/context/AuthContext.jsx
-
 // Se importan las funciones necesarias de React.
 import React, { createContext, useState, useContext } from 'react';
 
@@ -45,7 +43,8 @@ export function AuthProvider({ children }) {
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Se crea un "hook" personalizado para consumir fácilmente el contexto en otros componentes.
+// Se crea y EXPORTA un "hook" personalizado (exportación nombrada).
 export function useAuth() {
+    // Retorna el valor del contexto para ser usado en otros componentes.
     return useContext(AuthContext);
 }
