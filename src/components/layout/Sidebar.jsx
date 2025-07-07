@@ -68,7 +68,7 @@ function Sidebar({ logoUrl }) {
 
     // El componente retorna la estructura JSX.
     return (
-        <div className="relative h-screen">
+        <div className="relative h-screen hidden md:block">
             {/* Botón flotante para colapsar/expandir. */}
             <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
