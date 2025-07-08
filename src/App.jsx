@@ -7,15 +7,14 @@ import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import PointOfSalePage from './pages/PointOfSalePage';
-import InventoryPage from './pages/InventoryPage';
+import InventoryPage from './pages/InventoryPage'; // se importa pagina de inventario
+// se importan las paginas faltantes de userpage y supplierspage
+import UsersPage from './pages/UserPage';
+import SuppliersPage from './pages/SuppliersPage';
 import Sidebar from './components/layout/Sidebar';
 import BottomNav from './components/layout/BottomNav';
 import logo from './assets/logo.png';
 
-// --- Componentes Temporales de Marcador de Posición ---
-// Se crean componentes simples para que cada ruta muestre algo.
-const UsersPage = () => <div className="p-8"><h1 className="text-3xl font-bold">Página de Gestión de Usuarios</h1></div>;
-const SuppliersPage = () => <div className="p-8"><h1 className="text-3xl font-bold">Página de Proveedores</h1></div>;
 
 // Se crea un componente de Layout para las páginas protegidas.
 // Este layout incluye el Sidebar, BottomNav y el contenido de la página actual.
