@@ -7,13 +7,13 @@ import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import PointOfSalePage from './pages/PointOfSalePage';
+import InventoryPage from './pages/InventoryPage';
 import Sidebar from './components/layout/Sidebar';
 import BottomNav from './components/layout/BottomNav';
 import logo from './assets/logo.png';
 
 // --- Componentes Temporales de Marcador de Posición ---
 // Se crean componentes simples para que cada ruta muestre algo.
-const InventoryPage = () => <div className="p-8"><h1 className="text-3xl font-bold">Página de Inventario</h1></div>;
 const UsersPage = () => <div className="p-8"><h1 className="text-3xl font-bold">Página de Gestión de Usuarios</h1></div>;
 const SuppliersPage = () => <div className="p-8"><h1 className="text-3xl font-bold">Página de Proveedores</h1></div>;
 
