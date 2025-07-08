@@ -12,47 +12,75 @@ function PointOfSalePage() {
     const [products, setProducts] = useState(initialProducts);
     // Estado para la categoría activa.
     const [activeCategory, setActiveCategory] = useState('Todos');
-    // Estado para los productos en el carrito.
+    // Estado para los productos en el carrito. Ahora almacenará objetos con cantidad.
     const [cart, setCart] = useState([]);
 
+    // --- INICIO DE LA NUEVA LÓGICA DEL CARRITO ---
+
     // Función para manejar la adición de un producto al carrito.
-    const handleAddToCart = (product) => {
-        // Se añade el producto a la lista existente en el estado del carrito.
-        setCart(prevCart => [...prevCart, product]);
+    const handleAddToCart = (productToAdd) => {
+        // Se busca si el producto ya existe en el carrito.
+        const existingProduct = cart.find(item => item.id === productToAdd.id);
+
+        // Si el producto ya existe...
+        if (existingProduct) {
+            // ...se actualiza el carrito incrementando la cantidad de ese producto.
+            setCart(cart.map(item =>
+                item.id === productToAdd.id
+                    ? { ...item, quantity: item.quantity + 1 }
+                    : item
+            ));
+        } else {
+            // Si el producto es nuevo, se añade al carrito con una cantidad inicial de 1.
+            setCart([...cart, { ...productToAdd, quantity: 1 }]);
+        }
     };
+
+    // Función para actualizar la cantidad de un producto en el carrito.
+    const handleUpdateQuantity = (productId, amount) => {
+        setCart(cart.map(item => {
+            // Se busca el producto por su ID.
+            if (item.id === productId) {
+                // Se calcula la nueva cantidad.
+                const newQuantity = item.quantity + amount;
+                // Se retorna el item con la nueva cantidad, asegurando que no sea menor a 1.
+                return { ...item, quantity: Math.max(1, newQuantity) };
+            }
+            // Se retorna el item sin cambios si no es el que se busca.
+            return item;
+        }));
+    };
+
+    // Función para eliminar un producto del carrito.
+    const handleRemoveFromCart = (productId) => {
+        // Se filtra el arreglo del carrito para excluir el producto con el ID proporcionado.
+        setCart(cart.filter(item => item.id !== productId));
+    };
+
+    // --- FIN DE LA NUEVA LÓGICA DEL CARRITO ---
 
     // Se utiliza useEffect para filtrar los productos cuando cambia la categoría activa.
     useEffect(() => {
-        // Si la categoría es 'Todos', se muestran todos los productos.
         if (activeCategory === 'Todos') {
             setProducts(initialProducts);
         } else {
-            // Si se selecciona otra categoría, se filtran los productos.
             const filtered = initialProducts.filter(p => p.category === activeCategory);
             setProducts(filtered);
         }
-    }, [activeCategory]); // El efecto se ejecuta cuando 'activeCategory' cambia.
+    }, [activeCategory]);
 
     // Retorna la estructura JSX de la página.
     return (
         // Se utiliza CSS Grid para un control de columnas más robusto.
-        // En pantallas grandes (lg), se divide en 3 columnas.
         <div className="grid grid-cols-1 lg:grid-cols-3 h-full">
-            {/* Columna principal para la selección de productos. Ocupa 2 de 3 columnas en pantallas grandes. */}
+            {/* Columna principal para la selección de productos. */}
             <div className="lg:col-span-2 p-8 overflow-y-auto">
                 <h1 className="text-3xl font-bold text-gray-800">Punto de Venta</h1>
 
                 {/* Filtros de categoría. */}
                 <div className="flex space-x-4 my-6 overflow-x-auto pb-2">
                     {categories.map(category => (
-                        <button
-                            key={category}
-                            onClick={() => setActiveCategory(category)}
-                            className={`
-                px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition-colors
-                ${activeCategory === category ? 'bg-pink-500 text-white' : 'bg-white text-gray-700 hover:bg-pink-50'}
-              `}
-                        >
+                        <button key={category} onClick={() => setActiveCategory(category)} className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition-colors ${activeCategory === category ? 'bg-pink-500 text-white' : 'bg-white text-gray-700 hover:bg-pink-50'}`}>
                             {category}
                         </button>
                     ))}
@@ -66,12 +94,15 @@ function PointOfSalePage() {
                 </div>
             </div>
 
-            {/* --- INICIO DE LA CORRECCIÓN --- */}
-            {/* Columna derecha para el resumen del pedido. Se añade 'border-pink-100'. */}
+            {/* Columna derecha para el resumen del pedido. */}
+            {/* Se pasan las nuevas funciones como props a OrderSummary. */}
             <div className="lg:col-span-1 p-8 border-l border-pink-100 bg-white">
-                <OrderSummary cartItems={cart} />
+                <OrderSummary
+                    cartItems={cart}
+                    onUpdateQuantity={handleUpdateQuantity}
+                    onRemoveItem={handleRemoveFromCart}
+                />
             </div>
-            {/* --- FIN DE LA CORRECCIÓN --- */}
         </div>
     );
 }
