@@ -66,6 +66,16 @@ export const products = [
         sku: "PV-005-5D",
         status: "Stock Bajo",
         imageUrl: "https://via.placeholder.com/150/FBCFE8/831843?text=Volumen",
+    },
+    {
+        id: 7,
+        name: "Blister Pestañas 3D",
+        category: "Pestañas Volumen",
+        price: 22.00,
+        stock: 5, // Stock bajo
+        sku: "PV-005-3D",
+        status: "Stock Alto",
+        imageUrl: "https://via.placeholder.com/150/FBCFE8/831843?text=Volumen",
     }
     // ... (puedes añadir el resto de los productos con los nuevos campos)
 ];
