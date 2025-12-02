@@ -1,17 +1,34 @@
 // src/pages/UsersPage.jsx
 
-// Se importan los componentes necesarios.
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/common/PageHeader';
+import { useAuth } from '../context/AuthContext'; // Importamos el hook de autenticación
 
-// Se define el componente funcional para la página de Gestión de Usuarios.
 function UsersPage() {
-    // El componente retorna la estructura JSX de la página.
+    const { logout } = useAuth();
+    const navigate = useNavigate();
+    
+    // Función para cerrar sesión y redirigir
+    const handleLogout = () => {
+        logout(); 
+        navigate('/login');
+    };
+
     return (
-        // Contenedor principal con padding.
         <div className="p-8">
-            {/* Se utiliza el componente reutilizable PageHeader. */}
-            <PageHeader title="Usuarios" />
+            <div className="flex justify-between items-center mb-6">
+                {/* Se utiliza el componente reutilizable PageHeader. */}
+                <PageHeader title="Usuarios" />
+                
+                {/* Botón de Cerrar Sesión */}
+                 <button 
+                    onClick={handleLogout} 
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg transition duration-150"
+                 >
+                    Cerrar Sesión
+                 </button>
+            </div>
 
             {/* Contenido de marcador de posición para la página. */}
             <div className="bg-white p-6 rounded-2xl shadow-md">
@@ -21,5 +38,4 @@ function UsersPage() {
     );
 }
 
-// Se exporta el componente.
 export default UsersPage;

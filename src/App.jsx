@@ -9,7 +9,7 @@ import DashboardPage from './pages/DashboardPage';
 import PointOfSalePage from './pages/PointOfSalePage';
 import InventoryPage from './pages/InventoryPage'; // se importa pagina de inventario
 // se importan las paginas faltantes de userpage y supplierspage
-import UsersPage from './pages/UserPage';
+import UsersPage from './pages/UserPage'; // Usamos el nombre singular correcto: UserPage
 import SuppliersPage from './pages/SuppliersPage';
 import Sidebar from './components/layout/Sidebar';
 import BottomNav from './components/layout/BottomNav';
@@ -19,8 +19,11 @@ import logo from './assets/logo.png';
 // Se crea un componente de Layout para las páginas protegidas.
 // Este layout incluye el Sidebar, BottomNav y el contenido de la página actual.
 function AppLayout() {
-  // Se obtiene la información del usuario del contexto.
-  const { user } = useAuth();
+  // Obtenemos la información del usuario del contexto (si necesitas los datos del usuario logueado, usa 'user').
+  // En este contexto, el user debe ser el objeto que obtienes al decodificar el JWT.
+  // Si tu AuthContext no tiene 'user', puedes quitar la prop 'user={user}' del Sidebar.
+  const { user } = useAuth(); 
+  
   // El componente retorna la estructura de layout que envuelve las páginas.
   return (
     <div className="flex bg-pink-50 min-h-screen">
@@ -31,18 +34,30 @@ function AppLayout() {
         <Outlet />
       </main>
       {/* Se renderiza la barra de navegación inferior para móviles. */}
-      <BottomNav activeLink="Punto de Venta" />
+      {/* Nota: Deberías hacer BottomNav responsivo para ocultarse en desktop. */}
+      <BottomNav activeLink="Punto de Venta" /> 
     </div>
   );
 }
 
 // Componente para proteger las rutas, asegurando que solo usuarios autenticados puedan acceder.
+// MODIFICADO: Usa isAuthenticated y loading para el flujo JWT.
 function ProtectedRoute({ children }) {
-  // Se obtiene el usuario del contexto.
-  const { user } = useAuth();
-  // Si hay un usuario, se renderiza el contenido protegido (children).
+  // Se obtiene el estado de autenticación (JWT) y el estado de carga.
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    // Pantalla de carga mientras se verifica el token
+    return <div className="flex justify-center items-center h-screen text-gray-600">Verificando sesión...</div>; 
+  }
+
+  // Si está autenticado, se renderiza el contenido protegido (children).
+  if (isAuthenticated) {
+    return children;
+  }
+  
   // Si no, se redirige al usuario a la página de inicio de sesión.
-  return user ? children : <Navigate to="/login" replace />;
+  return <Navigate to="/login" replace />;
 }
 
 // Se define el componente principal de la aplicación que gestiona todas las rutas.
@@ -57,6 +72,7 @@ function App() {
       <Route
         path="/"
         element={
+          // Envuelve el AppLayout en ProtectedRoute
           <ProtectedRoute>
             <AppLayout />
           </ProtectedRoute>
@@ -72,7 +88,7 @@ function App() {
         <Route path="suppliers" element={<SuppliersPage />} />
       </Route>
 
-      {/* Ruta comodín para redirigir cualquier otra URL no encontrada a la página principal. */}
+      {/* Ruta comodín para redirigir cualquier otra URL no encontrada a la página principal (la cual redirige al dashboard). */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
