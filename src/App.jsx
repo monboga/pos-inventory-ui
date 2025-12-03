@@ -7,7 +7,9 @@ import PointOfSalePage from './pages/PointOfSalePage';
 import InventoryPage from './pages/InventoryPage'; // se importa pagina de inventario
 // se importan las paginas faltantes de userpage y supplierspage
 import UsersPage from './pages/UserPage'; // Usamos el nombre singular correcto: UserPage
-import SuppliersPage from './pages/SuppliersPage';
+import CustomerPage from './pages/CustomerPage'; // (Antes SuppliersPage)
+import SalesHistoryPage from './pages/SalesHistoryPage'; // Nueva página
+import ProfilePage from './pages/ProfilePage'; 
 import Sidebar from './components/layout/Sidebar';
 import BottomNav from './components/layout/BottomNav';
 import logo from './assets/logo.png';
@@ -82,7 +84,9 @@ function App() {
         {/* Se añaden las rutas para los nuevos enlaces del menú. */}
         <Route path="inventory" element={<InventoryPage />} />
         <Route path="users" element={<UsersPage />} />
-        <Route path="suppliers" element={<SuppliersPage />} />
+        <Route path="customers" element={<CustomerPage />} />
+        <Route path="sales-history" element={<SalesHistoryPage />} />
+        <Route path="profile" element={<ProfilePage />} />
       </Route>
 
       {/* Ruta comodín para redirigir cualquier otra URL no encontrada a la página principal (la cual redirige al dashboard). */}

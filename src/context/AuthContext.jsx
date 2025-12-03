@@ -13,43 +13,54 @@ export const AuthProvider = ({ children }) => {
    * Función CLAVE: Busca los datos completos del usuario usando el Token como llave.
    */
   const fetchRealUserData = async (email, tokenData, rawToken) => {
-    try {
-      // 1. IMPORTANTE: Incluimos el token en los headers
+try {
       const response = await fetch('https://localhost:7031/api/users', {
         headers: {
-          'Authorization': `Bearer ${rawToken}`, // <--- ESTO FALTABA
+          'Authorization': `Bearer ${rawToken}`,
           'Content-Type': 'application/json'
         }
       });
 
       if (!response.ok) {
-        console.warn(`No se pudo obtener lista de usuarios. Status: ${response.status}`);
-        return tokenData; // Si falla, usamos el fallback del token
+        return tokenData; 
       }
       
       const users = await response.json();
       
-      // 2. Buscamos al usuario que coincida con el email
-      // Ajustamos para que coincida mayúsculas/minúsculas
+      // Buscamos usuario ignorando mayúsculas/minúsculas en el email
       const foundUser = users.find(u => u.email?.toLowerCase() === email?.toLowerCase());
 
       if (foundUser) {
-        console.log("Usuario real encontrado en DB:", foundUser); // Para depurar
+        // --- AQUÍ ESTÁ EL FIX ---
+        // 1. Intentamos leer las propiedades sin importar si vienen en Mayúscula o Minúscula
+        // ( .NET a veces devuelve PascalCase 'FirstName' aunque JS prefiera camelCase )
+        let fName = foundUser.firstName || foundUser.FirstName || "";
+        let lName = foundUser.lastName || foundUser.LastName || "";
+        const fullNameFromApi = foundUser.fullName || foundUser.FullName || "";
 
-        // 3. Detectamos nombres según cómo vengan en tu API (FirstName o fullName)
-        const realName = foundUser.fullName || 
-                         (foundUser.firstName && foundUser.lastName ? `${foundUser.firstName} ${foundUser.lastName}` : null) || 
-                         foundUser.firstName || 
-                         tokenData.name;
+        // 2. PLAN B: Si firstName/lastName vienen vacíos, pero tenemos fullName,
+        // intentamos separarlos nosotros mismos.
+        if ((!fName || !lName) && fullNameFromApi) {
+            const nameParts = fullNameFromApi.split(' ');
+            if (!fName) fName = nameParts[0]; // Primer palabra
+            if (!lName) lName = nameParts.slice(1).join(' '); // Resto del string
+        }
 
-        // 4. Retornamos la fusión de datos
+        // 3. PLAN C: Fallback al nombre del token si todo lo demás falla
+        const finalName = fullNameFromApi || 
+                          (fName && lName ? `${fName} ${lName}` : null) || 
+                          tokenData.name;
+
         return {
-          ...tokenData, // Mantenemos datos técnicos del token (expiración, etc)
-          ...foundUser, // Sobrescribimos con datos reales (roles, foto, etc)
-          name: realName, 
-          // Aseguramos que el rol sea un string legible si viene como array
+          ...tokenData, 
+          ...foundUser, 
+          // Normalizamos todo a las propiedades que usa tu Frontend (camelCase)
+          name: finalName, 
+          firstName: fName, // Ahora sí tendrá valor
+          lastName: lName,  // Ahora sí tendrá valor
+          email: foundUser.email || foundUser.Email,
           role: Array.isArray(foundUser.roles) ? foundUser.roles[0] : (foundUser.roles || tokenData.role),
-          initials: (foundUser.firstName?.[0] || "") + (foundUser.lastName?.[0] || "") || tokenData.initials
+          initials: (fName?.[0] || "") + (lName?.[0] || "") || tokenData.initials
         };
       }
     } catch (error) {
