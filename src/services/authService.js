@@ -66,70 +66,60 @@ export const decodeUserFromToken = (token) => {
   try {
     const decoded = jwtDecode(token);
     
-    // --- DEBUG: IMPORTANTE ---
-    // Abre la consola (F12) para ver qué claves REALES trae tu token.
-    // .NET a veces las llama 'name', 'unique_name', 'given_name', etc.
-    console.log(" CONTENIDO DEL TOKEN:", decoded); 
+    // --- 1. Lógica de Nombres (Ya la tenías) ---
+    const email = decoded.email || decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || decoded.unique_name || "";
+    
+    let firstName = decoded.firstName || decoded.given_name || decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"];
+    let lastName = decoded.lastName || decoded.family_name || decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"];
 
-    // 1. Extraer Email (Buscamos en las claves comunes de .NET Identity)
-    const email = decoded.email || 
-                  decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || 
-                  decoded.unique_name || 
-                  "";
-
-    // 2. Intentar buscar Nombres explícitos
-    // (A menudo .NET no envía esto por defecto a menos que se configure)
-    let firstName = decoded.firstName || 
-                    decoded.given_name || 
-                    decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"];
-                    
-    let lastName = decoded.lastName || 
-                   decoded.family_name || 
-                   decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"];
-
-    // 3. ESTRATEGIA DE RESPALDO (FALLBACK): Generar nombre desde el Email
-    // Si el token NO traía el nombre, lo sacamos de 'diego.monroy@test.com'
+    // Fallback para nombre si no viene en token
     if (!firstName && email && email.includes('@')) {
-        const namePart = email.split('@')[0]; // "diego.monroy"
-        
+        const namePart = email.split('@')[0]; 
         if (namePart.includes('.')) {
-            // Caso: diego.monroy
             const parts = namePart.split('.');
-            firstName = capitalize(parts[0]); // Diego
-            lastName = capitalize(parts[1]);  // Monroy
+            firstName = capitalize(parts[0]);
+            lastName = capitalize(parts[1]);
         } else {
-            // Caso: diegomonroy
             firstName = capitalize(namePart);
         }
     }
 
-    // 4. Construir Nombre Completo
-    const fullName = (firstName && lastName) 
-        ? `${firstName} ${lastName}` 
-        : (firstName || email || "Usuario");
-
-    // 5. Generar Iniciales
+    const fullName = (firstName && lastName) ? `${firstName} ${lastName}` : (firstName || email || "Usuario");
+    
     const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : "";
     const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : "";
     let initials = (firstInitial + lastInitial);
+    if (!initials && email) initials = email.charAt(0).toUpperCase();
+
+    // --- 2. NUEVA LÓGICA PARA EL ROL ---
+    // Buscamos el rol en las llaves estándar de Microsoft o en claves simples
+    const roleClaim = decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || decoded.role || decoded.roles;
     
-    // Si falló todo, usar la primera letra del email
-    if (!initials && email) {
-        initials = email.charAt(0).toUpperCase();
+    let userRole = "Usuario"; // Valor por defecto
+
+    if (roleClaim) {
+        if (Array.isArray(roleClaim)) {
+            // Si tiene múltiples roles (ej. ["Admin", "Ventas"]), mostramos el primero o los unimos
+            userRole = roleClaim[0]; 
+        } else {
+            // Si es un solo string
+            userRole = roleClaim;
+        }
     }
 
     return {
       name: fullName,
       email: email,
-      initials: initials || "U"
+      initials: initials || "U",
+      role: userRole // <--- Agregamos esto al objeto final
     };
+
   } catch (error) {
     console.error("Error al decodificar token:", error);
     return null;
   }
 };
 
-// Función auxiliar para poner mayúscula la primera letra
 function capitalize(str) {
     if (!str) return "";
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();

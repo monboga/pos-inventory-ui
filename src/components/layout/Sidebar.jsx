@@ -1,132 +1,194 @@
 // src/components/layout/Sidebar.jsx
 
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-// Importamos el hook del contexto para obtener el usuario globalmente
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { 
+    LayoutDashboard, 
+    Package, 
+    Store, 
+    Users, 
+    Truck, 
+    ChevronLeft, 
+    ChevronRight, 
+    LogOut, 
+    ChevronsUpDown,
+    UserCircle
+} from 'lucide-react';
 
-// --- Definición de Iconos ---
-const DashboardIcon = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>;
-const InventoryIcon = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>;
-const PointOfSaleIcon = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>;
-const UsersIcon = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
-const SuppliersIcon = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
-const ChevronLeftIcon = () => <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>;
-const ChevronRightIcon = () => <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>;
-const LogoutIcon = () => <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
-const UpDownIcon = () => <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" /></svg>;
-
-// --- Sub-componente para los enlaces del menú ---
-function MenuItem({ icon, text, active, isCollapsed, onClick, to }) {
+// --- Sub-componente MenuItem con Tooltip ---
+function MenuItem({ icon: Icon, text, active, isCollapsed, onClick, to }) {
     return (
         <div className="relative group">
             <Link
                 to={to}
                 onClick={onClick}
-                className={`w-full flex items-center p-3 my-1 rounded-lg transition-colors duration-200 text-left ${active ? "bg-pink-100 text-pink-700" : "text-gray-600 hover:bg-pink-50"} ${isCollapsed ? "justify-center" : ""}`}
+                className={`
+                    flex items-center p-3 my-1.5 rounded-xl transition-all duration-200 
+                    ${active 
+                        ? "bg-pink-100 text-pink-600 shadow-sm" 
+                        : "text-gray-500 hover:bg-pink-50 hover:text-pink-500"
+                    } 
+                    ${isCollapsed ? "justify-center" : "w-full"}
+                `}
             >
-                <div>{icon}</div>
-                <span className={`ml-4 font-semibold whitespace-nowrap ${isCollapsed ? 'hidden' : 'block'}`}>{text}</span>
-            </Link>
-
-            {isCollapsed && (
-                <span className="absolute left-20 top-1/2 -translate-y-1/2 px-3 py-1.5 text-sm font-medium text-white bg-pink-500 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                {/* El icono mantiene su tamaño */}
+                <Icon size={22} strokeWidth={active ? 2.5 : 2} className="flex-shrink-0" />
+                
+                {/* SOLUCIÓN AL BUG VISUAL: Usamos 'hidden' absoluto.
+                    Si está colapsado, el texto DESAPARECE del flujo, evitando que empuje cosas o se vea cortado. */}
+                <span className={`ml-3 font-medium text-sm whitespace-nowrap overflow-hidden transition-all duration-200 ${isCollapsed ? 'hidden' : 'block'}`}>
                     {text}
                 </span>
+            </Link>
+
+            {/* --- TOOLTIP FLOTANTE (Solo visible si está colapsado + Hover) --- */}
+            {isCollapsed && (
+                <div className="
+                    absolute left-full top-1/2 -translate-y-1/2 ml-3
+                    z-50 hidden group-hover:block
+                    bg-gray-800 text-white text-xs font-bold px-3 py-2 rounded-md shadow-xl
+                    whitespace-nowrap animate-in fade-in zoom-in duration-200
+                ">
+                    {/* Flechita decorativa del tooltip */}
+                    <div className="absolute top-1/2 -translate-y-1/2 -left-1 w-2 h-2 bg-gray-800 rotate-45"></div>
+                    {text}
+                </div>
             )}
         </div>
     );
 }
 
-// --- Componente principal Sidebar ---
 function Sidebar({ logoUrl }) {
-    // 1. Obtenemos user y logout del contexto directamente
     const { user, logout } = useAuth();
-    
     const navigate = useNavigate();
+    const location = useLocation(); 
+    
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const [activeLink, setActiveLink] = useState('Dashboard');
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
     const handleLogout = () => { logout(); navigate('/login'); };
 
-    // 2. Definimos valores seguros con "Optional Chaining" (?.)
-    // Esto evita que la app se rompa si 'user' es null al cargar
-    const userName = user?.name || "Usuario";
+    // Datos del usuario (ahora vendrán reales desde la API gracias al AuthContext)
+    const displayName = user?.name || "Cargando...";
     const userEmail = user?.email || "";
-    const userInitials = user?.initials || "U";
+    // Iniciales seguras
+    const userInitials = user?.initials || displayName.charAt(0).toUpperCase() || "U";
+    const userRole = user?.role || "Usuario"; 
 
-    const popupMenuClasses = isCollapsed ? 'bottom-4 left-full ml-4' : 'bottom-24 left-4 right-4';
+    const isActive = (path) => {
+        if (path === '/') return location.pathname === '/';
+        return location.pathname.startsWith(path);
+    };
 
     return (
-        <div className="relative h-screen hidden md:flex">
-            {/* Botón flotante para colapsar/expandir */}
+        // z-50 para asegurar que el sidebar y sus tooltips estén sobre todo
+        <div className="relative h-screen hidden md:flex z-50">
+            
+            {/* Botón de Colapso */}
             <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                className={`absolute top-7 bg-white p-1.5 rounded-full border border-pink-100 shadow-md transition-all duration-300 ${isCollapsed ? 'left-24' : 'left-72'} -translate-x-1/2 z-30`}>
-                {isCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+                className={`
+                    absolute top-9 -right-3 
+                    bg-white text-gray-400 hover:text-pink-500
+                    p-1 rounded-full border border-gray-100 shadow-md 
+                    transition-transform duration-300 z-50
+                    hover:scale-110
+                `}>
+                {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             </button>
 
-            {/* Aside Principal */}
-            <aside className={`h-full bg-white transition-all duration-300 ease-in-out ${isCollapsed ? 'w-24' : 'w-72'} shadow-xl flex flex-col`}>
-                <header className={`flex items-center justify-center p-4 h-24 border-b border-pink-100`}>
-                    <img src={logoUrl} alt="Logo" className={`transition-all duration-300 ${isCollapsed ? 'w-10' : 'h-16 w-auto'}`} />
+            {/* Contenedor Aside */}
+            <aside className={`
+                h-full bg-white border-r border-gray-100
+                transition-all duration-300 ease-in-out 
+                ${isCollapsed ? 'w-20' : 'w-72'} 
+                flex flex-col relative
+            `}>
+                {/* Header */}
+                <header className={`flex items-center justify-center h-24 flex-shrink-0 ${isCollapsed ? 'px-2' : 'px-6'}`}>
+                    <img 
+                        src={logoUrl} 
+                        alt="Logo" 
+                        className={`object-contain transition-all duration-300 ${isCollapsed ? 'w-8 h-8' : 'h-10 w-auto'}`} 
+                    />
                 </header>
 
-                <nav className="flex-grow p-2">
-                    <MenuItem text="Dashboard" to="/" icon={<DashboardIcon />} isCollapsed={isCollapsed} active={activeLink === 'Dashboard'} onClick={() => setActiveLink('Dashboard')} />
-                    <MenuItem text="Inventario" to="/inventory" icon={<InventoryIcon />} isCollapsed={isCollapsed} active={activeLink === 'Inventario'} onClick={() => setActiveLink('Inventario')} />
-                    <MenuItem text="Punto de venta" to="/pos" icon={<PointOfSaleIcon />} isCollapsed={isCollapsed} active={activeLink === 'Punto de venta'} onClick={() => setActiveLink('Punto de venta')} />
-                    <MenuItem text="Usuarios" to="/users" icon={<UsersIcon />} isCollapsed={isCollapsed} active={activeLink === 'Usuarios'} onClick={() => setActiveLink('Usuarios')} />
-                    <MenuItem text="Proveedores" to="/suppliers" icon={<SuppliersIcon />} isCollapsed={isCollapsed} active={activeLink === 'Proveedores'} onClick={() => setActiveLink('Proveedores')} />
+                {/* Navegación */}
+                {/* Usamos overflow-visible cuando está colapsado para permitir que los tooltips salgan */}
+                <nav className={`flex-grow px-3 py-4 space-y-1 ${isCollapsed ? 'overflow-visible' : 'overflow-y-auto custom-scrollbar'}`}>
+                    
+                    {/* Título de Sección (Desaparece con hidden al colapsar) */}
+                    <p className={`text-xs font-bold text-gray-400 uppercase mb-2 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>
+                        Menu
+                    </p>
+                    
+                    <MenuItem to="/" text="Dashboard" icon={LayoutDashboard} isCollapsed={isCollapsed} active={isActive('/')} />
+                    <MenuItem to="/pos" text="Punto de Venta" icon={Store} isCollapsed={isCollapsed} active={isActive('/pos')} />
+                    <MenuItem to="/inventory" text="Inventario" icon={Package} isCollapsed={isCollapsed} active={isActive('/inventory')} />
+
+                    <div className="my-4 border-t border-gray-100"></div>
+                    
+                    <p className={`text-xs font-bold text-gray-400 uppercase mb-2 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>
+                        Admin
+                    </p>
+
+                    <MenuItem to="/users" text="Usuarios" icon={Users} isCollapsed={isCollapsed} active={isActive('/users')} />
+                    <MenuItem to="/suppliers" text="Proveedores" icon={Truck} isCollapsed={isCollapsed} active={isActive('/suppliers')} />
                 </nav>
 
-                <footer className={`p-4 border-t border-pink-100`}>
-                    <div className="flex items-center">
+                {/* Footer del Usuario */}
+                <div className="p-3 border-t border-gray-100 bg-gray-50/50 mt-auto">
+                    <div className={`
+                        relative flex items-center p-2 rounded-xl cursor-pointer transition-colors hover:bg-white hover:shadow-sm
+                        ${isCollapsed ? 'justify-center' : ''}
+                    `}
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    >
                         {/* Avatar */}
-                        <div
-                            className={isCollapsed ? 'cursor-pointer' : ''}
-                            onClick={() => { if (isCollapsed) setIsUserMenuOpen(!isUserMenuOpen) }}>
-                            <div className="w-12 h-12 rounded-full bg-pink-300 text-white flex items-center justify-center font-bold text-xl flex-shrink-0">{userInitials}</div>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-400 to-pink-600 text-white flex items-center justify-center font-bold text-sm shadow-md flex-shrink-0">
+                            {userInitials}
                         </div>
 
-                        {/* Info Usuario */}
-                        <div className={`ml-3 whitespace-nowrap ${isCollapsed ? 'hidden' : 'block'}`}>
-                            <p className="font-semibold">{userName}</p>
-                            <span className="text-xs text-gray-500">Cuenta de Usuario</span>
+                        {/* Texto del Usuario (Oculto con hidden para evitar el bug) */}
+                        <div className={`ml-3 overflow-hidden transition-all duration-300 ${isCollapsed ? 'hidden' : 'block'}`}>
+                            <p className="text-sm font-bold text-gray-700 truncate max-w-[140px]">{displayName}</p>
+                            <p className="text-xs text-gray-500 truncate capitalize">{userRole}</p>
                         </div>
 
-                        {/* Botón menú usuario */}
-                        <button
-                            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                            className={`ml-auto p-1.5 rounded-full hover:bg-gray-100 ${isCollapsed ? 'hidden' : 'block'}`}>
-                            <UpDownIcon />
-                        </button>
+                        {/* Icono Flechas */}
+                        {!isCollapsed && (
+                            <ChevronsUpDown size={16} className="ml-auto text-gray-400" />
+                        )}
                     </div>
 
-                    {/* Menú Emergente */}
+                    {/* Menú Popup (Dropdown) */}
                     {isUserMenuOpen && (
-                        <div className={`absolute p-2 bg-white rounded-xl shadow-lg border border-gray-100 w-64 z-20 ${popupMenuClasses}`}>
-                            <div className="flex items-center p-2 border-b border-gray-100">
-                                <div className="w-12 h-12 rounded-full bg-pink-300 text-white flex items-center justify-center font-bold text-xl flex-shrink-0">{userInitials}</div>
-                                <div className="ml-3 overflow-hidden">
-                                    <p className="font-bold text-gray-800 truncate">{userName}</p>
-                                    <p className="text-sm text-gray-500 truncate">{userEmail}</p>
-                                </div>
+                        <div className={`
+                            absolute bottom-20 bg-white rounded-xl shadow-2xl border border-gray-100 p-1.5 w-64 z-[60]
+                            ${isCollapsed ? 'left-16' : 'left-4 right-4 w-auto'}
+                            origin-bottom-left animate-in fade-in slide-in-from-bottom-2 duration-200
+                        `}>
+                            <div className="px-3 py-3 border-b border-gray-100 mb-1 bg-gray-50 rounded-t-lg">
+                                <p className="text-sm font-bold text-gray-800">{displayName}</p>
+                                <p className="text-xs text-gray-500 truncate">{userEmail}</p>
                             </div>
-                            <nav className="p-2">
-                                <Link to="/profile" className="block p-2 text-gray-700 text-sm font-medium rounded-md hover:bg-pink-50">Ver Perfil</Link>
-                            </nav>
-                            <hr className="my-1 border-gray-100" />
-                            <div className="p-2">
-                                <button onClick={handleLogout} className="w-full flex items-center justify-between p-2 text-gray-700 text-sm font-medium rounded-md hover:bg-pink-50">
-                                    <span>Cerrar Sesión</span>
-                                    <LogoutIcon />
-                                </button>
-                            </div>
+                            
+                            <Link to="/profile" className="flex items-center px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-pink-50 hover:text-pink-600 transition-colors">
+                                <UserCircle size={16} className="mr-2" />
+                                Mi Perfil
+                            </Link>
+                            
+                            <button 
+                                onClick={handleLogout} 
+                                className="w-full flex items-center px-3 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors mt-1"
+                            >
+                                <LogOut size={16} className="mr-2" />
+                                Cerrar Sesión
+                            </button>
                         </div>
                     )}
-                </footer>
+                </div>
             </aside>
         </div>
     );
