@@ -22,9 +22,9 @@ function LoginPage({ logoUrl }) {
 
         try {
             // La función login ahora es asíncrona y lanza errores si falla la API
-            await login(email, password); 
-            // Si es exitoso, redirige a /usuarios
-            navigate('/usuarios'); 
+            await login({ email, password }); 
+            // Si es exitoso, redirige a /users
+            navigate('/'); 
         } catch (err) {
             // Captura el error lanzado por AuthContext o authService
             setError(err.message || 'Error de conexión. Intente de nuevo.');

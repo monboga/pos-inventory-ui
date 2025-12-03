@@ -1,7 +1,4 @@
-// src/App.jsx
-
 // Se importan los componentes de React Router y nuestras páginas.
-import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
@@ -44,7 +41,7 @@ function AppLayout() {
 // MODIFICADO: Usa isAuthenticated y loading para el flujo JWT.
 function ProtectedRoute({ children }) {
   // Se obtiene el estado de autenticación (JWT) y el estado de carga.
-  const { isAuthenticated, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     // Pantalla de carga mientras se verifica el token
@@ -52,7 +49,7 @@ function ProtectedRoute({ children }) {
   }
 
   // Si está autenticado, se renderiza el contenido protegido (children).
-  if (isAuthenticated) {
+  if (user) {
     return children;
   }
   

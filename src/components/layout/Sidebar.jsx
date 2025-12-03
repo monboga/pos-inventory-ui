@@ -1,6 +1,8 @@
-// Se importa la librería React y los hooks necesarios.
+// src/components/layout/Sidebar.jsx
+
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+// Importamos el hook del contexto para obtener el usuario globalmente
 import { useAuth } from '../../context/AuthContext';
 
 // --- Definición de Iconos ---
@@ -18,20 +20,15 @@ const UpDownIcon = () => <svg className="w-4 h-4 text-gray-400" fill="none" stro
 function MenuItem({ icon, text, active, isCollapsed, onClick, to }) {
     return (
         <div className="relative group">
-            {/* Componente Link para la navegación. */}
             <Link
                 to={to}
                 onClick={onClick}
                 className={`w-full flex items-center p-3 my-1 rounded-lg transition-colors duration-200 text-left ${active ? "bg-pink-100 text-pink-700" : "text-gray-600 hover:bg-pink-50"} ${isCollapsed ? "justify-center" : ""}`}
             >
-                {/* Contenedor del icono. */}
                 <div>{icon}</div>
-                {/* Contenedor del texto, se oculta correctamente cuando está colapsado. */}
                 <span className={`ml-4 font-semibold whitespace-nowrap ${isCollapsed ? 'hidden' : 'block'}`}>{text}</span>
             </Link>
 
-            {/* --- INICIO DE LA CORRECCIÓN 1: Tooltip Restaurado --- */}
-            {/* El tooltip vuelve a renderizarse cuando la barra está contraída. */}
             {isCollapsed && (
                 <span className="absolute left-20 top-1/2 -translate-y-1/2 px-3 py-1.5 text-sm font-medium text-white bg-pink-500 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
                     {text}
@@ -41,36 +38,41 @@ function MenuItem({ icon, text, active, isCollapsed, onClick, to }) {
     );
 }
 
-// --- Componente principal de la Barra Lateral ---
-function Sidebar({ logoUrl, user }) {
-    const { logout } = useAuth();
+// --- Componente principal Sidebar ---
+function Sidebar({ logoUrl }) {
+    // 1. Obtenemos user y logout del contexto directamente
+    const { user, logout } = useAuth();
+    
     const navigate = useNavigate();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [activeLink, setActiveLink] = useState('Dashboard');
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
     const handleLogout = () => { logout(); navigate('/login'); };
+
+    // 2. Definimos valores seguros con "Optional Chaining" (?.)
+    // Esto evita que la app se rompa si 'user' es null al cargar
     const userName = user?.name || "Usuario";
-    const userEmail = user?.email || "email@ejemplo.com";
+    const userEmail = user?.email || "";
     const userInitials = user?.initials || "U";
+
     const popupMenuClasses = isCollapsed ? 'bottom-4 left-full ml-4' : 'bottom-24 left-4 right-4';
 
     return (
         <div className="relative h-screen hidden md:flex">
-            {/* Botón flotante para colapsar/expandir. */}
+            {/* Botón flotante para colapsar/expandir */}
             <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 className={`absolute top-7 bg-white p-1.5 rounded-full border border-pink-100 shadow-md transition-all duration-300 ${isCollapsed ? 'left-24' : 'left-72'} -translate-x-1/2 z-30`}>
                 {isCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
             </button>
 
-            {/* Contenedor principal 'aside'. */}
+            {/* Aside Principal */}
             <aside className={`h-full bg-white transition-all duration-300 ease-in-out ${isCollapsed ? 'w-24' : 'w-72'} shadow-xl flex flex-col`}>
-                {/* Encabezado con el logo. */}
                 <header className={`flex items-center justify-center p-4 h-24 border-b border-pink-100`}>
                     <img src={logoUrl} alt="Logo" className={`transition-all duration-300 ${isCollapsed ? 'w-10' : 'h-16 w-auto'}`} />
                 </header>
 
-                {/* Navegación principal. */}
                 <nav className="flex-grow p-2">
                     <MenuItem text="Dashboard" to="/" icon={<DashboardIcon />} isCollapsed={isCollapsed} active={activeLink === 'Dashboard'} onClick={() => setActiveLink('Dashboard')} />
                     <MenuItem text="Inventario" to="/inventory" icon={<InventoryIcon />} isCollapsed={isCollapsed} active={activeLink === 'Inventario'} onClick={() => setActiveLink('Inventario')} />
@@ -79,24 +81,22 @@ function Sidebar({ logoUrl, user }) {
                     <MenuItem text="Proveedores" to="/suppliers" icon={<SuppliersIcon />} isCollapsed={isCollapsed} active={activeLink === 'Proveedores'} onClick={() => setActiveLink('Proveedores')} />
                 </nav>
 
-                {/* Pie de página con el perfil de usuario. */}
                 <footer className={`p-4 border-t border-pink-100`}>
                     <div className="flex items-center">
-                        {/* Contenedor del avatar, clicleable solo en modo contraído. */}
+                        {/* Avatar */}
                         <div
                             className={isCollapsed ? 'cursor-pointer' : ''}
                             onClick={() => { if (isCollapsed) setIsUserMenuOpen(!isUserMenuOpen) }}>
                             <div className="w-12 h-12 rounded-full bg-pink-300 text-white flex items-center justify-center font-bold text-xl flex-shrink-0">{userInitials}</div>
                         </div>
 
-                        {/* Información del usuario. */}
+                        {/* Info Usuario */}
                         <div className={`ml-3 whitespace-nowrap ${isCollapsed ? 'hidden' : 'block'}`}>
                             <p className="font-semibold">{userName}</p>
                             <span className="text-xs text-gray-500">Cuenta de Usuario</span>
                         </div>
 
-                        {/* --- INICIO DE LA CORRECCIÓN 2: Botón de Despliegue Restaurado --- */}
-                        {/* Botón para desplegar el menú en la vista expandida. */}
+                        {/* Botón menú usuario */}
                         <button
                             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                             className={`ml-auto p-1.5 rounded-full hover:bg-gray-100 ${isCollapsed ? 'hidden' : 'block'}`}>
@@ -104,25 +104,20 @@ function Sidebar({ logoUrl, user }) {
                         </button>
                     </div>
 
-                    {/* --- INICIO DE LA CORRECCIÓN 3: Menú Emergente Restaurado --- */}
-                    {/* Menú emergente del perfil. Se muestra si el estado es 'true'. */}
+                    {/* Menú Emergente */}
                     {isUserMenuOpen && (
                         <div className={`absolute p-2 bg-white rounded-xl shadow-lg border border-gray-100 w-64 z-20 ${popupMenuClasses}`}>
-                            {/* Encabezado del menú emergente. */}
                             <div className="flex items-center p-2 border-b border-gray-100">
                                 <div className="w-12 h-12 rounded-full bg-pink-300 text-white flex items-center justify-center font-bold text-xl flex-shrink-0">{userInitials}</div>
-                                <div className="ml-3">
-                                    <p className="font-bold text-gray-800">{userName}</p>
-                                    <p className="text-sm text-gray-500">{userEmail}</p>
+                                <div className="ml-3 overflow-hidden">
+                                    <p className="font-bold text-gray-800 truncate">{userName}</p>
+                                    <p className="text-sm text-gray-500 truncate">{userEmail}</p>
                                 </div>
                             </div>
-                            {/* Opciones del menú. */}
                             <nav className="p-2">
-                                <a href="#" className="block p-2 text-gray-700 text-sm font-medium rounded-md hover:bg-pink-50">Ver Perfil</a>
-                                <a href="#" className="block p-2 text-gray-700 text-sm font-medium rounded-md hover:bg-pink-50">Gestionar Suscripciones</a>
+                                <Link to="/profile" className="block p-2 text-gray-700 text-sm font-medium rounded-md hover:bg-pink-50">Ver Perfil</Link>
                             </nav>
                             <hr className="my-1 border-gray-100" />
-                            {/* Opción de cerrar sesión. */}
                             <div className="p-2">
                                 <button onClick={handleLogout} className="w-full flex items-center justify-between p-2 text-gray-700 text-sm font-medium rounded-md hover:bg-pink-50">
                                     <span>Cerrar Sesión</span>
@@ -137,5 +132,4 @@ function Sidebar({ logoUrl, user }) {
     );
 }
 
-// Se exporta el componente Sidebar para su uso en otros archivos.
 export default Sidebar;
