@@ -2,13 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, User, Mail, Lock, Shield, Camera, ToggleLeft, ToggleRight } from 'lucide-react';
 import { roleService } from '../../services/roleService';
 
-// Ajusta este puerto si tu API cambia
+// Asegúrate que este puerto sea el correcto de tu API
 const API_BASE_URL = 'https://localhost:7031'; 
 
 function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
     const fileInputRef = useRef(null);
-    
-    // Estados
     const [availableRoles, setAvailableRoles] = useState([]);
     const [loadingRoles, setLoadingRoles] = useState(false);
 
@@ -22,11 +20,10 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
     };
 
     const [formData, setFormData] = useState(initialFormState);
-    const [photoPreview, setPhotoPreview] = useState(null); // URL para mostrar (Preview)
-    const [photoFile, setPhotoFile] = useState(null); // Archivo binario para enviar (Upload)
+    const [photoPreview, setPhotoPreview] = useState(null);
+    const [photoFile, setPhotoFile] = useState(null);
 
-    // --- FUNCIÓN DE COMPRESIÓN ---
-    // Reduce la imagen a 500px y JPG 70% para evitar crash en la API
+    // Compresión de imagen
     const compressImageToFile = (file) => {
         return new Promise((resolve) => {
             const reader = new FileReader();
@@ -70,7 +67,7 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
         });
     };
 
-    // 1. CARGAR ROLES
+    // Cargar Roles
     useEffect(() => {
         const fetchRoles = async () => {
             if (isOpen) {
@@ -88,15 +85,13 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
         fetchRoles();
     }, [isOpen]);
 
-    // 2. RELLENAR DATOS (LOGICA PRINCIPAL)
+    // Rellenar Datos
     useEffect(() => {
         if (isOpen && !loadingRoles) {
-            setPhotoFile(null); // Limpiamos archivo pendiente de subida
+            setPhotoFile(null); // Reset archivo nuevo
 
             if (userToEdit) {
-                // --- MODO EDICIÓN ---
-
-                // A. Normalizar Nombres
+                // Nombres
                 let fName = userToEdit.firstName || userToEdit.FirstName || "";
                 let lName = userToEdit.lastName || userToEdit.LastName || "";
                 const fullName = userToEdit.fullName || userToEdit.FullName || "";
@@ -115,31 +110,33 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                     if (!lName && parts.length > 1) lName = parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
                 }
 
-                // B. PREVIEW DE FOTO (FIX DE RUTA RELATIVA)
+                // --- LOGICA DE VISUALIZACIÓN DE IMAGEN ---
                 let existingPhoto = "";
+                // Intentamos todas las variantes posibles
                 const rawPhoto = userToEdit.photo || userToEdit.Photo || userToEdit.photoUrl || userToEdit.PhotoUrl;
                 
                 if (rawPhoto) {
-                    // Si es ruta del backend
-                    if (rawPhoto.includes("Uploads")) {
-                        const cleanPath = rawPhoto.replace(/\\/g, '/');
-                        const pathPart = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
-                        existingPhoto = `${API_BASE_URL}/${pathPart}`;
-                    }
-                    else if (rawPhoto.startsWith('data:') || rawPhoto.startsWith('http')) {
+                    // 1. Si ya es una URL web completa (http...) o Base64 (data:...), úsala tal cual
+                    if (rawPhoto.startsWith('http') || rawPhoto.startsWith('data:')) {
                         existingPhoto = rawPhoto;
                     } 
+                    // 2. Si es una ruta relativa del backend (Uploads\Users\...)
                     else {
-                        existingPhoto = `data:image/jpeg;base64,${rawPhoto}`;
+                        // Limpiamos las barras invertidas de Windows
+                        const cleanPath = rawPhoto.replace(/\\/g, '/');
+                        // Quitamos slash inicial si existe para no duplicar
+                        const pathPart = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
+                        // Construimos la URL final: https://localhost:7031/Uploads/Users/foto.jpg
+                        existingPhoto = `${API_BASE_URL}/${pathPart}`;
                     }
                 }
 
-                // C. Encontrar ID del Rol
+                // Roles
                 const userRoleName = userToEdit.roles && userToEdit.roles.length > 0 ? userToEdit.roles[0] : "";
                 const matchingRoleObj = availableRoles.find(r => (r.name || r.Name) === userRoleName);
                 const roleIdToSelect = matchingRoleObj ? (matchingRoleObj.id || matchingRoleObj.Id) : "";
 
-                // D. Estado
+                // Estado
                 const currentStatus = userToEdit.isActive !== undefined ? userToEdit.isActive : true;
 
                 setFormData({
@@ -153,7 +150,7 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                 setPhotoPreview(existingPhoto);
 
             } else {
-                // --- MODO CREAR ---
+                // Crear
                 let defaultRoleId = "";
                 if (availableRoles.length > 0) {
                     defaultRoleId = availableRoles[0].id || availableRoles[0].Id;
@@ -164,20 +161,18 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
         }
     }, [isOpen, userToEdit, availableRoles, loadingRoles]);
 
-    // --- MANEJO DE ARCHIVO ---
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
         if (file) {
-            // 1. Mostrar preview inmediato al usuario
+            // Preview inmediato
             setPhotoPreview(URL.createObjectURL(file));
-
-            // 2. Comprimir y guardar el archivo optimizado para enviar
+            // Comprimir y guardar archivo para envío
             try {
                 const compressedFile = await compressImageToFile(file);
-                setPhotoFile(compressedFile); 
+                setPhotoFile(compressedFile);
             } catch (error) {
-                console.error("Error comprimiendo", error);
-                setPhotoFile(file); // Fallback al original
+                console.error("Error al procesar imagen", error);
+                setPhotoFile(file);
             }
         }
     };
@@ -190,7 +185,6 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
              finalRole = availableRoles[0].id || availableRoles[0].Id;
         }
         
-        // Enviamos formData + el archivo 'photoFile'
         onSubmit({ 
             ...formData, 
             role: finalRole,
@@ -217,13 +211,26 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                     {/* FOTO */}
                     <div className="flex justify-center mb-4">
                         <div className="relative group cursor-pointer" onClick={() => fileInputRef.current.click()}>
+                            {/* Verificamos si hay preview valido, si no mostramos icono por defecto */}
                             {photoPreview ? (
-                                <img src={photoPreview} alt="Preview" className="w-24 h-24 rounded-full object-cover border-4 border-pink-100 shadow-sm bg-white" />
-                            ) : (
-                                <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-4 border-white shadow-sm text-gray-400">
-                                    <User size={40} />
-                                </div>
-                            )}
+                                <img 
+                                    src={photoPreview} 
+                                    alt="Preview" 
+                                    className="w-24 h-24 rounded-full object-cover border-4 border-pink-100 shadow-sm bg-white"
+                                    onError={(e) => {
+                                        // Si la imagen falla al cargar (ej. 404), mostramos el icono por defecto
+                                        e.target.style.display = 'none'; 
+                                        e.target.nextSibling.style.display = 'flex';
+                                    }}
+                                />
+                            ) : null}
+                            
+                            <div 
+                                className={`w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-4 border-white shadow-sm text-gray-400 ${photoPreview ? 'hidden' : 'flex'}`}
+                            >
+                                <User size={40} />
+                            </div>
+
                             <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Camera className="text-white" size={24} />
                             </div>
@@ -244,20 +251,14 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
-                        <div className="relative">
-                            <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                            <input type="email" required className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
-                        </div>
+                        <input type="email" required className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             {userToEdit ? 'Nueva Contraseña (Opcional)' : 'Contraseña'}
                         </label>
-                        <div className="relative">
-                            <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                            <input type="password" required={!userToEdit} className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" placeholder={userToEdit ? "Sin cambios" : "******"} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
-                        </div>
+                        <input type="password" required={!userToEdit} className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" placeholder={userToEdit ? "Sin cambios" : "******"} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
                     </div>
 
                     <div>
@@ -272,11 +273,15 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                             >
                                 {loadingRoles ? (
                                     <option>Cargando roles...</option>
-                                ) : availableRoles.map((role) => (
-                                    <option key={role.id || role.Id} value={role.id || role.Id}>
-                                        {role.name || role.Name}
-                                    </option>
-                                ))}
+                                ) : availableRoles.length > 0 ? (
+                                    availableRoles.map((role) => (
+                                        <option key={role.id || role.Id} value={role.id || role.Id}>
+                                            {role.name || role.Name}
+                                        </option>
+                                    ))
+                                ) : (
+                                    <option value="">No hay roles disponibles</option>
+                                )}
                             </select>
                         </div>
                     </div>

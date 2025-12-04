@@ -1,20 +1,20 @@
 // src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
-// Asegúrate de que la ruta a authService sea correcta
 import { login as loginService, logout as logoutService, getToken, decodeUserFromToken } from '../services/authService';
 
 const AuthContext = createContext();
+
+// 1. DEFINIMOS LA URL BASE (Igual que en UsersPage)
+const API_BASE_URL = 'https://localhost:7031'; 
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  /**
-   * Función CLAVE: Busca los datos completos del usuario usando el Token como llave.
-   */
+  // --- LÓGICA DE RECUPERACIÓN DE DATOS ---
   const fetchRealUserData = async (email, tokenData, rawToken) => {
     try {
-      const response = await fetch('https://localhost:7031/api/users', {
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
         headers: {
           'Authorization': `Bearer ${rawToken}`,
           'Content-Type': 'application/json'
@@ -22,75 +22,79 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (!response.ok) {
-        return tokenData;
+        return tokenData; 
       }
-
+      
       const users = await response.json();
-
-      // Buscamos usuario ignorando mayúsculas/minúsculas en el email
+      
+      // Buscamos usuario
       const foundUser = users.find(u => u.email?.toLowerCase() === email?.toLowerCase());
 
       if (foundUser) {
-        // --- AQUÍ ESTÁ EL FIX ---
-        // 1. Intentamos leer las propiedades sin importar si vienen en Mayúscula o Minúscula
-        // ( .NET a veces devuelve PascalCase 'FirstName' aunque JS prefiera camelCase )
+        // A. Nombres
         let fName = foundUser.firstName || foundUser.FirstName || "";
         let lName = foundUser.lastName || foundUser.LastName || "";
         const fullNameFromApi = foundUser.fullName || foundUser.FullName || "";
 
-        // 2. PLAN B: Si firstName/lastName vienen vacíos, pero tenemos fullName,
-        // intentamos separarlos nosotros mismos.
         if ((!fName || !lName) && fullNameFromApi) {
-          const nameParts = fullNameFromApi.split(' ');
-          if (!fName) fName = nameParts[0]; // Primer palabra
-          if (!lName) lName = nameParts.slice(1).join(' '); // Resto del string
+            const parts = fullNameFromApi.trim().split(' ');
+            if (!fName && parts.length > 0) fName = parts[0];
+            if (!lName && parts.length > 1) lName = parts.slice(1).join(' ');
         }
 
-        // 3. PLAN C: Fallback al nombre del token si todo lo demás falla
-        const finalName = fullNameFromApi ||
-          (fName && lName ? `${fName} ${lName}` : null) ||
-          tokenData.name;
+        const finalName = fullNameFromApi || (fName && lName ? `${fName} ${lName}` : null) || tokenData.name;
 
+        // --- B. FIX IMAGEN (IGUAL QUE EN USERSPAGE) ---
         let avatar = null;
-        if (foundUser.photo) {
-          // Si ya viene con prefijo data:image, lo dejamos, si no, lo agregamos (asumiendo jpeg/png)
-          avatar = foundUser.photo.startsWith('data:')
-            ? foundUser.photo
-            : `data:image/jpeg;base64,${foundUser.photo}`;
-        } else if (foundUser.photoUrl) {
-          avatar = foundUser.photoUrl;
+        // Buscamos en todas las posibles propiedades
+        const rawPhoto = foundUser.photo || foundUser.Photo || foundUser.photoUrl || foundUser.PhotoUrl;
+
+        if (rawPhoto) {
+            // 1. Si es ruta relativa del Backend (Uploads\Users\...)
+            if (rawPhoto.includes("Uploads")) {
+                const cleanPath = rawPhoto.replace(/\\/g, '/');
+                const pathPart = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
+                avatar = `${API_BASE_URL}/${pathPart}`;
+            } 
+            // 2. Si es URL web o Base64
+            else if (rawPhoto.startsWith('http') || rawPhoto.startsWith('data:')) {
+                avatar = rawPhoto;
+            } 
+            // 3. Fallback Base64 puro
+            else {
+                avatar = `data:image/jpeg;base64,${rawPhoto}`;
+            }
         }
 
         return {
-          ...tokenData,
-          ...foundUser,
-          name: finalName,
-          firstName: fName,
-          lastName: lName,
-          email: foundUser.email || foundUser.Email,
-          role: Array.isArray(foundUser.roles) ? foundUser.roles[0] : (foundUser.roles || tokenData.role),
-          initials: (fName?.[0] || "") + (lName?.[0] || "") || tokenData.initials,
-          photo: avatar // <--- PROPIEDAD NORMALIZADA
+            ...tokenData, 
+            ...foundUser, 
+            name: finalName, 
+            firstName: fName, 
+            lastName: lName,  
+            email: foundUser.email || foundUser.Email,
+            role: Array.isArray(foundUser.roles) ? foundUser.roles[0] : (foundUser.roles || tokenData.role),
+            initials: (fName?.[0] || "") + (lName?.[0] || "") || tokenData.initials,
+            photo: avatar // <--- Aquí ya va la URL completa
         };
       }
     } catch (error) {
-      console.error("Error buscando detalles del usuario:", error);
+        console.error("Error buscando detalles del usuario:", error);
     }
     return tokenData;
   };
 
-  // Carga inicial (F5 / Recarga)
+  // Carga inicial
   useEffect(() => {
     const initAuth = async () => {
       const token = getToken();
       if (token) {
         const decoded = decodeUserFromToken(token);
-        // Si tenemos email y token, intentamos buscar sus datos reales
         if (decoded?.email) {
-          const realUser = await fetchRealUserData(decoded.email, decoded, token);
-          setUser(realUser);
+            const realUser = await fetchRealUserData(decoded.email, decoded, token);
+            setUser(realUser);
         } else {
-          setUser(decoded);
+            setUser(decoded);
         }
       }
       setLoading(false);
@@ -98,14 +102,9 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // Función de Login
   const login = async (credentials) => {
-    // 1. Obtenemos el token básico
     const { token, user: tokenUser } = await loginService(credentials);
-
-    // 2. Inmediatamente usamos ese token para buscar los datos reales "FirstName + LastName"
     const realUser = await fetchRealUserData(tokenUser.email, tokenUser, token);
-
     setUser(realUser);
   };
 
