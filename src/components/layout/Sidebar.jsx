@@ -14,7 +14,8 @@ import {
     ChevronRight, 
     LogOut, 
     ChevronsUpDown,
-    UserCircle 
+    UserCircle,
+    Tags 
 } from 'lucide-react';
 
 // --- Sub-componente MenuItem ---
@@ -132,6 +133,7 @@ function Sidebar({ logoUrl }) {
                     <MenuItem to="/inventory" text="Inventario" icon={Package} isCollapsed={isCollapsed} active={isActive('/inventory')} />
                     <MenuItem to="/customers" text="Clientes" icon={UserRound} isCollapsed={isCollapsed} active={isActive('/customers')} />
                     <MenuItem to="/users" text="Usuarios" icon={Users} isCollapsed={isCollapsed} active={isActive('/users')} />
+                    <MenuItem to="/categories" text="Categorías" icon={Tags} isCollapsed={isCollapsed} active={isActive('/categories')} />
                 </nav>
 
                 {/* Footer del Usuario */}
