@@ -1,55 +1,175 @@
-// src/pages/InventoryPage.jsx
+import React, { useState, useEffect, useMemo } from 'react';
+import PageHeader from '../components/common/PageHeader';
+import DynamicTable from '../components/common/DynamicTable';
+import ProductModal from '../components/inventory/ProductModal';
+import { productService } from '../services/productService';
+import { Search, Plus, Edit, Trash2, Box, Package } from 'lucide-react';
 
-// Se importan los hooks y componentes necesarios.
-import React, { useState } from 'react';
-import { products as inventoryData } from '../data/demo-data.js';
-import StatCard from '../components/dashboard/StatCard';
-import AddProductModal from '../components/inventory/AddProductModal';
+const API_BASE_URL = 'https://localhost:7031';
 
-// Se definen los íconos para las tarjetas de resumen.
-const CategoryIcon = () => <svg className="w-6 h-6 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>;
-const ProductIcon = () => <svg className="w-6 h-6 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>;
-const LowStockIcon = () => <svg className="w-6 h-6 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>;
-
-// Se define el componente funcional de la página de Inventario.
 function InventoryPage() {
-    // Estado para controlar la visibilidad del modal.
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6; // Mostramos un poco más porque las filas son más compactas
+
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [currentProduct, setCurrentProduct] = useState(null);
 
-    // Retorna la estructura JSX de la página.
-    return (
-        <div className="p-8">
-            {/* Encabezado de la página. */}
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <p className="text-sm text-gray-500">Home / Inventario</p>
-                    <h1 className="text-3xl font-bold text-gray-800">Resumen de Inventario</h1>
+    const loadProducts = async () => {
+        try {
+            setLoading(true);
+            const data = await productService.getAll();
+            setProducts(data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { loadProducts(); }, []);
+
+    const handleSave = async (formData) => {
+        try {
+            if (currentProduct) {
+                await productService.update(currentProduct.id || currentProduct.Id, formData);
+            } else {
+                await productService.create(formData);
+            }
+            setIsModalOpen(false);
+            loadProducts();
+        } catch (error) {
+            alert(error.message);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm('¿Eliminar producto?')) {
+            try {
+                await productService.delete(id);
+                loadProducts();
+            } catch (error) { alert(error.message); }
+        }
+    };
+
+    const openCreate = () => { setCurrentProduct(null); setIsModalOpen(true); };
+    const openEdit = (prod) => { setCurrentProduct(prod); setIsModalOpen(true); };
+
+    // --- COLUMNAS ---
+    const columns = useMemo(() => [
+        {
+            header: "Producto",
+            render: (row) => {
+                let imgUrl = null;
+                const rawImg = row.image || row.Image;
+                if (rawImg) {
+                    if (rawImg.includes("Uploads")) {
+                        const cleanPath = rawImg.replace(/\\/g, '/');
+                        const prefix = cleanPath.startsWith('/') ? '' : '/';
+                        imgUrl = `${API_BASE_URL}${prefix}${cleanPath}`;
+                    } else {
+                        imgUrl = rawImg;
+                    }
+                }
+
+                return (
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-lg bg-gray-50 border border-gray-200 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                            {imgUrl ? (
+                                <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                                <Box className="text-gray-300" size={24} />
+                            )}
+                        </div>
+                        <div>
+                            <div className="font-bold text-gray-800">{row.description || row.Description}</div>
+                            <div className="text-xs text-gray-500 font-mono">{row.barcode || row.Barcode}</div>
+                        </div>
+                    </div>
+                );
+            }
+        },
+        {
+            header: "Marca",
+            accessor: "brand", // O row.Brand
+            render: (row) => row.brand || row.Brand
+        },
+        {
+            header: "Stock",
+            className: "text-center",
+            render: (row) => (
+                <div className="flex items-center justify-center gap-1">
+                    <Package size={14} className="text-gray-400" />
+                    <span className={`font-semibold ${(row.stock || row.Stock) < 10 ? 'text-red-600' : 'text-gray-700'}`}>
+                        {row.stock || row.Stock}
+                    </span>
                 </div>
-                {/* Botón para abrir el modal de añadir producto. */}
-                <button onClick={() => setIsModalOpen(true)} className="bg-pink-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-pink-600 transition-colors">
-                    + Añadir Producto
-                </button>
+            )
+        },
+        {
+            header: "Precio",
+            className: "text-right font-medium text-gray-700",
+            render: (row) => `$${(row.price || row.Price).toFixed(2)}`
+        },
+        {
+            header: "Estado",
+            className: "text-center",
+            render: (row) => {
+                const active = row.isActive !== undefined ? row.isActive : row.IsActive;
+                return active ? (
+                    <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Activo</span>
+                ) : (
+                    <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">Inactivo</span>
+                );
+            }
+        },
+        {
+            header: "Acciones",
+            className: "text-right",
+            render: (row) => (
+                <div className="flex items-center justify-end gap-2">
+                    <button onClick={() => openEdit(row)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Edit size={18} /></button>
+                    {(row.isActive !== undefined ? row.isActive : row.IsActive) && (
+                        <button onClick={() => handleDelete(row.id || row.Id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={18} /></button>
+                    )}
+                </div>
+            )
+        }
+    ], []);
+
+    const filtered = products.filter(p => {
+        const term = searchTerm.toLowerCase();
+        const desc = (p.description || p.Description || "").toLowerCase();
+        const code = (p.barcode || p.Barcode || "").toLowerCase();
+        return desc.includes(term) || code.includes(term);
+    });
+
+    const indexOfLast = currentPage * itemsPerPage;
+    const indexOfFirst = indexOfLast - itemsPerPage;
+    const currentData = filtered.slice(indexOfFirst, indexOfLast);
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+
+    return (
+        <div className="p-8 max-w-7xl mx-auto h-full flex flex-col">
+            <PageHeader title="Inventario">
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input type="text" placeholder="Buscar producto..." className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm transition-all" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
+                    </div>
+                    <button onClick={openCreate} className="flex items-center justify-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm whitespace-nowrap"><Plus size={18} /><span>Nuevo Producto</span></button>
+                </div>
+            </PageHeader>
+
+            <div className="flex-grow flex flex-col min-h-0">
+                <DynamicTable columns={columns} data={currentData} loading={loading} pagination={{ currentPage, totalPages }} onPageChange={setCurrentPage} />
             </div>
 
-            {/* Tarjetas de resumen. Se reutiliza el componente StatCard. */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <StatCard title="Categorías" value="7" change="Total (17 items)" icon={<CategoryIcon />} />
-                <StatCard title="Total de Productos" value="230" change="Unidades en stock" icon={<ProductIcon />} />
-                <StatCard title="Stock Bajo" value="12" change="Items con menos de 10 unidades" icon={<LowStockIcon />} />
-            </div>
-
-            {/* Contenedor de la tabla de inventario. */}
-            <div className="bg-white p-6 rounded-2xl shadow-md">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Artículos de Inventario</h2>
-                {/* Aquí iría la tabla, por ahora es un marcador de posición. */}
-                <p className="text-gray-600">La tabla de inventario se implementará aquí...</p>
-            </div>
-
-            {/* Se renderiza el modal. Su visibilidad es controlada por el estado 'isModalOpen'. */}
-            <AddProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+            <ProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleSave} productToEdit={currentProduct} />
         </div>
     );
 }
 
-// Se exporta el componente.
 export default InventoryPage;
