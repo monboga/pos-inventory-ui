@@ -9,6 +9,7 @@ import InventoryPage from './pages/InventoryPage'; // se importa pagina de inven
 import UsersPage from './pages/UserPage'; // Usamos el nombre singular correcto: UserPage
 import CustomerPage from './pages/CustomerPage'; // (Antes SuppliersPage)
 import SalesHistoryPage from './pages/SalesHistoryPage'; // Nueva página
+import CategoryPage from './pages/CategoryPage'; // Nueva página de categorías
 import ProfilePage from './pages/ProfilePage'; 
 import Sidebar from './components/layout/Sidebar';
 import BottomNav from './components/layout/BottomNav';
@@ -83,6 +84,7 @@ function App() {
         <Route path="pos" element={<PointOfSalePage />} />
         {/* Se añaden las rutas para los nuevos enlaces del menú. */}
         <Route path="inventory" element={<InventoryPage />} />
+        <Route path="categories" element={<CategoryPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="customers" element={<CustomerPage />} />
         <Route path="sales-history" element={<SalesHistoryPage />} />
