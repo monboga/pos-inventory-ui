@@ -1,37 +1,232 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
 import PageHeader from '../components/common/PageHeader';
-import { useAuth } from '../context/AuthContext'; // Importamos el hook de autenticación
+import UserModal from '../components/users/UserModal';
+import DynamicTable from '../components/common/DynamicTable';
+import { userService } from '../services/userService';
+import { Search, Plus, Edit, Trash2, Shield } from 'lucide-react';
+
+// URL BASE DE TU API (Ajusta si cambia el puerto)
+const API_BASE_URL = 'https://localhost:7031'; 
 
 function UsersPage() {
-    const { logout } = useAuth();
-    const navigate = useNavigate();
-    
-    // Función para cerrar sesión y redirigir
-    const handleLogout = () => {
-        logout(); 
-        navigate('/login');
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null);
+
+    // --- FUNCIÓN DE NORMALIZACIÓN CORREGIDA ---
+    const normalizeUser = (rawUser) => {
+        let fName = rawUser.firstName || rawUser.FirstName || "";
+        let lName = rawUser.lastName || rawUser.LastName || "";
+        const fullNameFromApi = rawUser.fullName || rawUser.FullName || "";
+        const email = rawUser.email || rawUser.Email || "";
+
+        if ((!fName || !lName) && fullNameFromApi) {
+            const parts = fullNameFromApi.trim().split(' ');
+            if (!fName && parts.length > 0) fName = parts[0];
+            if (!lName && parts.length > 1) lName = parts.slice(1).join(' ');
+        }
+
+        // --- FIX VISUALIZACIÓN DE IMAGEN ---
+        let normalizedPhoto = "";
+        const rawPhoto = rawUser.photo || rawUser.Photo || rawUser.photoUrl || rawUser.PhotoUrl;
+        
+        if (rawPhoto) {
+            // Caso A: Es una ruta relativa del servidor (ej: "Uploads\Users\foto.jpg")
+            if (rawPhoto.includes("Uploads")) {
+                // Reemplazamos barras invertidas \ por /
+                const cleanPath = rawPhoto.replace(/\\/g, '/');
+                // Quitamos la barra inicial si la trae para evitar dobles //
+                const pathPart = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
+                // Construimos la URL completa: https://localhost:7031/Uploads/Users/foto.jpg
+                normalizedPhoto = `${API_BASE_URL}/${pathPart}`;
+            } 
+            // Caso B: Es Base64 (data:image...) o URL externa (http...)
+            else if (rawPhoto.startsWith('data:') || rawPhoto.startsWith('http')) {
+                normalizedPhoto = rawPhoto;
+            }
+            // Caso C: Es Base64 puro sin encabezado (Fallback raro)
+            else {
+                normalizedPhoto = `data:image/jpeg;base64,${rawPhoto}`;
+            }
+        }
+
+        return {
+            id: rawUser.id || rawUser.Id,
+            firstName: fName,
+            lastName: lName,
+            email: email,
+            photo: normalizedPhoto, 
+            roles: rawUser.roles || rawUser.Roles || ["Usuario"],
+            isActive: rawUser.isActive !== undefined ? rawUser.isActive : rawUser.IsActive
+        };
     };
 
+    const loadUsers = async () => {
+        try {
+            setLoading(true);
+            const data = await userService.getAll();
+            const cleanData = data.map(normalizeUser);
+            setUsers(cleanData);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { loadUsers(); }, []);
+
+    const handleSaveUser = async (formData) => {
+        try {
+            if (currentUser) {
+                await userService.update(currentUser.id, formData);
+            } else {
+                await userService.create(formData);
+            }
+            setIsModalOpen(false);
+            loadUsers();
+        } catch (error) {
+            alert(error.message);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm('¿Estás seguro de desactivar este usuario?')) {
+            try {
+                await userService.delete(id);
+                loadUsers();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    };
+
+    const openCreateModal = () => { setCurrentUser(null); setIsModalOpen(true); };
+    const openEditModal = (user) => { setCurrentUser(user); setIsModalOpen(true); };
+
+    // --- COLUMNAS ---
+    const columns = useMemo(() => [
+        {
+            header: "Usuario",
+            render: (user) => {
+                const fName = user.firstName;
+                const lName = user.lastName;
+                const hasName = Boolean(fName || lName);
+
+                let initials = "U";
+                if (fName) {
+                    initials = fName.charAt(0).toUpperCase();
+                    if (lName) initials += lName.charAt(0).toUpperCase();
+                } else if (user.email) {
+                    const namePart = user.email.split('@')[0];
+                    if (namePart.includes('-') || namePart.includes('.')) {
+                         const parts = namePart.split(/[-.]/);
+                         initials = (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+                    } else {
+                         initials = namePart.substring(0, 2).toUpperCase();
+                    }
+                }
+
+                let avatarContent;
+                if (user.photo) {
+                    // Ahora user.photo trae la URL completa (https://localhost...), así que el navegador la mostrará
+                    avatarContent = <img src={user.photo} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-gray-200" />;
+                } else {
+                    avatarContent = (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-400 to-pink-600 text-white flex items-center justify-center font-bold text-sm shadow-sm select-none">
+                            {initials}
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="flex items-center">
+                        <div className="mr-3 flex-shrink-0">
+                            {avatarContent}
+                        </div>
+                        <div>
+                            {hasName ? (
+                                <>
+                                    <div className="font-bold text-gray-800">{fName} {lName}</div>
+                                    <div className="text-xs text-gray-400">{user.email}</div>
+                                </>
+                            ) : (
+                                <div className="text-sm text-gray-500 font-medium">{user.email}</div>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+        },
+        {
+            header: "Rol",
+            render: (user) => {
+                const role = user.roles ? user.roles[0] : "Usuario";
+                return (
+                    <div className="flex items-center text-sm text-gray-600 bg-gray-50 w-fit px-3 py-1 rounded-full border border-gray-200">
+                        <Shield size={14} className="mr-2 text-gray-400" />
+                        {role}
+                    </div>
+                );
+            }
+        },
+        {
+            header: "Estado",
+            className: "text-center",
+            render: (user) => (
+                user.isActive ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">Activo</span>
+                ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">Inactivo</span>
+                )
+            )
+        },
+        {
+            header: "Acciones",
+            className: "text-right",
+            render: (user) => (
+                <div className="flex items-center justify-end gap-2">
+                    <button onClick={() => openEditModal(user)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar"><Edit size={18} /></button>
+                    {user.isActive && (
+                        <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Desactivar"><Trash2 size={18} /></button>
+                    )}
+                </div>
+            )
+        }
+    ], []);
+
+    const filteredUsers = users.filter(user => {
+        const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+        return fullName.includes(searchTerm.toLowerCase()) || 
+               user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
     return (
-        <div className="p-8">
-            <div className="flex justify-between items-center mb-6">
-                {/* Se utiliza el componente reutilizable PageHeader. */}
-                <PageHeader title="Usuarios" />
-                
-                {/* Botón de Cerrar Sesión */}
-                 <button 
-                    onClick={handleLogout} 
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg transition duration-150"
-                 >
-                    Cerrar Sesión
-                 </button>
+        <div className="p-8 max-w-7xl mx-auto h-full flex flex-col">
+            <PageHeader title="Gestión de Usuarios">
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input type="text" placeholder="Buscar usuario..." className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm transition-all" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
+                    </div>
+                    <button onClick={openCreateModal} className="flex items-center justify-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm whitespace-nowrap"><Plus size={18} /><span>Nuevo Usuario</span></button>
+                </div>
+            </PageHeader>
+
+            <div className="flex-grow flex flex-col min-h-0">
+                <DynamicTable columns={columns} data={currentUsers} loading={loading} pagination={{ currentPage, totalPages }} onPageChange={setCurrentPage} />
             </div>
 
-            {/* Contenido de marcador de posición para la página. */}
-            <div className="bg-white p-6 rounded-2xl shadow-md">
-                <p className="text-gray-600">La funcionalidad para la gestión de usuarios se implementará aquí.</p>
-            </div>
+            <UserModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleSaveUser} userToEdit={currentUser} />
         </div>
     );
 }

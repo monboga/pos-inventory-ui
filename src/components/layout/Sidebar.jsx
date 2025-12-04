@@ -35,11 +35,13 @@ function MenuItem({ icon: Icon, text, active, isCollapsed, onClick, to }) {
             >
                 <Icon size={22} strokeWidth={active ? 2.5 : 2} className="flex-shrink-0" />
                 
+                {/* Texto oculto con 'hidden' absoluto al colapsar para evitar bugs visuales */}
                 <span className={`ml-3 font-medium text-sm whitespace-nowrap overflow-hidden transition-all duration-200 ${isCollapsed ? 'hidden' : 'block'}`}>
                     {text}
                 </span>
             </Link>
 
+            {/* Tooltip flotante (Solo visible colapsado + hover) */}
             {isCollapsed && (
                 <div className="
                     absolute left-full top-1/2 -translate-y-1/2 ml-3
@@ -65,11 +67,13 @@ function Sidebar({ logoUrl }) {
 
     const handleLogout = () => { logout(); navigate('/login'); };
 
+    // Datos del usuario con fallbacks seguros
     const displayName = user?.name || "Cargando...";
     const userEmail = user?.email || "";
     const userInitials = user?.initials || displayName.charAt(0).toUpperCase() || "U";
     const userRole = user?.role || "Usuario"; 
 
+    // Función para detectar ruta activa
     const isActive = (path) => {
         if (path === '/') return location.pathname === '/';
         return location.pathname.startsWith(path);
@@ -77,6 +81,7 @@ function Sidebar({ logoUrl }) {
 
     return (
         <div className="relative h-screen hidden md:flex z-50">
+            {/* Botón flotante para colapsar */}
             <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 className={`
@@ -89,12 +94,14 @@ function Sidebar({ logoUrl }) {
                 {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             </button>
 
+            {/* Aside Principal */}
             <aside className={`
                 h-full bg-white border-r border-gray-100
                 transition-all duration-300 ease-in-out 
                 ${isCollapsed ? 'w-20' : 'w-72'} 
                 flex flex-col relative
             `}>
+                {/* Header Logo */}
                 <header className={`flex items-center justify-center h-24 flex-shrink-0 ${isCollapsed ? 'px-2' : 'px-6'}`}>
                     <img 
                         src={logoUrl} 
@@ -103,9 +110,10 @@ function Sidebar({ logoUrl }) {
                     />
                 </header>
 
+                {/* Navegación Scrollable */}
                 <nav className={`flex-grow px-3 py-4 space-y-1 ${isCollapsed ? 'overflow-visible' : 'overflow-y-auto custom-scrollbar'}`}>
                     
-                    {/* --- SECCIÓN PRINCIPAL --- */}
+                    {/* SECCIÓN VENTAS */}
                     <p className={`text-xs font-bold text-gray-400 uppercase mb-2 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>
                         Ventas
                     </p>
@@ -116,7 +124,7 @@ function Sidebar({ logoUrl }) {
 
                     <div className="my-4 border-t border-gray-100"></div>
                     
-                    {/* --- SECCIÓN GESTIÓN --- */}
+                    {/* SECCIÓN GESTIÓN */}
                     <p className={`text-xs font-bold text-gray-400 uppercase mb-2 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>
                         Gestión
                     </p>
@@ -124,22 +132,29 @@ function Sidebar({ logoUrl }) {
                     <MenuItem to="/inventory" text="Inventario" icon={Package} isCollapsed={isCollapsed} active={isActive('/inventory')} />
                     <MenuItem to="/customers" text="Clientes" icon={UserRound} isCollapsed={isCollapsed} active={isActive('/customers')} />
                     <MenuItem to="/users" text="Usuarios" icon={Users} isCollapsed={isCollapsed} active={isActive('/users')} />
-                    
-                    {/* NOTA: Se eliminó el item "Mi Perfil" de aquí para que solo sea accesible desde el menú inferior */}
-
                 </nav>
 
+                {/* Footer del Usuario */}
                 <div className="p-3 border-t border-gray-100 bg-gray-50/50 mt-auto">
-                    {/* Botón del Usuario (Trigger del menú) */}
+                    {/* Botón Trigger del Menú */}
                     <div className={`
                         relative flex items-center p-2 rounded-xl cursor-pointer transition-colors hover:bg-white hover:shadow-sm
                         ${isCollapsed ? 'justify-center' : ''}
                     `}
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                     >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-400 to-pink-600 text-white flex items-center justify-center font-bold text-sm shadow-md flex-shrink-0">
-                            {userInitials}
-                        </div>
+                        {/* LÓGICA DE AVATAR: FOTO vs INICIALES */}
+                        {user?.photo ? (
+                            <img 
+                                src={user.photo} 
+                                alt="Profile" 
+                                className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md flex-shrink-0" 
+                            />
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-400 to-pink-600 text-white flex items-center justify-center font-bold text-sm shadow-md flex-shrink-0">
+                                {userInitials}
+                            </div>
+                        )}
 
                         <div className={`ml-3 overflow-hidden transition-all duration-300 ${isCollapsed ? 'hidden' : 'block'}`}>
                             <p className="text-sm font-bold text-gray-700 truncate max-w-[140px]">{displayName}</p>
@@ -163,10 +178,9 @@ function Sidebar({ logoUrl }) {
                                 <p className="text-xs text-gray-500 truncate">{userEmail}</p>
                             </div>
                             
-                            {/* AQUÍ ESTÁ EL ENLACE CORRECTO A /profile */}
                             <Link 
                                 to="/profile" 
-                                onClick={() => setIsUserMenuOpen(false)} // Cierra el menú al hacer click
+                                onClick={() => setIsUserMenuOpen(false)}
                                 className="flex items-center px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-pink-50 hover:text-pink-600 transition-colors"
                             >
                                 <UserCircle size={16} className="mr-2" />
