@@ -12,7 +12,7 @@ function InventoryPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 6; // Mostramos un poco más porque las filas son más compactas
+    const itemsPerPage = 6; 
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentProduct, setCurrentProduct] = useState(null);
@@ -57,7 +57,7 @@ function InventoryPage() {
     const openCreate = () => { setCurrentProduct(null); setIsModalOpen(true); };
     const openEdit = (prod) => { setCurrentProduct(prod); setIsModalOpen(true); };
 
-    // --- COLUMNAS ---
+    // --- COLUMNAS (AQUÍ ESTÁ EL FIX DEL CRASH) ---
     const columns = useMemo(() => [
         {
             header: "Producto",
@@ -93,31 +93,38 @@ function InventoryPage() {
         },
         {
             header: "Marca",
-            accessor: "brand", // O row.Brand
-            render: (row) => row.brand || row.Brand
+            render: (row) => row.brand || row.Brand || "-"
         },
         {
             header: "Stock",
             className: "text-center",
-            render: (row) => (
-                <div className="flex items-center justify-center gap-1">
-                    <Package size={14} className="text-gray-400" />
-                    <span className={`font-semibold ${(row.stock || row.Stock) < 10 ? 'text-red-600' : 'text-gray-700'}`}>
-                        {row.stock || row.Stock}
-                    </span>
-                </div>
-            )
+            render: (row) => {
+                // FIX: Asegurar número
+                const stockVal = row.stock !== undefined ? row.stock : (row.Stock !== undefined ? row.Stock : 0);
+                return (
+                    <div className="flex items-center justify-center gap-1">
+                        <Package size={14} className="text-gray-400" />
+                        <span className={`font-semibold ${stockVal < 10 ? 'text-red-600' : 'text-gray-700'}`}>
+                            {stockVal}
+                        </span>
+                    </div>
+                );
+            }
         },
         {
             header: "Precio",
             className: "text-right font-medium text-gray-700",
-            render: (row) => `$${(row.price || row.Price).toFixed(2)}`
+            render: (row) => {
+                // --- FIX PRINCIPAL: Evitar crash por undefined ---
+                const priceVal = row.price !== undefined ? row.price : (row.Price !== undefined ? row.Price : 0);
+                return `$${Number(priceVal).toFixed(2)}`;
+            }
         },
         {
             header: "Estado",
             className: "text-center",
             render: (row) => {
-                const active = row.isActive !== undefined ? row.isActive : row.IsActive;
+                const active = row.isActive !== undefined ? row.isActive : (row.IsActive !== undefined ? !!row.IsActive : false);
                 return active ? (
                     <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Activo</span>
                 ) : (
