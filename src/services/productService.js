@@ -1,22 +1,15 @@
 import { getToken } from './authService';
 
-const API_URL = 'https://localhost:7031/api/products'; // Ajusta el endpoint
+const API_URL = 'https://localhost:7031/api/products'; 
 
-// Headers para GET/DELETE (JSON)
 const getJsonHeaders = () => {
     const token = getToken();
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-    };
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
 };
 
-// Headers para POST/PUT (FormData - Sin Content-Type explícito)
 const getFormDataHeaders = () => {
     const token = getToken();
-    return {
-        'Authorization': `Bearer ${token}`
-    };
+    return { 'Authorization': `Bearer ${token}` };
 };
 
 export const productService = {
@@ -29,26 +22,24 @@ export const productService = {
     create: async (productData) => {
         const formData = new FormData();
         
-        // Campos de Texto/Números
         formData.append('Barcode', productData.barcode);
         formData.append('Description', productData.description);
         formData.append('Brand', productData.brand);
         formData.append('Stock', productData.stock);
         formData.append('Price', productData.price);
         formData.append('Discount', productData.discount || 0);
-        formData.append('IsActive', true); // Siempre activo al crear
-
-        // Llaves Foráneas (Asegúrate de que coincidan con tu DTO)
         formData.append('CategoryId', productData.categoryId);
-        formData.append('MedidaLocalId', productData.medidaLocalId || 1); // Default o input
-        formData.append('MedidaSatId', productData.medidaSatId || 1);
-        formData.append('CatalogoImpuestoId', productData.catalogoImpuestoId || 1);
-        formData.append('CatalogoObjetoImpuestoId', productData.catalogoObjetoImpuestoId || 1);
-        formData.append('ClaveProductoServicioId', productData.claveProductoServicioId || 1);
+        formData.append('IsActive', true); // Siempre true al crear
 
-        // Imagen (Archivo real)
+        // SAT
+        formData.append('CatalogoImpuestoId', productData.catalogoImpuestoId);
+        formData.append('CatalogoObjetoImpuestoId', productData.catalogoObjetoImpuestoId);
+        formData.append('ClaveProductoServicioId', productData.claveProductoServicioId);
+        formData.append('MedidaLocalId', productData.medidaLocalId);
+        formData.append('MedidaSatId', productData.medidaSatId);
+
         if (productData.photoFile) {
-            formData.append('Image', productData.photoFile); // Ojo: Tu BD dice 'Image', no 'Photo'
+            formData.append('ImageFile', productData.photoFile);
         }
 
         const response = await fetch(API_URL, {
@@ -66,22 +57,28 @@ export const productService = {
 
     update: async (id, productData) => {
         const formData = new FormData();
-        formData.append('Id', id);
         
-        // Mismos campos que create
+        formData.append('Id', id);
         formData.append('Barcode', productData.barcode);
         formData.append('Description', productData.description);
         formData.append('Brand', productData.brand);
         formData.append('Stock', productData.stock);
         formData.append('Price', productData.price);
-        formData.append('Discount', productData.discount);
-        formData.append('IsActive', productData.isActive);
-        
+        formData.append('Discount', productData.discount || 0);
         formData.append('CategoryId', productData.categoryId);
-        // ... Agregar resto de IDs si son editables ...
+        
+        // --- FIX ESTADO: Enviar valor booleano explícito ---
+        formData.append('IsActive', productData.isActive); 
+
+        // SAT
+        formData.append('CatalogoImpuestoId', productData.catalogoImpuestoId);
+        formData.append('CatalogoObjetoImpuestoId', productData.catalogoObjetoImpuestoId);
+        formData.append('ClaveProductoServicioId', productData.claveProductoServicioId);
+        formData.append('MedidaLocalId', productData.medidaLocalId);
+        formData.append('MedidaSatId', productData.medidaSatId);
 
         if (productData.photoFile) {
-            formData.append('Image', productData.photoFile);
+            formData.append('ImageFile', productData.photoFile);
         }
 
         const response = await fetch(`${API_URL}/${id}`, {
@@ -92,8 +89,11 @@ export const productService = {
 
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
-            throw new Error(error.title || 'Error al actualizar producto');
+            let msg = error.title || 'Error al actualizar';
+            if (error.errors) msg += `: ${JSON.stringify(error.errors)}`;
+            throw new Error(msg);
         }
+        
         const text = await response.text();
         return text ? JSON.parse(text) : {};
     },
