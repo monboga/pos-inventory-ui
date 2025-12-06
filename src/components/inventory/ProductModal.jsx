@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Box, Tag, DollarSign, Image as ImageIcon, Camera, ToggleLeft, ToggleRight, Barcode, FileText } from 'lucide-react';
+import { X, Save, Box, Tag, Image as ImageIcon, ToggleLeft, ToggleRight, FileText, Percent } from 'lucide-react'; // Agregamos Percent si quieres icono, o usamos texto simple
 import { categoryService } from '../../services/categoryService';
 import { satService } from '../../services/satService';
 
@@ -34,15 +34,16 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
     // --- Helper Robusto para IDs ---
     const extractId = (obj, keyBase) => {
         if (!obj) return '';
-        // Intenta leer PropiedadId o propiedadId
         let val = obj[keyBase + 'Id'] || obj[keyBase.charAt(0).toUpperCase() + keyBase.slice(1) + 'Id'];
-        // Intenta leer objeto anidado Propiedad.Id
         if (!val && obj[keyBase]) val = obj[keyBase].id || obj[keyBase].Id;
         const keyPascal = keyBase.charAt(0).toUpperCase() + keyBase.slice(1);
         if (!val && obj[keyPascal]) val = obj[keyPascal].id || obj[keyPascal].Id;
-
         return val ? String(val) : '';
     };
+
+    // --- FIX UX: AUTO-SELECT ---
+    // Esta función selecciona todo el texto del input cuando recibe el foco
+    const handleFocus = (e) => e.target.select();
 
     // 1. CARGA DE DATOS
     useEffect(() => {
@@ -71,11 +72,7 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
     useEffect(() => {
         if (isOpen) {
             setPhotoFile(null);
-
             if (productToEdit) {
-                // === MODO EDICIÓN ===
-
-                // Imagen
                 let existingPhoto = "";
                 const rawPhoto = productToEdit.image || productToEdit.Image;
                 if (rawPhoto) {
@@ -86,16 +83,6 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                     } else existingPhoto = rawPhoto;
                 }
 
-                // --- FIX CATEGORÍA ---
-                // Buscamos exhaustivamente el ID de la categoría y lo convertimos a String
-                let foundCatId = extractId(productToEdit, 'category'); // Usa el helper inteligente
-
-                // --- FIX ESTADO (Active) ---
-                // Verifica todas las variantes posibles: isActive (bool), IsActive (bit/int)
-                let activeState = true;
-                if (productToEdit.isActive !== undefined) activeState = productToEdit.isActive;
-                else if (productToEdit.IsActive !== undefined) activeState = !!productToEdit.IsActive; // !! convierte 1 a true, 0 a false
-
                 setFormData({
                     barcode: productToEdit.barcode || productToEdit.Barcode || '',
                     description: productToEdit.description || productToEdit.Description || '',
@@ -103,26 +90,17 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                     stock: productToEdit.stock ?? productToEdit.Stock ?? 0,
                     price: productToEdit.price ?? productToEdit.Price ?? 0,
                     discount: productToEdit.discount ?? productToEdit.Discount ?? 0,
-
-                    // AQUI EL CAMBIO CLAVE:
-                    // Leemos directo el ID que agregamos al ProductVm
                     categoryId: productToEdit.categoryId || productToEdit.CategoryId || '',
-
                     catalogoImpuestoId: productToEdit.catalogoImpuestoId || productToEdit.CatalogoImpuestoId || DEFAULT_SAT_VALUES.IMPUESTO,
                     catalogoObjetoImpuestoId: productToEdit.catalogoObjetoImpuestoId || productToEdit.CatalogoObjetoImpuestoId || DEFAULT_SAT_VALUES.OBJETO_IMP,
                     claveProductoServicioId: productToEdit.claveProductoServicioId || productToEdit.ClaveProductoServicioId || DEFAULT_SAT_VALUES.CLAVE_PROD,
                     medidaLocalId: productToEdit.medidaLocalId || productToEdit.MedidaLocalId || DEFAULT_SAT_VALUES.MEDIDA_LOCAL,
                     medidaSatId: productToEdit.medidaSatId || productToEdit.MedidaSatId || DEFAULT_SAT_VALUES.MEDIDA_SAT,
-
-                    // Lógica de IsActive (Manejo robusto de mayúsculas/minúsculas)
                     isActive: (productToEdit.isActive !== undefined) ? productToEdit.isActive : (!!productToEdit.IsActive),
-
                     image: existingPhoto
                 });
                 setPhotoPreview(existingPhoto);
-
             } else {
-                // === MODO CREAR ===
                 setFormData({
                     ...initialFormState,
                     categoryId: '',
@@ -136,9 +114,9 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                 setPhotoPreview(null);
             }
         }
-    }, [isOpen, productToEdit]); // Removida la dependencia loadingData para asegurar lectura inmediata de productToEdit
+    }, [isOpen, productToEdit]);
 
-    const compressImageToFile = (file) => {
+    const compressImageToFile = (file) => { /* ... Lógica de compresión igual ... */ 
         return new Promise((resolve) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -171,20 +149,16 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-
         if (!formData.categoryId || formData.categoryId === "" || formData.categoryId === "0") {
             alert("⚠️ Selecciona una categoría válida.");
             return;
         }
-
         const safeData = { ...formData };
-        // Fallbacks si están vacíos
         if (!safeData.catalogoImpuestoId) safeData.catalogoImpuestoId = DEFAULT_SAT_VALUES.IMPUESTO;
         if (!safeData.catalogoObjetoImpuestoId) safeData.catalogoObjetoImpuestoId = DEFAULT_SAT_VALUES.OBJETO_IMP;
         if (!safeData.claveProductoServicioId) safeData.claveProductoServicioId = DEFAULT_SAT_VALUES.CLAVE_PROD;
         if (!safeData.medidaLocalId) safeData.medidaLocalId = DEFAULT_SAT_VALUES.MEDIDA_LOCAL;
         if (!safeData.medidaSatId) safeData.medidaSatId = DEFAULT_SAT_VALUES.MEDIDA_SAT;
-
         onSubmit({ ...safeData, photoFile });
     };
 
@@ -212,16 +186,53 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
 
                         <div className="flex-1 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
-                                <div><label className="block text-sm font-medium text-gray-700 mb-1">Código de Barras</label><input type="text" required className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" value={formData.barcode} onChange={e => setFormData({ ...formData, barcode: e.target.value })} /></div>
-                                <div><label className="block text-sm font-medium text-gray-700 mb-1">Stock</label><input type="number" required className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" value={formData.stock} onChange={e => setFormData({ ...formData, stock: e.target.value })} /></div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Código de Barras</label>
+                                    <input 
+                                        type="text" 
+                                        required 
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
+                                        value={formData.barcode} 
+                                        onChange={e => setFormData({ ...formData, barcode: e.target.value })} 
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Stock</label>
+                                    <input 
+                                        type="number" 
+                                        required 
+                                        // FIX 1: Auto-select en foco
+                                        onFocus={handleFocus}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
+                                        value={formData.stock} 
+                                        onChange={e => setFormData({ ...formData, stock: e.target.value })} 
+                                    />
+                                </div>
                             </div>
-                            <div><label className="block text-sm font-medium text-gray-700 mb-1">Descripción / Nombre</label><input type="text" required className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} /></div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción / Nombre</label>
+                                <input 
+                                    type="text" 
+                                    required 
+                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
+                                    value={formData.description} 
+                                    onChange={e => setFormData({ ...formData, description: e.target.value })} 
+                                />
+                            </div>
                         </div>
                     </div>
 
                     {/* SECCIÓN 2: DETALLES */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Marca</label><input type="text" className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" value={formData.brand} onChange={e => setFormData({ ...formData, brand: e.target.value })} /></div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Marca</label>
+                            <input 
+                                type="text" 
+                                className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
+                                value={formData.brand} 
+                                onChange={e => setFormData({ ...formData, brand: e.target.value })} 
+                            />
+                        </div>
 
                         {/* SELECT CATEGORÍA */}
                         <div>
@@ -245,14 +256,48 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
-                            <div><label className="block text-sm font-medium text-gray-700 mb-1">Precio</label><input type="number" step="0.01" className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} /></div>
-                            <div><label className="block text-sm font-medium text-gray-700 mb-1">Desc.</label><input type="number" step="0.01" className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" value={formData.discount} onChange={e => setFormData({ ...formData, discount: e.target.value })} /></div>
+                            {/* PRECIO (Con Auto-select) */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Precio</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                    <input 
+                                        type="number" 
+                                        step="0.01" 
+                                        // FIX 1: Auto-select
+                                        onFocus={handleFocus}
+                                        className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
+                                        value={formData.price} 
+                                        onChange={e => setFormData({ ...formData, price: e.target.value })} 
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* DESCUENTO (FIX UI: Visualmente es %) */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Descuento</label>
+                                <div className="relative">
+                                    <input 
+                                        type="number" 
+                                        step="0.01" 
+                                        // FIX 1: Auto-select
+                                        onFocus={handleFocus}
+                                        // FIX 2: pr-8 para dar espacio al icono %
+                                        className="w-full pl-3 pr-8 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
+                                        value={formData.discount} 
+                                        onChange={e => setFormData({ ...formData, discount: e.target.value })} 
+                                    />
+                                    {/* Símbolo % fijo a la derecha */}
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                        <Percent size={14} strokeWidth={3} />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* SECCIÓN 3: SAT (Igual) */}
+                    {/* SECCIÓN 3: SAT */}
                     <div className="pt-4 border-t border-gray-100">
-                        {/* ... Mismo bloque SAT de siempre ... */}
                         <h3 className="text-sm font-bold text-gray-900 pb-3 flex items-center gap-2"><FileText size={16} /> Información Fiscal (SAT)</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div><label className="block text-xs text-gray-500 mb-1">Impuesto</label><select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white outline-none" value={String(formData.catalogoImpuestoId)} onChange={e => setFormData({ ...formData, catalogoImpuestoId: e.target.value })}>{impuestos.map(i => <option key={i.id || i.Id} value={String(i.id || i.Id)}>{i.claveImpuesto || i.ClaveImpuesto} - {i.descripcion || i.Descripcion}</option>)}</select></div>
@@ -263,7 +308,7 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                         </div>
                     </div>
 
-                    {/* --- TOGGLE ESTADO (Solo Editar) --- */}
+                    {/* --- TOGGLE ESTADO --- */}
                     {productToEdit && (
                         <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
                             <span className="text-sm font-medium text-gray-700">Estado del producto</span>
