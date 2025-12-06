@@ -26,13 +26,20 @@ function PointOfSalePage() {
                     categoryService.getAll()
                 ]);
 
+                // 1. FILTRO PRODUCTOS ACTIVOS
                 const activeProducts = productsData.filter(p => {
                     return (p.isActive !== undefined ? p.isActive : p.IsActive) === true;
+                });
+
+                // 2. FILTRO CATEGORÍAS ACTIVAS (NUEVO FIX)
+                // Solo mostramos categorías que estén activas en la BD
+                const activeCategories = categoriesData.filter(c => {
+                    return (c.isActive !== undefined ? c.isActive : c.IsActive) === true;
                 });
                 
                 setAllProducts(activeProducts);
                 setDisplayedProducts(activeProducts);
-                setCategories(categoriesData);
+                setCategories(activeCategories); // Guardamos solo las activas
             } catch (error) {
                 console.error("Error cargando POS:", error);
             } finally {
@@ -122,8 +129,9 @@ function PointOfSalePage() {
                         </div>
                     </div>
 
-                    {/* Barra de Categorías */}
-                    <div className="flex space-x-3 overflow-x-auto pb-4 custom-scrollbar">
+                    {/* Barra de Categorías (FIX VISUAL: Padding y Alineación) */}
+                    {/* Agregamos 'items-center' y cambiamos 'pb-4' por 'p-2' para dar espacio arriba y abajo a las sombras */}
+                    <div className="flex items-center space-x-3 overflow-x-auto p-2 custom-scrollbar">
                         <button 
                             onClick={() => setActiveCategory('Todos')} 
                             className={`
@@ -162,11 +170,6 @@ function PointOfSalePage() {
                             <p>No se encontraron productos.</p>
                         </div>
                     ) : (
-                        // --- FIX AQUÍ ---
-                        // grid-cols-2: Base (Móvil y Laptops normales con sidebar abierto)
-                        // lg:grid-cols-2: Forzamos 2 columnas también en pantallas grandes si el sidebar reduce espacio
-                        // xl:grid-cols-3: Solo subimos a 3 columnas en pantallas muy anchas (Desktop completo)
-                        // 2xl:grid-cols-4: Pantallas gigantes
                         <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6 pb-20 lg:pb-0">
                             {displayedProducts.map(product => (
                                 <ProductCard 
