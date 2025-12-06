@@ -3,7 +3,7 @@ import PageHeader from '../components/common/PageHeader';
 import DynamicTable from '../components/common/DynamicTable';
 import CategoryModal from '../components/categories/CategoryModal';
 import { categoryService } from '../services/categoryService';
-import { Search, Plus, Edit, Trash2 } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Tag } from 'lucide-react';
 
 function CategoryPage() {
     const [categories, setCategories] = useState([]);
@@ -12,7 +12,7 @@ function CategoryPage() {
     
     // Paginación
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5; // Ajustable
+    const itemsPerPage = 6; 
 
     // Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -62,35 +62,47 @@ function CategoryPage() {
     const openCreateModal = () => { setCurrentCategory(null); setIsModalOpen(true); };
     const openEditModal = (cat) => { setCurrentCategory(cat); setIsModalOpen(true); };
 
-    // --- CONFIGURACIÓN DE COLUMNAS ---
+    // --- CONFIGURACIÓN DE COLUMNAS (UI OPTIMIZADA) ---
     const columns = useMemo(() => [
         {
             header: "Descripción",
             render: (row) => (
-                <div className="font-bold text-gray-800">
-                    {row.description || row.Description}
+                <div className="flex items-center gap-3">
+                    {/* Icono visual para mejor UX */}
+                    <div className="w-8 h-8 rounded-lg bg-pink-50 text-pink-500 flex items-center justify-center flex-shrink-0">
+                        <Tag size={16} />
+                    </div>
+                    <span className="font-bold text-gray-700">
+                        {row.description || row.Description}
+                    </span>
                 </div>
             )
         },
         {
             header: "Estado",
-            className: "text-center",
+            className: "text-center w-32", // Centramos header y celda, ancho fijo opcional
             render: (row) => {
-                const isActive = row.isActive !== undefined ? row.isActive : row.IsActive;
-                return isActive ? (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                        Activo
-                    </span>
-                ) : (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
-                        Inactivo
-                    </span>
+                const isActive = row.isActive !== undefined ? row.isActive : (row.IsActive !== undefined ? !!row.IsActive : false);
+                return (
+                    <div className="flex justify-center"> {/* Centrado Flex explícito */}
+                        {isActive ? (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-green-50 text-green-700 border border-green-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
+                                Activo
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-gray-50 text-gray-500 border border-gray-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mr-1.5"></span>
+                                Inactivo
+                            </span>
+                        )}
+                    </div>
                 );
             }
         },
         {
             header: "Acciones",
-            className: "text-right",
+            className: "text-right w-32", // Alineado a la derecha
             render: (row) => (
                 <div className="flex items-center justify-end gap-2">
                     <button onClick={() => openEditModal(row)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
@@ -116,8 +128,7 @@ function CategoryPage() {
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
     return (
-        <div className="p-8 max-w-7xl mx-auto h-full flex flex-col">
-            {/* Header Optimizado (Aprovechando espacios) */}
+        <div className="p-6 md:p-8 max-w-7xl mx-auto h-full flex flex-col">
             <PageHeader title="Categorías">
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                     <div className="relative w-full sm:w-64">
@@ -140,7 +151,6 @@ function CategoryPage() {
                 </div>
             </PageHeader>
 
-            {/* Tabla Dinámica */}
             <div className="flex-grow flex flex-col min-h-0">
                 <DynamicTable 
                     columns={columns} 
@@ -151,7 +161,6 @@ function CategoryPage() {
                 />
             </div>
 
-            {/* Modal */}
             <CategoryModal 
                 isOpen={isModalOpen} 
                 onClose={() => setIsModalOpen(false)} 

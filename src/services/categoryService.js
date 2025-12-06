@@ -19,10 +19,17 @@ export const categoryService = {
     },
 
     create: async (categoryData) => {
+        // --- FIX: Mapeo a PascalCase para que el Backend lo lea correctamente ---
+        const payload = {
+            Description: categoryData.description,
+            // Si permites elegir estado al crear, úsalo; si no, true por defecto.
+            IsActive: categoryData.isActive !== undefined ? categoryData.isActive : true 
+        };
+
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify(categoryData)
+            body: JSON.stringify(payload) // Enviamos el payload mapeado
         });
         
         if (!response.ok) {
@@ -33,8 +40,13 @@ export const categoryService = {
     },
 
     update: async (id, categoryData) => {
-        // Aseguramos enviar el ID en el cuerpo si el DTO lo pide
-        const payload = { ...categoryData, id };
+        // --- FIX: Mapeo manual para asegurar que IsActive se envíe ---
+        // Al transformar las llaves a Mayúscula (PascalCase), .NET las reconoce automáticamente.
+        const payload = { 
+            Id: id,
+            Description: categoryData.description || categoryData.Description, // Fallback seguro
+            IsActive: categoryData.isActive // Aquí enviamos el booleano correcto
+        };
         
         const response = await fetch(`${API_URL}/${id}`, {
             method: 'PUT',

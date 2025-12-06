@@ -1,94 +1,130 @@
-// src/components/pos/OrderSummary.jsx
-
-// Se importan los hooks de React para manejar estado y efectos.
 import React, { useState, useEffect } from 'react';
+import { Trash2, CreditCard, Banknote } from 'lucide-react';
 
-// Se define el componente para el resumen del pedido.
-// Ahora acepta las funciones 'onUpdateQuantity' y 'onRemoveItem' como props.
 function OrderSummary({ cartItems, onUpdateQuantity, onRemoveItem }) {
-    // Se definen los estados para los cálculos del total.
     const [subtotal, setSubtotal] = useState(0);
     const [tax, setTax] = useState(0);
     const [total, setTotal] = useState(0);
-    // Estado local para el método de pago seleccionado.
     const [paymentMethod, setPaymentMethod] = useState('Efectivo');
-    // Se define una tasa de impuesto fija (16% en este caso).
+    
     const TAX_RATE = 0.16;
 
-    // Se utiliza useEffect para recalcular los totales cada vez que 'cartItems' cambie.
     useEffect(() => {
-        // Se calcula el subtotal sumando el precio de todos los productos, multiplicado por su cantidad.
-        const newSubtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const newSubtotal = cartItems.reduce((sum, item) => {
+            const price = Number(item.price) || 0;
+            const qty = Number(item.quantity) || 0;
+            return sum + (price * qty);
+        }, 0);
+        
         const newTax = newSubtotal * TAX_RATE;
         const newTotal = newSubtotal + newTax;
 
-        // Se actualizan los estados con los nuevos valores calculados.
         setSubtotal(newSubtotal);
         setTax(newTax);
         setTotal(newTotal);
-    }, [cartItems]); // El efecto se ejecuta solo cuando 'cartItems' cambia.
+    }, [cartItems]);
 
-    // Retorna la estructura JSX para el resumen del pedido.
     return (
-        // Contenedor principal con fondo blanco y estilos de tarjeta.
-        <div className="bg-white rounded-2xl h-full flex flex-col">
-            <h2 className="text-xl font-bold text-gray-800 border-b border-pink-100 pb-4">Resumen del Pedido</h2>
+        <div className="bg-white h-full flex flex-col">
+            
+            {/* Header */}
+            <div className="p-6 border-b border-gray-100 flex-shrink-0">
+                <h2 className="text-xl font-bold text-gray-800">Resumen del Pedido</h2>
+                <p className="text-xs text-gray-400 mt-1 font-medium">{cartItems.length} items en la orden</p>
+            </div>
 
-            {/* Contenedor de la lista de productos en el carrito. */}
-            <div className="flex-grow my-4 overflow-y-auto pr-2">
-                {/* Se renderiza un mensaje si el carrito está vacío. */}
+            {/* Lista Scrollable */}
+            <div className="flex-grow overflow-y-auto p-4 custom-scrollbar space-y-3">
                 {cartItems.length === 0 ? (
-                    <p className="text-gray-500 text-center mt-10">No hay productos seleccionados.</p>
+                    <div className="h-full flex flex-col items-center justify-center text-gray-300 opacity-80">
+                         <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                            <span className="text-3xl grayscale opacity-50">🛒</span>
+                         </div>
+                        <p className="text-sm font-medium">Carrito vacío</p>
+                    </div>
                 ) : (
-                    // Si hay productos, se mapean para mostrarlos en la lista.
-                    cartItems.map((item) => (
-                        <div key={item.id} className="flex items-center mb-4">
-                            {/* --- INICIO DE LOS NUEVOS CONTROLES --- */}
-                            {/* Contenedor para el nombre y el precio del producto. */}
-                            <div className="flex-grow">
-                                <p className="font-semibold text-gray-800">{item.name}</p>
-                                <p className="text-sm text-gray-500">${item.price.toFixed(2)}</p>
+                    cartItems.map((item) => {
+                        // Verificamos si alcanzó el límite para deshabilitar el botón +
+                        const isMaxStock = item.quantity >= item.stock;
+
+                        return (
+                            <div key={item.id} className="flex items-center p-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all hover:shadow-md hover:border-pink-100 group">
+                                
+                                {/* Imagen */}
+                                {item.image && (
+                                    <div className="w-12 h-12 rounded-lg bg-gray-50 overflow-hidden flex-shrink-0 mr-3 border border-gray-100">
+                                        <img src={item.image.startsWith('http') ? item.image : `https://localhost:7031/${item.image}`} alt="" className="w-full h-full object-cover"/>
+                                    </div>
+                                )}
+
+                                <div className="flex-grow min-w-0 mr-2">
+                                    <p className="font-bold text-gray-700 text-sm truncate leading-tight" title={item.name}>
+                                        {item.name}
+                                    </p>
+                                    <p className="text-xs text-pink-500 font-bold mt-0.5">
+                                        ${Number(item.price).toFixed(2)}
+                                    </p>
+                                    {/* Indicador de límite alcanzado */}
+                                    {isMaxStock && <span className="text-[10px] text-orange-500 font-bold">Máx. stock alcanzado</span>}
+                                </div>
+
+                                <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1 border border-gray-200">
+                                    <button 
+                                        onClick={() => onUpdateQuantity(item.id, -1)} 
+                                        className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:bg-white hover:text-pink-500 hover:shadow-sm font-bold transition-all"
+                                    >-</button>
+                                    <span className="text-xs font-bold text-gray-700 w-5 text-center">{item.quantity}</span>
+                                    <button 
+                                        onClick={() => onUpdateQuantity(item.id, 1)} 
+                                        disabled={isMaxStock} // BLOQUEO AQUÍ
+                                        className={`
+                                            w-6 h-6 flex items-center justify-center rounded-md font-bold transition-all
+                                            ${isMaxStock 
+                                                ? 'text-gray-300 cursor-not-allowed bg-gray-100' 
+                                                : 'text-gray-400 hover:bg-white hover:text-pink-500 hover:shadow-sm'
+                                            }
+                                        `}
+                                    >+</button>
+                                </div>
+
+                                <button onClick={() => onRemoveItem(item.id)} className="ml-2 text-gray-300 hover:text-red-500 transition-colors p-1.5 hover:bg-red-50 rounded-lg">
+                                    <Trash2 size={16} />
+                                </button>
                             </div>
-                            {/* Controles para aumentar/disminuir la cantidad. */}
-                            <div className="flex items-center">
-                                <button onClick={() => onUpdateQuantity(item.id, -1)} className="w-6 h-6 rounded-full bg-pink-100 text-pink-700">-</button>
-                                <span className="w-10 text-center font-semibold">{item.quantity}</span>
-                                <button onClick={() => onUpdateQuantity(item.id, 1)} className="w-6 h-6 rounded-full bg-pink-100 text-pink-700">+</button>
-                            </div>
-                            {/* Botón para eliminar el producto del carrito. */}
-                            <button onClick={() => onRemoveItem(item.id)} className="ml-4 text-gray-400 hover:text-red-500">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            </button>
-                            {/* --- FIN DE LOS NUEVOS CONTROLES --- */}
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
 
-            {/* Sección de totales en la parte inferior. */}
-            <div className="border-t border-pink-100 pt-4 space-y-2">
-                <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
-                <div className="flex justify-between text-gray-600"><span>Impuestos (16%)</span><span>${tax.toFixed(2)}</span></div>
-                <div className="flex justify-between font-bold text-xl text-gray-800"><span>TOTAL</span><span>${total.toFixed(2)}</span></div>
-            </div>
-
-            {/* --- INICIO DEL SELECTOR DE MÉTODO DE PAGO --- */}
-            <div className="mt-6">
-                <h3 className="text-md font-semibold text-gray-700 mb-2">Método de Pago</h3>
-                <div className="flex space-x-2">
-                    <button onClick={() => setPaymentMethod('Efectivo')} className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${paymentMethod === 'Efectivo' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Efectivo</button>
-                    <button onClick={() => setPaymentMethod('Tarjeta')} className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${paymentMethod === 'Tarjeta' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Tarjeta</button>
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex-shrink-0 space-y-4">
+                <div className="space-y-2">
+                    <div className="flex justify-between text-sm text-gray-500 font-medium">
+                        <span>Subtotal</span>
+                        <span className="text-gray-700">${subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-500 font-medium">
+                        <span>Impuestos (16%)</span>
+                        <span className="text-gray-700">${tax.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-3 mt-2 border-t border-dashed border-gray-200">
+                        <span className="font-bold text-lg text-gray-800">Total</span>
+                        <span className="font-extrabold text-2xl text-pink-500">${total.toFixed(2)}</span>
+                    </div>
                 </div>
-            </div>
-            {/* --- FIN DEL SELECTOR DE MÉTODO DE PAGO --- */}
 
-            {/* Botón principal de acción para realizar el pedido. */}
-            <button className="w-full bg-pink-500 text-white font-bold py-3 rounded-lg mt-6 hover:bg-pink-600 transition-colors">
-                Realizar Pedido
-            </button>
+                <div className="grid grid-cols-2 gap-3">
+                    <button onClick={() => setPaymentMethod('Efectivo')} className={`flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold border transition-all ${paymentMethod === 'Efectivo' ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-200' : 'bg-white text-gray-500 border-gray-200 hover:bg-pink-50 hover:text-pink-500 hover:border-pink-200'}`}><Banknote size={18}/> Efectivo</button>
+                    <button onClick={() => setPaymentMethod('Tarjeta')} className={`flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold border transition-all ${paymentMethod === 'Tarjeta' ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-200' : 'bg-white text-gray-500 border-gray-200 hover:bg-pink-50 hover:text-pink-500 hover:border-pink-200'}`}><CreditCard size={18}/> Tarjeta</button>
+                </div>
+
+                <button disabled={cartItems.length === 0} className="w-full py-4 rounded-xl font-bold text-white text-lg shadow-lg transition-all flex items-center justify-center gap-2 bg-pink-500 hover:bg-pink-600 active:scale-95 shadow-pink-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed disabled:shadow-none">
+                    <span>Cobrar</span>
+                    {total > 0 && <span>${total.toFixed(2)}</span>}
+                </button>
+            </div>
         </div>
     );
 }
 
-// Se exporta el componente.
 export default OrderSummary;

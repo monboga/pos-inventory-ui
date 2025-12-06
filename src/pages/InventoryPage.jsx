@@ -3,7 +3,7 @@ import PageHeader from '../components/common/PageHeader';
 import DynamicTable from '../components/common/DynamicTable';
 import ProductModal from '../components/inventory/ProductModal';
 import { productService } from '../services/productService';
-import { Search, Plus, Edit, Trash2, Box, Package } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Box, Package, AlertOctagon } from 'lucide-react'; // Agregamos AlertOctagon
 
 const API_BASE_URL = 'https://localhost:7031';
 
@@ -57,7 +57,6 @@ function InventoryPage() {
     const openCreate = () => { setCurrentProduct(null); setIsModalOpen(true); };
     const openEdit = (prod) => { setCurrentProduct(prod); setIsModalOpen(true); };
 
-    // --- COLUMNAS (AQUÍ ESTÁ EL FIX DEL CRASH) ---
     const columns = useMemo(() => [
         {
             header: "Producto",
@@ -69,19 +68,13 @@ function InventoryPage() {
                         const cleanPath = rawImg.replace(/\\/g, '/');
                         const prefix = cleanPath.startsWith('/') ? '' : '/';
                         imgUrl = `${API_BASE_URL}${prefix}${cleanPath}`;
-                    } else {
-                        imgUrl = rawImg;
-                    }
+                    } else imgUrl = rawImg;
                 }
 
                 return (
                     <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-lg bg-gray-50 border border-gray-200 flex-shrink-0 overflow-hidden flex items-center justify-center">
-                            {imgUrl ? (
-                                <img src={imgUrl} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                                <Box className="text-gray-300" size={24} />
-                            )}
+                            {imgUrl ? <img src={imgUrl} alt="" className="w-full h-full object-cover" /> : <Box className="text-gray-300" size={24} />}
                         </div>
                         <div>
                             <div className="font-bold text-gray-800">{row.description || row.Description}</div>
@@ -91,20 +84,28 @@ function InventoryPage() {
                 );
             }
         },
-        {
-            header: "Marca",
-            render: (row) => row.brand || row.Brand || "-"
-        },
+        { header: "Marca", render: (row) => row.brand || row.Brand || "-" },
         {
             header: "Stock",
             className: "text-center",
             render: (row) => {
-                // FIX: Asegurar número
                 const stockVal = row.stock !== undefined ? row.stock : (row.Stock !== undefined ? row.Stock : 0);
+                
+                // --- FIX: Bandera visual de AGOTADO ---
+                if (stockVal === 0) {
+                    return (
+                        <div className="flex items-center justify-center">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600 border border-red-200">
+                                <AlertOctagon size={12} /> AGOTADO
+                            </span>
+                        </div>
+                    );
+                }
+
                 return (
                     <div className="flex items-center justify-center gap-1">
                         <Package size={14} className="text-gray-400" />
-                        <span className={`font-semibold ${stockVal < 10 ? 'text-red-600' : 'text-gray-700'}`}>
+                        <span className={`font-semibold ${stockVal < 10 ? 'text-orange-500' : 'text-gray-700'}`}>
                             {stockVal}
                         </span>
                     </div>
@@ -115,7 +116,6 @@ function InventoryPage() {
             header: "Precio",
             className: "text-right font-medium text-gray-700",
             render: (row) => {
-                // --- FIX PRINCIPAL: Evitar crash por undefined ---
                 const priceVal = row.price !== undefined ? row.price : (row.Price !== undefined ? row.Price : 0);
                 return `$${Number(priceVal).toFixed(2)}`;
             }
@@ -125,11 +125,7 @@ function InventoryPage() {
             className: "text-center",
             render: (row) => {
                 const active = row.isActive !== undefined ? row.isActive : (row.IsActive !== undefined ? !!row.IsActive : false);
-                return active ? (
-                    <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Activo</span>
-                ) : (
-                    <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">Inactivo</span>
-                );
+                return active ? <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Activo</span> : <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">Inactivo</span>;
             }
         },
         {

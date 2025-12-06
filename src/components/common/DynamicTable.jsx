@@ -1,17 +1,8 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-/**
- * Componente de Tabla Reutilizable
- * @param {Array} columns - Configuración de columnas [{ header: "Nombre", render: (row) => ... }]
- * @param {Array} data - Los datos a mostrar
- * @param {Boolean} loading - Estado de carga
- * @param {Function} onPageChange - Función para cambiar página (opcional si usas paginación externa)
- * @param {Object} pagination - { currentPage, totalPages, totalItems, itemsPerPage }
- */
 function DynamicTable({ columns, data, loading, pagination, onPageChange }) {
     
-    // Renderizado de Estado de Carga
     if (loading) {
         return (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center text-gray-500">
@@ -20,7 +11,6 @@ function DynamicTable({ columns, data, loading, pagination, onPageChange }) {
         );
     }
 
-    // Renderizado de Estado Vacío
     if (!data || data.length === 0) {
         return (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center text-gray-500">
@@ -31,13 +21,14 @@ function DynamicTable({ columns, data, loading, pagination, onPageChange }) {
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
-            <div className="overflow-x-auto flex-grow">
+            <div className="overflow-x-auto flex-grow custom-scrollbar">
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold tracking-wider">
                             {columns.map((col, index) => (
                                 <th 
                                     key={index} 
+                                    // AQUI YA ESTABA BIEN (Aplicaba col.className)
                                     className={`p-4 ${index === 0 ? 'rounded-tl-2xl' : ''} ${index === columns.length - 1 ? 'rounded-tr-2xl text-right' : ''} ${col.className || ''}`}
                                 >
                                     {col.header}
@@ -51,9 +42,10 @@ function DynamicTable({ columns, data, loading, pagination, onPageChange }) {
                                 {columns.map((col, colIndex) => (
                                     <td 
                                         key={`${rowIndex}-${colIndex}`} 
-                                        className={`p-4 ${colIndex === columns.length - 1 ? 'text-right' : ''}`}
+                                        // --- FIX AQUI ---
+                                        // Agregamos ${col.className || ''} para que el contenido se alinee igual que el header (ej. text-center)
+                                        className={`p-4 text-sm text-gray-600 ${colIndex === columns.length - 1 ? 'text-right' : ''} ${col.className || ''}`}
                                     >
-                                        {/* Si la columna tiene una función 'render', la usamos. Si no, mostramos el dato directo */}
                                         {col.render ? col.render(row) : row[col.accessor]}
                                     </td>
                                 ))}
@@ -63,7 +55,6 @@ function DynamicTable({ columns, data, loading, pagination, onPageChange }) {
                 </table>
             </div>
 
-            {/* Paginación Integrada */}
             {pagination && pagination.totalPages > 1 && (
                 <div className="p-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50 mt-auto">
                     <span className="text-sm text-gray-500">
@@ -78,10 +69,8 @@ function DynamicTable({ columns, data, loading, pagination, onPageChange }) {
                             <ChevronLeft size={16} />
                         </button>
                         
-                        {/* Renderizado simple de números (limitado a 5 para no saturar) */}
                         {[...Array(pagination.totalPages)].map((_, i) => {
                             const pageNum = i + 1;
-                            // Mostrar solo páginas cercanas (lógica simple)
                             if (Math.abs(pagination.currentPage - pageNum) <= 2 || pageNum === 1 || pageNum === pagination.totalPages) {
                                 return (
                                     <button
