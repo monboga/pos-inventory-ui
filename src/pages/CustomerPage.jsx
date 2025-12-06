@@ -1,116 +1,193 @@
-// src/pages/CustomersPage.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import PageHeader from '../components/common/PageHeader';
-import { Search, Plus, Phone, Mail, MapPin, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import DynamicTable from '../components/common/DynamicTable';
+import CustomerModal from '../components/customers/CustomerModal';
+import { clientService } from '../services/clientService';
+import { Search, Plus, Edit, Trash2, Mail, FileText, ShoppingBag } from 'lucide-react';
 
-// Datos de ejemplo (Mock Data)
-const MOCK_CUSTOMERS = [
-    { id: 1, name: "Ana García", email: "ana.garcia@gmail.com", phone: "555-0123", location: "Monterrey, NL", totalPurchases: 12, lastPurchase: "2023-11-20" },
-    { id: 2, name: "Carlos López", email: "carlos.lpz@hotmail.com", phone: "555-8899", location: "Guadalupe, NL", totalPurchases: 5, lastPurchase: "2023-12-01" },
-    { id: 3, name: "Empresa ABC S.A.", email: "compras@abc.com", phone: "818-2222", location: "San Pedro, NL", totalPurchases: 45, lastPurchase: "2023-12-03" },
-    { id: 4, name: "Maria Rodriguez", email: "mary.rod@outlook.com", phone: "555-4567", location: "Apodaca, NL", totalPurchases: 2, lastPurchase: "2023-10-15" },
-];
-
-function CustomersPage() {
+function CustomerPage() {
+    const [clients, setClients] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
 
-    // Filtrado simple por nombre o email
-    const filteredCustomers = MOCK_CUSTOMERS.filter(customer => 
-        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [currentClient, setCurrentClient] = useState(null);
+
+    const loadClients = async () => {
+        try {
+            setLoading(true);
+            const data = await clientService.getAll();
+            setClients(data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { loadClients(); }, []);
+
+    const handleSave = async (formData) => {
+        try {
+            if (currentClient) {
+                await clientService.update(currentClient.id || currentClient.Id, formData);
+            } else {
+                await clientService.create(formData);
+            }
+            setIsModalOpen(false);
+            loadClients();
+        } catch (error) {
+            alert(error.message);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm('¿Eliminar cliente?')) {
+            try {
+                await clientService.delete(id);
+                loadClients();
+            } catch (error) { alert(error.message); }
+        }
+    };
+
+    const openCreate = () => { setCurrentClient(null); setIsModalOpen(true); };
+    const openEdit = (client) => { setCurrentClient(client); setIsModalOpen(true); };
+
+    const columns = useMemo(() => [
+        {
+            header: "Cliente",
+            render: (row) => {
+                // FIX: Usamos fullName directamente del backend
+                const fullName = row.fullName || row.FullName || "Cliente";
+                
+                // Generar iniciales
+                const initials = fullName
+                    .split(' ')
+                    .map(n => n[0])
+                    .slice(0, 2)
+                    .join('')
+                    .toUpperCase();
+
+                return (
+                    <div className="flex items-center gap-3">
+                        {/* Avatar */}
+                        <div className="w-10 h-10 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-sm flex-shrink-0 border-2 border-white shadow-sm">
+                            {initials}
+                        </div>
+                        <div>
+                            <div className="font-bold text-gray-800">{fullName}</div>
+                            <div className="text-xs text-gray-400 font-mono">ID: #{String(row.id || row.Id).padStart(4, '0')}</div>
+                        </div>
+                    </div>
+                );
+            }
+        },
+        {
+            header: "Contacto",
+            render: (row) => (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Mail size={16} className="text-pink-400" />
+                    <span>{row.email || row.Email || "Sin correo"}</span>
+                </div>
+            )
+        },
+        {
+            header: "Datos Fiscales",
+            render: (row) => {
+                // FIX: Mapeo considerando el posible typo 'Descripion' en el backend (según tu imagen)
+                const regimenName = row.regimenFiscalDescripion || row.regimenFiscalDescripcion || row.RegimenFiscalDescripion || "Sin Régimen";
+                
+                return (
+                    <div className="flex flex-col">
+                        <div className="flex items-center gap-1 text-sm font-bold text-gray-700">
+                            <FileText size={14} className="text-gray-400"/>
+                            {row.rfc || row.Rfc || "---"}
+                        </div>
+                        <span className="text-xs text-gray-500 ml-5 truncate max-w-[200px]" title={regimenName}>
+                            {regimenName}
+                        </span>
+                    </div>
+                );
+            }
+        },
+        {
+            header: "Compras",
+            className: "text-center",
+            render: () => (
+                <div className="flex justify-center">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold">
+                        <ShoppingBag size={12}/> 0
+                    </span>
+                </div>
+            )
+        },
+        {
+            header: "Acciones",
+            className: "text-right",
+            render: (row) => (
+                <div className="flex items-center justify-end gap-2">
+                    <button onClick={() => openEdit(row)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Edit size={18} /></button>
+                    <button onClick={() => handleDelete(row.id || row.Id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={18} /></button>
+                </div>
+            )
+        }
+    ], []);
+
+    const filtered = clients.filter(c => {
+        const term = searchTerm.toLowerCase();
+        // Buscamos sobre fullName que es lo que tenemos
+        const fullName = (c.fullName || c.FullName || "").toLowerCase();
+        const email = (c.email || c.Email || "").toLowerCase();
+        const rfc = (c.rfc || c.Rfc || "").toLowerCase();
+        return fullName.includes(term) || email.includes(term) || rfc.includes(term);
+    });
+
+    const indexOfLast = currentPage * itemsPerPage;
+    const indexOfFirst = indexOfLast - itemsPerPage;
+    const currentData = filtered.slice(indexOfFirst, indexOfLast);
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
     return (
-        <div className="p-6 md:p-8 max-w-7xl mx-auto">
-            {/* Encabezado con Botón de Acción */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <PageHeader title="Clientes" subtitle="Gestiona tu base de datos de clientes" />
-                <button className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2.5 rounded-xl font-medium transition-colors shadow-sm">
-                    <Plus size={20} />
-                    <span>Nuevo Cliente</span>
-                </button>
-            </div>
-
-            {/* Barra de Búsqueda y Filtros */}
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
-                <div className="relative max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input 
-                        type="text"
-                        placeholder="Buscar por nombre, correo..."
-                        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-            </div>
-
-            {/* Tabla de Clientes */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold tracking-wider">
-                                <th className="p-4 rounded-tl-2xl">Cliente</th>
-                                <th className="p-4">Contacto</th>
-                                <th className="p-4">Ubicación</th>
-                                <th className="p-4 text-center">Compras</th>
-                                <th className="p-4 text-right rounded-tr-2xl">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {filteredCustomers.map((customer) => (
-                                <tr key={customer.id} className="hover:bg-pink-50/30 transition-colors group">
-                                    <td className="p-4">
-                                        <div className="font-bold text-gray-800">{customer.name}</div>
-                                        <div className="text-xs text-gray-400">ID: #{customer.id.toString().padStart(4, '0')}</div>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                                            <Mail size={14} className="text-pink-400" />
-                                            {customer.email}
-                                        </div>
-                                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                                            <Phone size={14} className="text-pink-400" />
-                                            {customer.phone}
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                                            <MapPin size={14} className="text-gray-400" />
-                                            {customer.location}
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-bold">
-                                            {customer.totalPurchases}
-                                        </span>
-                                        <div className="text-xs text-gray-400 mt-1">Última: {customer.lastPurchase}</div>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
-                                                <Edit size={18} />
-                                            </button>
-                                            <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                {/* Estado vacío si no hay resultados */}
-                {filteredCustomers.length === 0 && (
-                    <div className="p-8 text-center text-gray-500">
-                        No se encontraron clientes que coincidan con tu búsqueda.
+        <div className="p-8 max-w-7xl mx-auto h-full flex flex-col">
+            <PageHeader title="Clientes">
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <div className="relative w-full sm:w-80">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input 
+                            type="text" 
+                            placeholder="Buscar por nombre, correo, RFC..." 
+                            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm transition-all"
+                            value={searchTerm}
+                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                        />
                     </div>
-                )}
+                    <button onClick={openCreate} className="flex items-center justify-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm whitespace-nowrap">
+                        <Plus size={18} />
+                        <span>Nuevo Cliente</span>
+                    </button>
+                </div>
+            </PageHeader>
+
+            <div className="flex-grow flex flex-col min-h-0">
+                <DynamicTable 
+                    columns={columns} 
+                    data={currentData} 
+                    loading={loading} 
+                    pagination={{ currentPage, totalPages }} 
+                    onPageChange={setCurrentPage} 
+                />
             </div>
+
+            <CustomerModal 
+                isOpen={isModalOpen} 
+                onClose={() => setIsModalOpen(false)} 
+                onSubmit={handleSave} 
+                clientToEdit={currentClient} 
+            />
         </div>
     );
 }
 
-export default CustomersPage;
+export default CustomerPage;
