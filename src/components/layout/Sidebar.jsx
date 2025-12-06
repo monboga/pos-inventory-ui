@@ -81,7 +81,8 @@ function Sidebar({ logoUrl }) {
     };
 
     return (
-        <div className="relative h-screen hidden md:flex z-50">
+        // FIX: Cambiado h-screen a h-full para que respete al Layout padre
+        <div className="relative h-full hidden md:flex z-50 flex-col">
             {/* Botón flotante para colapsar */}
             <button
                 onClick={() => setIsCollapsed(!isCollapsed)}

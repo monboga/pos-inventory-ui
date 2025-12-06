@@ -26,15 +26,22 @@ function AppLayout() {
   
   // El componente retorna la estructura de layout que envuelve las páginas.
   return (
-    <div className="flex bg-pink-50 min-h-screen">
-      {/* Se renderiza el componente Sidebar, pasando el logo y los datos del usuario. */}
-      <Sidebar logoUrl={logo} user={user} />
-      {/* '<Outlet />' de React Router renderiza aquí el componente de la ruta hija que coincida. */}
-      <main className="flex-1 overflow-y-auto">
+<div className="flex h-screen w-full bg-pink-50 overflow-hidden">
+      
+      {/* CAMBIO 2: Wrapper para el Sidebar */}
+      {/* Aseguramos que el Sidebar ocupe el 100% de la altura de este contenedor padre */}
+      <div className="flex-shrink-0 h-full hidden md:block">
+         <Sidebar logoUrl={logo} user={user} />
+      </div>
+
+      {/* CAMBIO 3: Main con scroll interno */}
+      {/* 'overflow-y-auto' hace que SOLO esta parte tenga scroll.
+          'pb-20' es padding inferior para que en móvil el BottomNav no tape el contenido. */}
+      <main className="flex-1 h-full overflow-y-auto relative pb-20 md:pb-0 custom-scrollbar">
         <Outlet />
       </main>
-      {/* Se renderiza la barra de navegación inferior para móviles. */}
-      {/* Nota: Deberías hacer BottomNav responsivo para ocultarse en desktop. */}
+
+      {/* BottomNav fijo (se muestra solo en móvil por CSS interno) */}
       <BottomNav activeLink="Punto de Venta" /> 
     </div>
   );
