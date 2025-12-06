@@ -35,5 +35,7 @@ export const satService = {
     getMedidasLocales: () => fetchCatalog('MedidasLocales'),
 
     // 5. Medidas SAT
-    getMedidasSat: () => fetchCatalog('MedidasSat')
+    getMedidasSat: () => fetchCatalog('MedidasSat'),
+
+    getRegimenesFiscales: () => fetchCatalog('RegimenesFiscales')
 };
