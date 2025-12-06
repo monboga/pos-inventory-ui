@@ -11,6 +11,8 @@ import CustomerPage from './pages/CustomerPage'; // (Antes SuppliersPage)
 import SalesHistoryPage from './pages/SalesHistoryPage'; // Nueva página
 import CategoryPage from './pages/CategoryPage'; // Nueva página de categorías
 import ProfilePage from './pages/ProfilePage'; 
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import Sidebar from './components/layout/Sidebar';
 import BottomNav from './components/layout/BottomNav';
 import logo from './assets/logo.png';
@@ -74,6 +76,8 @@ function App() {
     <Routes>
       {/* Ruta para la página de inicio de sesión. */}
       <Route path="/login" element={<LoginPage logoUrl={logo} />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Se crea un grupo de rutas protegidas que comparten el mismo layout. */}
       <Route
