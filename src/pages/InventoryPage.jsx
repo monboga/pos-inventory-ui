@@ -3,7 +3,8 @@ import PageHeader from '../components/common/PageHeader';
 import DynamicTable from '../components/common/DynamicTable';
 import ProductModal from '../components/inventory/ProductModal';
 import { productService } from '../services/productService';
-import { Search, Plus, Edit, Trash2, Box, Package, AlertOctagon } from 'lucide-react'; // Agregamos AlertOctagon
+import { Search, Plus, Edit, Trash2, Box, Package, AlertOctagon } from 'lucide-react';
+import toast from 'react-hot-toast'; // <--- IMPORTANTE
 
 const API_BASE_URL = 'https://localhost:7031';
 
@@ -13,7 +14,6 @@ function InventoryPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 6; 
-
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentProduct, setCurrentProduct] = useState(null);
 
@@ -24,6 +24,7 @@ function InventoryPage() {
             setProducts(data);
         } catch (error) {
             console.error(error);
+            toast.error("Error al cargar inventario");
         } finally {
             setLoading(false);
         }
@@ -31,26 +32,47 @@ function InventoryPage() {
 
     useEffect(() => { loadProducts(); }, []);
 
+    // --- FIX TOAST: Guardar ---
     const handleSave = async (formData) => {
+        const toastId = toast.loading("Guardando producto...");
         try {
             if (currentProduct) {
                 await productService.update(currentProduct.id || currentProduct.Id, formData);
+                toast.success("Producto actualizado correctamente", { id: toastId });
             } else {
                 await productService.create(formData);
+                toast.success("Producto creado correctamente", { id: toastId });
             }
             setIsModalOpen(false);
             loadProducts();
         } catch (error) {
-            alert(error.message);
+            toast.error(error.message, { id: toastId });
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('¿Eliminar producto?')) {
-            try {
-                await productService.delete(id);
-                loadProducts();
-            } catch (error) { alert(error.message); }
+    // --- FIX TOAST: Eliminar ---
+    const handleDelete = (id) => {
+        toast((t) => (
+            <div className="flex flex-col gap-2">
+                <span className="font-medium text-gray-800">
+                    ¿Estás seguro de eliminar este producto?
+                </span>
+                <div className="flex gap-2 justify-end">
+                    <button onClick={() => toast.dismiss(t.id)} className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                    <button onClick={() => { toast.dismiss(t.id); performDelete(id); }} className="px-3 py-1 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600">Eliminar</button>
+                </div>
+            </div>
+        ), { duration: 5000, icon: '⚠️' });
+    };
+
+    const performDelete = async (id) => {
+        const toastId = toast.loading("Eliminando...");
+        try {
+            await productService.delete(id);
+            toast.success("Producto eliminado", { id: toastId });
+            loadProducts();
+        } catch (error) {
+            toast.error(error.message, { id: toastId });
         }
     };
 
@@ -90,8 +112,6 @@ function InventoryPage() {
             className: "text-center",
             render: (row) => {
                 const stockVal = row.stock !== undefined ? row.stock : (row.Stock !== undefined ? row.Stock : 0);
-                
-                // --- FIX: Bandera visual de AGOTADO ---
                 if (stockVal === 0) {
                     return (
                         <div className="flex items-center justify-center">
@@ -101,7 +121,6 @@ function InventoryPage() {
                         </div>
                     );
                 }
-
                 return (
                     <div className="flex items-center justify-center gap-1">
                         <Package size={14} className="text-gray-400" />

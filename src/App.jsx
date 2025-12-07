@@ -15,6 +15,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import Sidebar from './components/layout/Sidebar';
 import BottomNav from './components/layout/BottomNav';
+import { Toaster } from 'react-hot-toast';
 import logo from './assets/logo.png';
 
 
@@ -73,6 +74,45 @@ function ProtectedRoute({ children }) {
 function App() {
   // Retorna el contenedor de rutas.
   return (
+    <>
+        <Toaster 
+        position="top-center"
+        reverseOrder={false}
+        toastOptions={{
+          // Estilos por defecto
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+          },
+          // Estilo específico para Éxito
+          success: {
+            style: {
+              background: '#ECFDF5', // Verde muy claro
+              color: '#065F46',      // Verde oscuro
+              border: '1px solid #A7F3D0',
+              fontWeight: 'bold',
+            },
+            iconTheme: {
+              primary: '#10B981',
+              secondary: '#ECFDF5',
+            },
+          },
+          // Estilo específico para Error
+          error: {
+            style: {
+              background: '#FFF1F2', // Rosa muy claro (casi rojo)
+              color: '#BE123C',      // Rojo/Rosa oscuro
+              border: '1px solid #FECDD3',
+              fontWeight: 'bold',
+            },
+            iconTheme: {
+              primary: '#EC4899', // Tu color Pink 500
+              secondary: '#FFF1F2',
+            },
+          },
+        }}
+      />
     <Routes>
       {/* Ruta para la página de inicio de sesión. */}
       <Route path="/login" element={<LoginPage logoUrl={logo} />} />
@@ -105,6 +145,8 @@ function App() {
       {/* Ruta comodín para redirigir cualquier otra URL no encontrada a la página principal (la cual redirige al dashboard). */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
+
   );
 }
 

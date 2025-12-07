@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Box, Tag, Image as ImageIcon, ToggleLeft, ToggleRight, FileText, Percent } from 'lucide-react'; // Agregamos Percent si quieres icono, o usamos texto simple
+import { X, Save, RefreshCw, Box, Tag, Image as ImageIcon, ToggleLeft, ToggleRight, FileText, Percent } from 'lucide-react'; // Agregamos Percent si quieres icono, o usamos texto simple
 import { categoryService } from '../../services/categoryService';
 import { satService } from '../../services/satService';
 
@@ -326,8 +326,20 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                     )}
 
                     <div className="pt-2 flex gap-3 justify-end border-t border-gray-50">
-                        <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors">Cancelar</button>
-                        <button type="submit" className="flex items-center gap-2 px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium shadow-sm active:scale-95 transition-all"><Save size={18} /> Guardar</button>
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit" className="flex items-center gap-2 px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium shadow-sm active:scale-95 transition-all">
+                            {productToEdit ? (
+                                <>
+                                    <RefreshCw size={18} /> Actualizar Producto
+                                </>
+                            ) : (
+                                <>
+                                    <Save size={18} /> Guardar Producto
+                                </>
+                            )}
+                        </button>
                     </div>
                 </form>
             </div>
