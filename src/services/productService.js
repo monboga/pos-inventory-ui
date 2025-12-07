@@ -1,27 +1,17 @@
-import { getToken } from './authService';
+import { apiFetch } from './api';
 
 const API_URL = 'https://localhost:7031/api/products'; 
 
-const getJsonHeaders = () => {
-    const token = getToken();
-    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-};
-
-const getFormDataHeaders = () => {
-    const token = getToken();
-    return { 'Authorization': `Bearer ${token}` };
-};
-
 export const productService = {
     getAll: async () => {
-        const response = await fetch(API_URL, { headers: getJsonHeaders() });
+        const response = await apiFetch(API_URL);
         if (!response.ok) throw new Error('Error al cargar productos');
         return await response.json();
     },
 
     create: async (productData) => {
         const formData = new FormData();
-        
+
         formData.append('Barcode', productData.barcode);
         formData.append('Description', productData.description);
         formData.append('Brand', productData.brand);
@@ -29,7 +19,7 @@ export const productService = {
         formData.append('Price', productData.price);
         formData.append('Discount', productData.discount || 0);
         formData.append('CategoryId', productData.categoryId);
-        formData.append('IsActive', true); // Siempre true al crear
+        formData.append('IsActive', true); 
 
         // SAT
         formData.append('CatalogoImpuestoId', productData.catalogoImpuestoId);
@@ -42,12 +32,12 @@ export const productService = {
             formData.append('ImageFile', productData.photoFile);
         }
 
-        const response = await fetch(API_URL, {
+        // apiFetch detecta FormData y evita el content-type json
+        const response = await apiFetch(API_URL, {
             method: 'POST',
-            headers: getFormDataHeaders(),
             body: formData
         });
-        
+
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
             throw new Error(error.title || 'Error al crear producto');
@@ -57,7 +47,7 @@ export const productService = {
 
     update: async (id, productData) => {
         const formData = new FormData();
-        
+
         formData.append('Id', id);
         formData.append('Barcode', productData.barcode);
         formData.append('Description', productData.description);
@@ -66,9 +56,7 @@ export const productService = {
         formData.append('Price', productData.price);
         formData.append('Discount', productData.discount || 0);
         formData.append('CategoryId', productData.categoryId);
-        
-        // --- FIX ESTADO: Enviar valor booleano explícito ---
-        formData.append('IsActive', productData.isActive); 
+        formData.append('IsActive', productData.isActive);
 
         // SAT
         formData.append('CatalogoImpuestoId', productData.catalogoImpuestoId);
@@ -81,9 +69,8 @@ export const productService = {
             formData.append('ImageFile', productData.photoFile);
         }
 
-        const response = await fetch(`${API_URL}/${id}`, {
+        const response = await apiFetch(`${API_URL}/${id}`, {
             method: 'PUT',
-            headers: getFormDataHeaders(),
             body: formData
         });
 
@@ -93,15 +80,14 @@ export const productService = {
             if (error.errors) msg += `: ${JSON.stringify(error.errors)}`;
             throw new Error(msg);
         }
-        
+
         const text = await response.text();
         return text ? JSON.parse(text) : {};
     },
 
     delete: async (id) => {
-        const response = await fetch(`${API_URL}/${id}`, {
-            method: 'DELETE',
-            headers: getJsonHeaders()
+        const response = await apiFetch(`${API_URL}/${id}`, {
+            method: 'DELETE'
         });
         if (!response.ok) throw new Error('Error al eliminar producto');
         return true;

@@ -1,17 +1,11 @@
-import { getToken } from './authService';
+import { apiFetch } from './api';
 
 const API_URL = 'https://localhost:7031/api/roles'; 
 
 export const roleService = {
     getAll: async () => {
-        const token = getToken();
         try {
-            const response = await fetch(API_URL, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await apiFetch(API_URL);
             
             if (!response.ok) {
                 console.warn("No se pudo obtener roles de la API.");

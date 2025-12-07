@@ -1,4 +1,4 @@
-import { getToken } from './authService';
+import { apiFetch } from "./api";
 
 const BASE_URL = 'https://localhost:7031/api';
 
@@ -9,7 +9,7 @@ const getHeaders = () => ({
 
 const fetchCatalog = async (endpoint) => {
     try {
-        const response = await fetch(`${BASE_URL}/${endpoint}`, { headers: getHeaders() });
+        const response = await apiFetch(`${BASE_URL}/${endpoint}`);
         if (!response.ok) {
             console.warn(`Falló la carga de: ${endpoint}`);
             return [];
