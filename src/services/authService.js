@@ -69,7 +69,7 @@ export const decodeUserFromToken = (token) => {
         // Para abreviar en este ejemplo, asumo que copias tu función decodeUserFromToken aquí
         // tal cual me la mostraste en el archivo original.
         
-        // REPLICANDO TU LÓGICA RESUMIDA:
+        const userId = decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || decoded.sub || decoded.id || 0;
         const email = decoded.email || decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || decoded.unique_name || "";
         let firstName = decoded.firstName || decoded.given_name || decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"];
         let lastName = decoded.lastName || decoded.family_name || decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"];
@@ -84,6 +84,11 @@ export const decodeUserFromToken = (token) => {
         const roleClaim = decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || decoded.role || decoded.roles;
         let userRole = Array.isArray(roleClaim) ? roleClaim[0] : (roleClaim || "Usuario");
 
-        return { name: fullName, email, initials: "U", role: userRole };
+        return {
+            id: Number(userId), 
+            name: fullName, 
+            email, 
+            initials: "U", 
+            role: userRole };
     } catch (e) { return null; }
 };
