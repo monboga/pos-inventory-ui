@@ -139,8 +139,6 @@ function PointOfSalePage() {
                 }))
             };
 
-            console.log("Enviando Payload:", payload); 
-
             await saleService.create(payload);
             
             alert(`✅ Venta (${docTypeString}) registrada con éxito`);

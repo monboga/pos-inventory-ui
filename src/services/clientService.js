@@ -1,26 +1,17 @@
-import { getToken } from './authService';
+import { apiFetch } from './api';
 
-const API_URL = 'https://localhost:7031/api/Clients'; // Ajusta puerto si varía
-
-const getAuthHeaders = () => {
-    const token = getToken();
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-    };
-};
+const API_URL = 'https://localhost:7031/api/Clients'; 
 
 export const clientService = {
     getAll: async () => {
-        const response = await fetch(API_URL, { headers: getAuthHeaders() });
+        const response = await apiFetch(API_URL);
         if (!response.ok) throw new Error('Error al cargar clientes');
         return await response.json();
     },
 
     create: async (clientData) => {
-        const response = await fetch(API_URL, {
+        const response = await apiFetch(API_URL, {
             method: 'POST',
-            headers: getAuthHeaders(),
             body: JSON.stringify(clientData)
         });
         
@@ -32,10 +23,9 @@ export const clientService = {
     },
 
     update: async (id, clientData) => {
-        const response = await fetch(`${API_URL}/${id}`, {
+        const response = await apiFetch(`${API_URL}/${id}`, {
             method: 'PUT',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ ...clientData, id }) // Aseguramos ID en body
+            body: JSON.stringify({ ...clientData, id }) 
         });
 
         if (!response.ok) {
@@ -48,9 +38,8 @@ export const clientService = {
     },
 
     delete: async (id) => {
-        const response = await fetch(`${API_URL}/${id}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
+        const response = await apiFetch(`${API_URL}/${id}`, {
+            method: 'DELETE'
         });
         if (!response.ok) throw new Error('Error al eliminar cliente');
         return true;

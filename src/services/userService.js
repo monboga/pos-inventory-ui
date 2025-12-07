@@ -1,26 +1,10 @@
-import { getToken } from './authService';
+import { apiFetch } from "./api";
 
 const API_URL = 'https://localhost:7031/api/users'; 
 
-const getJsonHeaders = () => {
-    const token = getToken();
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-    };
-};
-
-const getFormDataHeaders = () => {
-    const token = getToken();
-    return {
-        'Authorization': `Bearer ${token}`
-        // NO poner Content-Type, el navegador lo pone con el boundary
-    };
-};
-
 export const userService = {
     getAll: async () => {
-        const response = await fetch(API_URL, { headers: getJsonHeaders() });
+        const response = await apiFetch(API_URL);
         if (!response.ok) throw new Error('Error al cargar usuarios');
         return await response.json();
     },
@@ -35,15 +19,13 @@ export const userService = {
         formData.append('Roles', userData.role); 
         formData.append('IsActive', true);
 
-        // --- ENVIAMOS EL ARCHIVO BINARIO ---
         if (userData.photoFile) {
-            // El nombre 'Photo' debe coincidir con la propiedad IFormFile Photo en tu DTO
             formData.append('Photo', userData.photoFile);
         }
 
-        const response = await fetch(API_URL, {
+        // Ya no necesitamos headers manuales, api.js lo maneja
+        const response = await apiFetch(API_URL, {
             method: 'POST',
-            headers: getFormDataHeaders(),
             body: formData
         });
         
@@ -69,6 +51,7 @@ export const userService = {
         formData.append('LastName', userData.lastName);
         formData.append('Email', userData.email);
         formData.append('Roles', userData.role);
+        // Asegurar booleano
         formData.append('IsActive', userData.isActive);
 
         if (userData.photoFile) {
@@ -79,9 +62,8 @@ export const userService = {
             formData.append('Password', userData.password);
         }
 
-        const response = await fetch(`${API_URL}/${id}`, {
+        const response = await apiFetch(`${API_URL}/${id}`, {
             method: 'PUT',
-            headers: getFormDataHeaders(),
             body: formData
         });
 
@@ -102,9 +84,8 @@ export const userService = {
     },
 
     delete: async (id) => {
-        const response = await fetch(`${API_URL}/${id}`, {
-            method: 'DELETE',
-            headers: getJsonHeaders()
+        const response = await apiFetch(`${API_URL}/${id}`, {
+            method: 'DELETE'
         });
         if (!response.ok) throw new Error('Error al eliminar usuario');
         return true;
