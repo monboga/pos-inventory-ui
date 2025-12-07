@@ -12,6 +12,7 @@ import {
     History,   
     ChevronLeft, 
     ChevronRight, 
+    Building,
     LogOut, 
     ChevronsUpDown,
     UserCircle,
@@ -105,11 +106,18 @@ function Sidebar({ logoUrl }) {
             `}>
                 {/* Header Logo */}
                 <header className={`flex items-center justify-center h-24 flex-shrink-0 ${isCollapsed ? 'px-2' : 'px-6'}`}>
-                    <img 
-                        src={logoUrl} 
-                        alt="Logo" 
-                        className={`object-contain transition-all duration-300 ${isCollapsed ? 'w-8 h-8' : 'h-10 w-auto'}`} 
-                    />
+                    {logoUrl ? (
+                        <img 
+                            src={logoUrl} 
+                            alt="Logo" 
+                            className={`object-contain transition-all duration-300 ${isCollapsed ? 'w-10 h-10' : 'h-14 w-auto'}`} 
+                        />
+                    ) : (
+                        // Fallback Icono Marketplace/Store
+                        <div className={`bg-pink-500 rounded-xl flex items-center justify-center text-white transition-all duration-300 ${isCollapsed ? 'w-10 h-10' : 'w-12 h-12'}`}>
+                            <Store size={isCollapsed ? 20 : 24} />
+                        </div>
+                    )}
                 </header>
 
                 {/* Navegación Scrollable */}
@@ -135,6 +143,9 @@ function Sidebar({ logoUrl }) {
                     <MenuItem to="/customers" text="Clientes" icon={UserRound} isCollapsed={isCollapsed} active={isActive('/customers')} />
                     <MenuItem to="/users" text="Usuarios" icon={Users} isCollapsed={isCollapsed} active={isActive('/users')} />
                     <MenuItem to="/categories" text="Categorías" icon={Tags} isCollapsed={isCollapsed} active={isActive('/categories')} />
+
+                    <div className="my-2 border-t border-gray-100"></div>
+                    <MenuItem to="/business" text="Negocio" icon={Building} isCollapsed={isCollapsed} active={isActive('/business')} />
                 </nav>
 
                 {/* Footer del Usuario */}
