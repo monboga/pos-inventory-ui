@@ -20,5 +20,19 @@ export const saleService = {
         const response = await fetch(`${API_URL}/${id}`, { headers: getHeaders() });
         if (!response.ok) throw new Error('Error al cargar el detalle de la venta');
         return await response.json();
+    },
+
+    create: async (saleData) => {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(saleData)
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.title || error.message || 'Error al procesar la venta');
+        }
+        return await response.json();
     }
 };
