@@ -1,22 +1,44 @@
-// Se importan los componentes de React Router y nuestras páginas.
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import PointOfSalePage from './pages/PointOfSalePage';
 import InventoryPage from './pages/InventoryPage'; // se importa pagina de inventario
-// se importan las paginas faltantes de userpage y supplierspage
 import UsersPage from './pages/UserPage'; // Usamos el nombre singular correcto: UserPage
 import CustomerPage from './pages/CustomerPage'; // (Antes SuppliersPage)
 import SalesHistoryPage from './pages/SalesHistoryPage'; // Nueva página
 import CategoryPage from './pages/CategoryPage'; // Nueva página de categorías
-import ProfilePage from './pages/ProfilePage'; 
+import ProfilePage from './pages/ProfilePage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import BusinessPage from './pages/BusinessPage'; // Nueva página de negocio
 import Sidebar from './components/layout/Sidebar';
 import BottomNav from './components/layout/BottomNav';
 import { Toaster } from 'react-hot-toast';
-import logo from './assets/logo.png';
+import { businessService } from './services/businessService';
+
+const API_BASE_URL = 'https://localhost:7031';
+
+const getImageUrl = (rawImage) => {
+  if (!rawImage) return null;
+
+  // Caso 1: Es Base64 puro (sin prefijo) -> Lo convertimos a Data URI
+  // (Detectamos si es un string largo sin espacios y caracteres base64)
+  if (!rawImage.includes('/') && rawImage.length > 100) {
+    return `data:image/png;base64,${rawImage}`;
+  }
+
+  // Caso 2: Es una ruta de archivo del servidor (ej. "Uploads\Logo\img.png")
+  if (rawImage.includes("Uploads") || rawImage.includes("/")) {
+    const cleanPath = rawImage.replace(/\\/g, '/'); // Reemplazar \ por /
+    const pathPart = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
+    return `${API_BASE_URL}/${pathPart}`; // https://localhost:7031/Uploads/...
+  }
+
+  // Caso 3: Ya es una URL completa o Data URI válida
+  return rawImage;
+};
 
 
 // Se crea un componente de Layout para las páginas protegidas.
@@ -25,27 +47,42 @@ function AppLayout() {
   // Obtenemos la información del usuario del contexto (si necesitas los datos del usuario logueado, usa 'user').
   // En este contexto, el user debe ser el objeto que obtienes al decodificar el JWT.
   // Si tu AuthContext no tiene 'user', puedes quitar la prop 'user={user}' del Sidebar.
-  const { user } = useAuth(); 
-  
+  const { user } = useAuth();
+  const [businessLogo, setBusinessLogo] = useState(null);
+
+  // Efecto para cargar la info del negocio (Logo) al entrar al sistema
+  useEffect(() => {
+    const fetchBusinessInfo = async () => {
+      try {
+        const data = await businessService.getBusiness();
+        if (Array.isArray(data) && data.length > 0) {
+          const business = data[0];
+          // Obtenemos la URL procesada
+          const logoSrc = getImageUrl(business.logo || business.Logo);
+          setBusinessLogo(logoSrc);
+        }
+      } catch (error) {
+        console.error("Error cargando logo:", error);
+      }
+    };
+    fetchBusinessInfo();
+  }, []); // Se ejecuta 1 vez al montar
+
   // El componente retorna la estructura de layout que envuelve las páginas.
   return (
-<div className="flex h-screen w-full bg-pink-50 overflow-hidden">
-      
-      {/* CAMBIO 2: Wrapper para el Sidebar */}
-      {/* Aseguramos que el Sidebar ocupe el 100% de la altura de este contenedor padre */}
+    <div className="flex h-screen w-full bg-pink-50 overflow-hidden">
+
+      {/* Sidebar con Logo Dinámico */}
       <div className="flex-shrink-0 h-full hidden md:block">
-         <Sidebar logoUrl={logo} user={user} />
+        {/* Pasamos el logo recuperado del backend */}
+        <Sidebar logoUrl={businessLogo} user={user} />
       </div>
 
-      {/* CAMBIO 3: Main con scroll interno */}
-      {/* 'overflow-y-auto' hace que SOLO esta parte tenga scroll.
-          'pb-20' es padding inferior para que en móvil el BottomNav no tape el contenido. */}
       <main className="flex-1 h-full overflow-y-auto relative pb-20 md:pb-0 custom-scrollbar">
         <Outlet />
       </main>
 
-      {/* BottomNav fijo (se muestra solo en móvil por CSS interno) */}
-      <BottomNav activeLink="Punto de Venta" /> 
+      <BottomNav activeLink="Punto de Venta" />
     </div>
   );
 }
@@ -58,14 +95,14 @@ function ProtectedRoute({ children }) {
 
   if (loading) {
     // Pantalla de carga mientras se verifica el token
-    return <div className="flex justify-center items-center h-screen text-gray-600">Verificando sesión...</div>; 
+    return <div className="flex justify-center items-center h-screen text-gray-600">Verificando sesión...</div>;
   }
 
   // Si está autenticado, se renderiza el contenido protegido (children).
   if (user) {
     return children;
   }
-  
+
   // Si no, se redirige al usuario a la página de inicio de sesión.
   return <Navigate to="/login" replace />;
 }
@@ -75,7 +112,7 @@ function App() {
   // Retorna el contenedor de rutas.
   return (
     <>
-        <Toaster 
+      <Toaster
         position="top-center"
         reverseOrder={false}
         toastOptions={{
@@ -113,38 +150,39 @@ function App() {
           },
         }}
       />
-    <Routes>
-      {/* Ruta para la página de inicio de sesión. */}
-      <Route path="/login" element={<LoginPage logoUrl={logo} />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Routes>
+        {/* Ruta para la página de inicio de sesión. */}
+        <Route path="/login" element={<LoginPage logoUrl={null} />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      {/* Se crea un grupo de rutas protegidas que comparten el mismo layout. */}
-      <Route
-        path="/"
-        element={
-          // Envuelve el AppLayout en ProtectedRoute
-          <ProtectedRoute>
-            <AppLayout />
-          </ProtectedRoute>
-        }
-      >
-        {/* Ruta índice (página principal del dashboard). */}
-        <Route index element={<DashboardPage />} />
-        {/* Nueva ruta para el Punto de Venta. */}
-        <Route path="pos" element={<PointOfSalePage />} />
-        {/* Se añaden las rutas para los nuevos enlaces del menú. */}
-        <Route path="inventory" element={<InventoryPage />} />
-        <Route path="categories" element={<CategoryPage />} />
-        <Route path="users" element={<UsersPage />} />
-        <Route path="customers" element={<CustomerPage />} />
-        <Route path="sales-history" element={<SalesHistoryPage />} />
-        <Route path="profile" element={<ProfilePage />} />
-      </Route>
+        {/* Se crea un grupo de rutas protegidas que comparten el mismo layout. */}
+        <Route
+          path="/"
+          element={
+            // Envuelve el AppLayout en ProtectedRoute
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
+          {/* Ruta índice (página principal del dashboard). */}
+          <Route index element={<DashboardPage />} />
+          {/* Nueva ruta para el Punto de Venta. */}
+          <Route path="pos" element={<PointOfSalePage />} />
+          {/* Se añaden las rutas para los nuevos enlaces del menú. */}
+          <Route path="inventory" element={<InventoryPage />} />
+          <Route path="categories" element={<CategoryPage />} />
+          <Route path="users" element={<UsersPage />} />
+          <Route path="customers" element={<CustomerPage />} />
+          <Route path="sales-history" element={<SalesHistoryPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="business" element={<BusinessPage />} />
+        </Route>
 
-      {/* Ruta comodín para redirigir cualquier otra URL no encontrada a la página principal (la cual redirige al dashboard). */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Ruta comodín para redirigir cualquier otra URL no encontrada a la página principal (la cual redirige al dashboard). */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </>
 
   );

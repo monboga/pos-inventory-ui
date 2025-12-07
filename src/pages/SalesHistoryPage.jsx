@@ -12,7 +12,7 @@ function SalesHistoryPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 8;
+    const [itemsPerPage, setItemsPerPage] = useState(10);
 
     // Estados Modales
     const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -226,13 +226,19 @@ function SalesHistoryPage() {
                 </div>
             </div>
 
-            <div className="flex-grow flex flex-col min-h-0">
+            <div className="w-full">
                 <DynamicTable 
                     columns={columns} 
                     data={currentData} 
                     loading={loading} 
                     pagination={{ currentPage, totalPages }} 
-                    onPageChange={setCurrentPage} 
+                    onPageChange={setCurrentPage}
+                    itemsPerPageOptions={[5, 10, 20]}
+                    onItemsPerPageChange={(val) => {
+                        setItemsPerPage(val);
+                        setCurrentPage(1);
+                    }}
+
                 />
             </div>
 
