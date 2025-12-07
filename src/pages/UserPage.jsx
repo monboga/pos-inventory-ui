@@ -14,9 +14,11 @@ function UsersPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const [itemsPerPage, setItemsPerPage] = useState(5);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
+
+    
 
     const normalizeUser = (rawUser) => {
         let fName = rawUser.firstName || rawUser.FirstName || "";
@@ -246,8 +248,21 @@ function UsersPage() {
                 </div>
             </PageHeader>
 
-            <div className="flex-grow flex flex-col min-h-0">
-                <DynamicTable columns={columns} data={currentUsers} loading={loading} pagination={{ currentPage, totalPages }} onPageChange={setCurrentPage} />
+            <div className="w-full">
+                <DynamicTable 
+                    columns={columns} 
+                    data={currentUsers} 
+                    loading={loading} 
+                    pagination={{ currentPage, totalPages }} 
+                    onPageChange={setCurrentPage}
+                    
+                    // --- NUEVAS PROPS ---
+                    itemsPerPage={itemsPerPage}
+                    onItemsPerPageChange={(val) => {
+                        setItemsPerPage(val);
+                        setCurrentPage(1); // Reset a pág 1 al cambiar límite
+                    }}
+                />
             </div>
 
             <UserModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleSaveUser} userToEdit={currentUser} />

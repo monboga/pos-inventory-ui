@@ -11,7 +11,7 @@ function CustomerPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 6;
+    const [itemsPerPage, setItemsPerPage] = useState(6);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentClient, setCurrentClient] = useState(null);
@@ -192,13 +192,18 @@ function CustomerPage() {
                 </div>
             </PageHeader>
 
-            <div className="flex-grow flex flex-col min-h-0">
+            <div className="w-full">
                 <DynamicTable
                     columns={columns}
                     data={currentData}
                     loading={loading}
                     pagination={{ currentPage, totalPages }}
                     onPageChange={setCurrentPage}
+                    itemsPerPage={itemsPerPage}
+                    onItemsPerPageChange={(val) => {
+                        setItemsPerPage(val);
+                        setCurrentPage(1);
+                    }}
                 />
             </div>
 

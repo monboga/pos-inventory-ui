@@ -13,7 +13,7 @@ function InventoryPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 6; 
+    const [itemsPerPage, setItemsPerPage] = useState(6);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentProduct, setCurrentProduct] = useState(null);
 
@@ -185,8 +185,18 @@ function InventoryPage() {
                 </div>
             </PageHeader>
 
-            <div className="flex-grow flex flex-col min-h-0">
-                <DynamicTable columns={columns} data={currentData} loading={loading} pagination={{ currentPage, totalPages }} onPageChange={setCurrentPage} />
+            <div className="w-full">
+                <DynamicTable columns={columns} 
+                data={currentData} 
+                loading={loading} 
+                pagination={{ currentPage, totalPages }} 
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={(val) => {
+                    setItemsPerPage(val);
+                    setCurrentPage(1);
+                }} 
+                />
             </div>
 
             <ProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleSave} productToEdit={currentProduct} />

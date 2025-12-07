@@ -11,7 +11,7 @@ function CategoryPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 6; 
+    const [itemsPerPage, setItemsPerPage] = useState(6);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentCategory, setCurrentCategory] = useState(null);
 
@@ -139,8 +139,19 @@ function CategoryPage() {
                 </div>
             </PageHeader>
 
-            <div className="flex-grow flex flex-col min-h-0">
-                <DynamicTable columns={columns} data={currentData} loading={loading} pagination={{ currentPage, totalPages }} onPageChange={setCurrentPage} />
+            <div className="w-full">
+                <DynamicTable 
+                columns={columns} 
+                data={currentData} 
+                loading={loading}
+                pagination={{ currentPage, totalPages }} 
+                onPageChange={setCurrentPage} 
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={(val) => {
+                    setItemsPerPage(val);
+                    setCurrentPage(1);
+                }}
+                />
             </div>
 
             <CategoryModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleSave} categoryToEdit={currentCategory} />
