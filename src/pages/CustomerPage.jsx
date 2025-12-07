@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import PageHeader from '../components/common/PageHeader';
 import DynamicTable from '../components/common/DynamicTable';
 import CustomerModal from '../components/customers/CustomerModal';
+import toast from 'react-hot-toast';
 import { clientService } from '../services/clientService';
 import { Search, Plus, Edit, Trash2, Mail, FileText, ShoppingBag } from 'lucide-react';
 
@@ -10,7 +11,7 @@ function CustomerPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 6;
+    const [itemsPerPage, setItemsPerPage] = useState(6);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentClient, setCurrentClient] = useState(null);
@@ -30,26 +31,47 @@ function CustomerPage() {
     useEffect(() => { loadClients(); }, []);
 
     const handleSave = async (formData) => {
+        const toastId = toast.loading("Guardando...");
         try {
             if (currentClient) {
                 await clientService.update(currentClient.id || currentClient.Id, formData);
+                toast.success("Cliente actualizado correctamente", { id: toastId });
             } else {
                 await clientService.create(formData);
+                toast.success("Cliente creado correctamente", { id: toastId });
             }
             setIsModalOpen(false);
             loadClients();
         } catch (error) {
-            alert(error.message);
+            toast.error(error.message, { id: toastId });
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('¿Eliminar cliente?')) {
-            try {
-                await clientService.delete(id);
-                loadClients();
-            } catch (error) { alert(error.message); }
-        }
+    const handleDelete = (id) => {
+        toast((t) => (
+            <div className="flex flex-col gap-2">
+                <span className="font-medium text-gray-800">
+                    ¿Estás seguro de eliminar este cliente?
+                </span>
+                <div className="flex gap-2 justify-end">
+                    <button 
+                        onClick={() => toast.dismiss(t.id)}
+                        className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        onClick={() => {
+                            toast.dismiss(t.id);
+                            performDelete(id); // Llamamos a la función real
+                        }}
+                        className="px-3 py-1 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                        Eliminar
+                    </button>
+                </div>
+            </div>
+        ), { duration: 5000, icon: '⚠️' });
     };
 
     const openCreate = () => { setCurrentClient(null); setIsModalOpen(true); };
@@ -61,7 +83,7 @@ function CustomerPage() {
             render: (row) => {
                 // FIX: Usamos fullName directamente del backend
                 const fullName = row.fullName || row.FullName || "Cliente";
-                
+
                 // Generar iniciales
                 const initials = fullName
                     .split(' ')
@@ -98,11 +120,11 @@ function CustomerPage() {
             render: (row) => {
                 // FIX: Mapeo considerando el posible typo 'Descripion' en el backend (según tu imagen)
                 const regimenName = row.regimenFiscalDescripion || row.regimenFiscalDescripcion || row.RegimenFiscalDescripion || "Sin Régimen";
-                
+
                 return (
                     <div className="flex flex-col">
                         <div className="flex items-center gap-1 text-sm font-bold text-gray-700">
-                            <FileText size={14} className="text-gray-400"/>
+                            <FileText size={14} className="text-gray-400" />
                             {row.rfc || row.Rfc || "---"}
                         </div>
                         <span className="text-xs text-gray-500 ml-5 truncate max-w-[200px]" title={regimenName}>
@@ -118,7 +140,7 @@ function CustomerPage() {
             render: () => (
                 <div className="flex justify-center">
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold">
-                        <ShoppingBag size={12}/> 0
+                        <ShoppingBag size={12} /> 0
                     </span>
                 </div>
             )
@@ -155,9 +177,9 @@ function CustomerPage() {
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                     <div className="relative w-full sm:w-80">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input 
-                            type="text" 
-                            placeholder="Buscar por nombre, correo, RFC..." 
+                        <input
+                            type="text"
+                            placeholder="Buscar por nombre, correo, RFC..."
                             className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm transition-all"
                             value={searchTerm}
                             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
@@ -170,21 +192,26 @@ function CustomerPage() {
                 </div>
             </PageHeader>
 
-            <div className="flex-grow flex flex-col min-h-0">
-                <DynamicTable 
-                    columns={columns} 
-                    data={currentData} 
-                    loading={loading} 
-                    pagination={{ currentPage, totalPages }} 
-                    onPageChange={setCurrentPage} 
+            <div className="w-full">
+                <DynamicTable
+                    columns={columns}
+                    data={currentData}
+                    loading={loading}
+                    pagination={{ currentPage, totalPages }}
+                    onPageChange={setCurrentPage}
+                    itemsPerPage={itemsPerPage}
+                    onItemsPerPageChange={(val) => {
+                        setItemsPerPage(val);
+                        setCurrentPage(1);
+                    }}
                 />
             </div>
 
-            <CustomerModal 
-                isOpen={isModalOpen} 
-                onClose={() => setIsModalOpen(false)} 
-                onSubmit={handleSave} 
-                clientToEdit={currentClient} 
+            <CustomerModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSubmit={handleSave}
+                clientToEdit={currentClient}
             />
         </div>
     );

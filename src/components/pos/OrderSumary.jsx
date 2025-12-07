@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, Banknote, Loader2, CreditCard } from 'lucide-react';
-import SaleConfirmationModal from '../sales/SaleConfirmationModal'; 
+import SaleConfirmationModal from '../sales/SaleConfirmationModal';
+import toast from 'react-hot-toast';
 
-function OrderSummary({ cartItems, onUpdateQuantity, onRemoveItem, onProcessSale, isProcessing }) {
+function OrderSummary({ cartItems, onUpdateQuantity, onRemoveItem, onProcessSale, isProcessing, selectedClientId }) {
     const [subtotal, setSubtotal] = useState(0);
     const [tax, setTax] = useState(0);
     const [total, setTotal] = useState(0);
@@ -16,7 +17,7 @@ function OrderSummary({ cartItems, onUpdateQuantity, onRemoveItem, onProcessSale
             const qty = Number(item.quantity) || 0;
             return sum + (price * qty);
         }, 0);
-        
+
         const newTax = newSubtotal * TAX_RATE;
         const newTotal = newSubtotal + newTax;
 
@@ -26,15 +27,31 @@ function OrderSummary({ cartItems, onUpdateQuantity, onRemoveItem, onProcessSale
     }, [cartItems]);
 
     // Abre modal
-    const handleInitCheckout = () => {
-        if (cartItems.length === 0) return;
+const handleInitCheckout = () => {
+        // 1. Validar Carrito Vacío
+        if (cartItems.length === 0) {
+            toast.error("El carrito está vacío. Agrega productos.");
+            return;
+        }
+
+        // 2. Validar Cliente Seleccionado (FIX SOLICITADO)
+        // Si es 0, null o undefined, detenemos el proceso y mostramos Toast
+        if (!selectedClientId || selectedClientId === 0) {
+            toast.error("Por favor selecciona un Cliente para cerrar la venta.", {
+                icon: '⚠️', // Icono visual para reforzar
+                duration: 4000
+            });
+            return; // <--- AQUÍ SE DETIENE, NO ABRE EL MODAL
+        }
+
+        // 3. Si todo ok, abrimos modal
         setIsModalOpen(true);
     };
 
     // Confirma venta y avisa al padre
     const handleConfirmCheckout = (docType) => {
         setIsModalOpen(false);
-        onProcessSale(docType, total); 
+        onProcessSale(docType, total);
     };
 
     return (
@@ -48,9 +65,9 @@ function OrderSummary({ cartItems, onUpdateQuantity, onRemoveItem, onProcessSale
             <div className="flex-grow overflow-y-auto p-4 custom-scrollbar space-y-3">
                 {cartItems.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-gray-300 opacity-80">
-                         <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                             <span className="text-3xl grayscale opacity-50">🛒</span>
-                         </div>
+                        </div>
                         <p className="text-sm font-medium">Carrito vacío</p>
                     </div>
                 ) : (
@@ -60,7 +77,7 @@ function OrderSummary({ cartItems, onUpdateQuantity, onRemoveItem, onProcessSale
                             <div key={item.id} className="flex items-center p-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all hover:shadow-md hover:border-pink-100 group">
                                 {item.image && (
                                     <div className="w-12 h-12 rounded-lg bg-gray-50 overflow-hidden flex-shrink-0 mr-3 border border-gray-100">
-                                        <img src={item.image.startsWith('http') ? item.image : `https://localhost:7031/${item.image}`} alt="" className="w-full h-full object-cover"/>
+                                        <img src={item.image.startsWith('http') ? item.image : `https://localhost:7031/${item.image}`} alt="" className="w-full h-full object-cover" />
                                     </div>
                                 )}
                                 <div className="flex-grow min-w-0 mr-2">
@@ -93,12 +110,12 @@ function OrderSummary({ cartItems, onUpdateQuantity, onRemoveItem, onProcessSale
 
                 <div className="w-full">
                     <button className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold border bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-200 cursor-default">
-                        <Banknote size={18}/> Efectivo
+                        <Banknote size={18} /> Efectivo
                     </button>
                 </div>
 
                 {/* Botón Cerrar Venta */}
-                <button 
+                <button
                     onClick={handleInitCheckout}
                     disabled={cartItems.length === 0 || isProcessing}
                     className="w-full py-4 rounded-xl font-bold text-white text-lg shadow-lg transition-all flex items-center justify-center gap-2 bg-pink-500 hover:bg-pink-600 active:scale-95 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none"
@@ -111,9 +128,9 @@ function OrderSummary({ cartItems, onUpdateQuantity, onRemoveItem, onProcessSale
                 </button>
             </div>
 
-            <SaleConfirmationModal 
-                isOpen={isModalOpen} 
-                onClose={() => setIsModalOpen(false)} 
+            <SaleConfirmationModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
                 onConfirm={handleConfirmCheckout}
             />
         </div>

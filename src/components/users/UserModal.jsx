@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, User, Mail, Lock, Shield, Camera, ToggleLeft, ToggleRight } from 'lucide-react';
+import { X, Save, User, RefreshCw, Mail, Lock, Shield, Camera, ToggleLeft, ToggleRight } from 'lucide-react';
 import { roleService } from '../../services/roleService';
 
 // Asegúrate que este puerto sea el correcto de tu API
@@ -251,14 +251,37 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
-                        <input type="email" required className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                        <div className="relative">
+                            {/* Icono Absoluto */}
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input 
+                                type="email" 
+                                required 
+                                // pl-10 deja espacio para el icono
+                                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" 
+                                value={formData.email} 
+                                onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                            />
+                        </div>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             {userToEdit ? 'Nueva Contraseña (Opcional)' : 'Contraseña'}
                         </label>
-                        <input type="password" required={!userToEdit} className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" placeholder={userToEdit ? "Sin cambios" : "******"} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
+                        <div className="relative">
+                            {/* Icono Absoluto */}
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input 
+                                type="password" 
+                                required={!userToEdit} 
+                                // pl-10 deja espacio para el icono
+                                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" 
+                                placeholder={userToEdit ? "Sin cambios" : "******"} 
+                                value={formData.password} 
+                                onChange={(e) => setFormData({...formData, password: e.target.value})} 
+                            />
+                        </div>
                     </div>
 
                     <div>
@@ -304,8 +327,20 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                     )}
 
                     <div className="pt-4 flex gap-3 justify-end border-t border-gray-50 mt-4">
-                        <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors">Cancelar</button>
-                        <button type="submit" className="flex items-center gap-2 px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium shadow-sm active:scale-95 transition-all"><Save size={18} /> Guardar</button>
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit" className="flex items-center gap-2 px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium shadow-sm active:scale-95 transition-all">
+                            {userToEdit ? (
+                                <>
+                                    <RefreshCw size={18} /> Actualizar Usuario
+                                </>
+                            ) : (
+                                <>
+                                    <Save size={18} /> Guardar Usuario
+                                </>
+                            )}
+                        </button>
                     </div>
                 </form>
             </div>

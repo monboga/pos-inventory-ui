@@ -4,6 +4,7 @@ import UserModal from '../components/users/UserModal';
 import DynamicTable from '../components/common/DynamicTable';
 import { userService } from '../services/userService';
 import { Search, Plus, Edit, Trash2, Shield } from 'lucide-react';
+import toast from 'react-hot-toast'; // <--- IMPORTANTE
 
 // URL BASE DE TU API (Ajusta si cambia el puerto)
 const API_BASE_URL = 'https://localhost:7031'; 
@@ -13,11 +14,12 @@ function UsersPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const [itemsPerPage, setItemsPerPage] = useState(5);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
 
-    // --- FUNCIÓN DE NORMALIZACIÓN CORREGIDA ---
+    
+
     const normalizeUser = (rawUser) => {
         let fName = rawUser.firstName || rawUser.FirstName || "";
         let lName = rawUser.lastName || rawUser.LastName || "";
@@ -30,25 +32,18 @@ function UsersPage() {
             if (!lName && parts.length > 1) lName = parts.slice(1).join(' ');
         }
 
-        // --- FIX VISUALIZACIÓN DE IMAGEN ---
         let normalizedPhoto = "";
         const rawPhoto = rawUser.photo || rawUser.Photo || rawUser.photoUrl || rawUser.PhotoUrl;
         
         if (rawPhoto) {
-            // Caso A: Es una ruta relativa del servidor (ej: "Uploads\Users\foto.jpg")
             if (rawPhoto.includes("Uploads")) {
-                // Reemplazamos barras invertidas \ por /
                 const cleanPath = rawPhoto.replace(/\\/g, '/');
-                // Quitamos la barra inicial si la trae para evitar dobles //
                 const pathPart = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
-                // Construimos la URL completa: https://localhost:7031/Uploads/Users/foto.jpg
                 normalizedPhoto = `${API_BASE_URL}/${pathPart}`;
             } 
-            // Caso B: Es Base64 (data:image...) o URL externa (http...)
             else if (rawPhoto.startsWith('data:') || rawPhoto.startsWith('http')) {
                 normalizedPhoto = rawPhoto;
             }
-            // Caso C: Es Base64 puro sin encabezado (Fallback raro)
             else {
                 normalizedPhoto = `data:image/jpeg;base64,${rawPhoto}`;
             }
@@ -73,6 +68,7 @@ function UsersPage() {
             setUsers(cleanData);
         } catch (error) {
             console.error(error);
+            toast.error("Error al cargar usuarios");
         } finally {
             setLoading(false);
         }
@@ -80,35 +76,66 @@ function UsersPage() {
 
     useEffect(() => { loadUsers(); }, []);
 
+    // --- FIX TOAST: Guardar/Editar ---
     const handleSaveUser = async (formData) => {
+        const toastId = toast.loading("Guardando usuario...");
         try {
             if (currentUser) {
                 await userService.update(currentUser.id, formData);
+                toast.success("Usuario actualizado correctamente", { id: toastId });
             } else {
                 await userService.create(formData);
+                toast.success("Usuario creado correctamente", { id: toastId });
             }
             setIsModalOpen(false);
             loadUsers();
         } catch (error) {
-            alert(error.message);
+            toast.error(error.message, { id: toastId });
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('¿Estás seguro de desactivar este usuario?')) {
-            try {
-                await userService.delete(id);
-                loadUsers();
-            } catch (error) {
-                console.error(error);
-            }
+    // --- FIX TOAST: Eliminar (Confirmación Interactiva) ---
+    const handleDelete = (id) => {
+        toast((t) => (
+            <div className="flex flex-col gap-2">
+                <span className="font-medium text-gray-800">
+                    ¿Estás seguro de desactivar este usuario?
+                </span>
+                <div className="flex gap-2 justify-end">
+                    <button 
+                        onClick={() => toast.dismiss(t.id)}
+                        className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        onClick={() => {
+                            toast.dismiss(t.id);
+                            performDelete(id);
+                        }}
+                        className="px-3 py-1 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                        Desactivar
+                    </button>
+                </div>
+            </div>
+        ), { duration: 5000, icon: '⚠️' });
+    };
+
+    const performDelete = async (id) => {
+        const toastId = toast.loading("Procesando...");
+        try {
+            await userService.delete(id);
+            toast.success("Usuario desactivado", { id: toastId });
+            loadUsers();
+        } catch (error) {
+            toast.error(error.message, { id: toastId });
         }
     };
 
     const openCreateModal = () => { setCurrentUser(null); setIsModalOpen(true); };
     const openEditModal = (user) => { setCurrentUser(user); setIsModalOpen(true); };
 
-    // --- COLUMNAS ---
     const columns = useMemo(() => [
         {
             header: "Usuario",
@@ -133,7 +160,6 @@ function UsersPage() {
 
                 let avatarContent;
                 if (user.photo) {
-                    // Ahora user.photo trae la URL completa (https://localhost...), así que el navegador la mostrará
                     avatarContent = <img src={user.photo} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-gray-200" />;
                 } else {
                     avatarContent = (
@@ -222,8 +248,21 @@ function UsersPage() {
                 </div>
             </PageHeader>
 
-            <div className="flex-grow flex flex-col min-h-0">
-                <DynamicTable columns={columns} data={currentUsers} loading={loading} pagination={{ currentPage, totalPages }} onPageChange={setCurrentPage} />
+            <div className="w-full">
+                <DynamicTable 
+                    columns={columns} 
+                    data={currentUsers} 
+                    loading={loading} 
+                    pagination={{ currentPage, totalPages }} 
+                    onPageChange={setCurrentPage}
+                    
+                    // --- NUEVAS PROPS ---
+                    itemsPerPage={itemsPerPage}
+                    onItemsPerPageChange={(val) => {
+                        setItemsPerPage(val);
+                        setCurrentPage(1); // Reset a pág 1 al cambiar límite
+                    }}
+                />
             </div>
 
             <UserModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleSaveUser} userToEdit={currentUser} />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Tag, ToggleLeft, ToggleRight } from 'lucide-react';
+import { X, RefreshCw, Save, Tag, ToggleLeft, ToggleRight } from 'lucide-react';
 
 function CategoryModal({ isOpen, onClose, onSubmit, categoryToEdit }) {
     const initialFormState = {
@@ -88,8 +88,15 @@ function CategoryModal({ isOpen, onClose, onSubmit, categoryToEdit }) {
                             Cancelar
                         </button>
                         <button type="submit" className="flex items-center gap-2 px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium shadow-sm active:scale-95 transition-all">
-                            <Save size={18} />
-                            Guardar
+                            {categoryToEdit ? (
+                                <>
+                                    <RefreshCw size={18} /> Actualizar Categoría
+                                </>
+                            ) : (
+                                <>
+                                    <Save size={18} /> Guardar Categoría
+                                </>
+                            )}
                         </button>
                     </div>
                 </form>
