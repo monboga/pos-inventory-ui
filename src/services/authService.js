@@ -65,19 +65,32 @@ export const decodeUserFromToken = (token) => {
     if (!token) return null;
     try {
         const decoded = jwtDecode(token);
-        // Para abreviar en este ejemplo, asumo que copias tu función decodeUserFromToken aquí
-        // tal cual me la mostraste en el archivo original.
 
         const userId = decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || decoded.sub || decoded.id || 0;
         const email = decoded.email || decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || decoded.unique_name || "";
+        
         let firstName = decoded.firstName || decoded.given_name || decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"];
         let lastName = decoded.lastName || decoded.family_name || decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"];
 
-        if (!firstName && email && email.includes('@')) {
-            const namePart = email.split('@')[0];
-            firstName = namePart; // Simplificado para el ejemplo
+        // Lógica mejorada: Si no hay nombres en el token, formatear desde el email
+        if (!firstName && email) {
+            // Ejemplo: diego.monroy@test.com -> diego monroy
+            const namePart = email.split('@')[0].replace('.', ' ').replace('_', ' '); 
+            
+            // Capitalizar: diego monroy -> Diego Monroy
+            const parts = namePart.split(' ');
+            firstName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+            if (parts.length > 1) {
+                lastName = parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
+            }
         }
+
         const fullName = (firstName && lastName) ? `${firstName} ${lastName}` : (firstName || email || "Usuario");
+
+        // Lógica de Iniciales Dinámica
+        const initial1 = firstName ? firstName.charAt(0).toUpperCase() : "";
+        const initial2 = lastName ? lastName.charAt(0).toUpperCase() : "";
+        const finalInitials = (initial1 + initial2) || "U"; // Si falla todo, usa U
 
         // Rol
         const roleClaim = decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || decoded.role || decoded.roles;
@@ -85,9 +98,9 @@ export const decodeUserFromToken = (token) => {
 
         return {
             id: Number(userId),
-            name: fullName,
+            name: fullName,     // Ahora dirá "Diego Monroy"
             email,
-            initials: "U",
+            initials: finalInitials, // Ahora dirá "DM"
             role: userRole
         };
     } catch (e) { return null; }
