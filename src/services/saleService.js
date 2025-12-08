@@ -26,5 +26,17 @@ export const saleService = {
             throw new Error(error.title || error.message || 'Error al procesar la venta');
         }
         return await response.json();
+    },
+
+    getPdf: async (id) => {
+        // apiFetch ya inyecta el Token de autorización
+        const response = await apiFetch(`${API_URL}/${id}/pdf`);
+        
+        if (!response.ok) {
+            throw new Error('Error al generar el PDF del comprobante');
+        }
+        
+        // Retornamos el Blob (archivo binario)
+        return await response.blob();
     }
 };
