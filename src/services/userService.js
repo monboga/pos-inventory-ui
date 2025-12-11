@@ -89,5 +89,10 @@ export const userService = {
         });
         if (!response.ok) throw new Error('Error al eliminar usuario');
         return true;
+    },
+    getById: async (id) => {
+        const response = await apiFetch(`${API_URL}/${id}`);
+        if (!response.ok) throw new Error('Error al cargar perfil de usuario');
+        return await response.json();
     }
 };

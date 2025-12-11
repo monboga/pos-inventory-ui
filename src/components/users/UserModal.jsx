@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, User, RefreshCw, Mail, Lock, Shield, Camera, ToggleLeft, ToggleRight } from 'lucide-react';
 import { roleService } from '../../services/roleService';
 
-// Asegúrate que este puerto sea el correcto de tu API
 const API_BASE_URL = 'https://localhost:7031'; 
 
 function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
@@ -39,28 +38,17 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                     let height = img.height;
 
                     if (width > height) {
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
+                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
                     } else {
-                        if (height > MAX_HEIGHT) {
-                            width *= MAX_HEIGHT / height;
-                            height = MAX_HEIGHT;
-                        }
+                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
                     }
 
-                    canvas.width = width;
-                    canvas.height = height;
+                    canvas.width = width; canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
                     
                     canvas.toBlob((blob) => {
-                        const compressedFile = new File([blob], file.name, {
-                            type: 'image/jpeg',
-                            lastModified: Date.now(),
-                        });
-                        resolve(compressedFile);
+                        resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
                     }, 'image/jpeg', 0.7);
                 };
             };
@@ -88,7 +76,7 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
     // Rellenar Datos
     useEffect(() => {
         if (isOpen && !loadingRoles) {
-            setPhotoFile(null); // Reset archivo nuevo
+            setPhotoFile(null);
 
             if (userToEdit) {
                 // Nombres
@@ -103,59 +91,39 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                     if (!lName && parts.length > 1) lName = parts.slice(1).join(' ');
                 }
                 
-                if ((!fName || !lName) && email) {
-                    const namePart = email.split('@')[0];
-                    const parts = namePart.split(/[._-]/); 
-                    if (!fName && parts.length > 0) fName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
-                    if (!lName && parts.length > 1) lName = parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
-                }
-
-                // --- LOGICA DE VISUALIZACIÓN DE IMAGEN ---
+                // Imagen
                 let existingPhoto = "";
-                // Intentamos todas las variantes posibles
                 const rawPhoto = userToEdit.photo || userToEdit.Photo || userToEdit.photoUrl || userToEdit.PhotoUrl;
-                
                 if (rawPhoto) {
-                    // 1. Si ya es una URL web completa (http...) o Base64 (data:...), úsala tal cual
                     if (rawPhoto.startsWith('http') || rawPhoto.startsWith('data:')) {
                         existingPhoto = rawPhoto;
-                    } 
-                    // 2. Si es una ruta relativa del backend (Uploads\Users\...)
-                    else {
-                        // Limpiamos las barras invertidas de Windows
+                    } else {
                         const cleanPath = rawPhoto.replace(/\\/g, '/');
-                        // Quitamos slash inicial si existe para no duplicar
                         const pathPart = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
-                        // Construimos la URL final: https://localhost:7031/Uploads/Users/foto.jpg
                         existingPhoto = `${API_BASE_URL}/${pathPart}`;
                     }
                 }
 
-                // Roles
+                // Roles (Buscar el ID basado en el nombre que trae el usuario)
                 const userRoleName = userToEdit.roles && userToEdit.roles.length > 0 ? userToEdit.roles[0] : "";
                 const matchingRoleObj = availableRoles.find(r => (r.name || r.Name) === userRoleName);
+                // Si encontramos el rol, usamos su ID. Si no, cadena vacía.
                 const roleIdToSelect = matchingRoleObj ? (matchingRoleObj.id || matchingRoleObj.Id) : "";
-
-                // Estado
-                const currentStatus = userToEdit.isActive !== undefined ? userToEdit.isActive : true;
 
                 setFormData({
                     firstName: fName,
                     lastName: lName,
                     email: email,
                     password: '',
-                    role: roleIdToSelect,
-                    isActive: currentStatus
+                    role: roleIdToSelect, // Aquí guardamos el ID para el select
+                    isActive: userToEdit.isActive !== undefined ? userToEdit.isActive : true
                 });
                 setPhotoPreview(existingPhoto);
 
             } else {
-                // Crear
-                let defaultRoleId = "";
-                if (availableRoles.length > 0) {
-                    defaultRoleId = availableRoles[0].id || availableRoles[0].Id;
-                }
-                setFormData({ ...initialFormState, role: defaultRoleId, isActive: true });
+                // Crear: Seleccionar el primer rol por defecto (ID)
+               let defaultRole = availableRoles.length > 0 ? (availableRoles[0].id || availableRoles[0].Id) : "";
+                setFormData({ ...initialFormState, role: defaultRole, isActive: true });
                 setPhotoPreview(null);
             }
         }
@@ -164,30 +132,33 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
         if (file) {
-            // Preview inmediato
             setPhotoPreview(URL.createObjectURL(file));
-            // Comprimir y guardar archivo para envío
             try {
                 const compressedFile = await compressImageToFile(file);
                 setPhotoFile(compressedFile);
             } catch (error) {
-                console.error("Error al procesar imagen", error);
                 setPhotoFile(file);
             }
         }
     };
 
+    // --- FIX DEL ERROR DE ROL ---
     const handleSubmit = (e) => {
         e.preventDefault();
         
-        let finalRole = formData.role;
-        if (!finalRole && availableRoles.length > 0) {
-             finalRole = availableRoles[0].id || availableRoles[0].Id;
-        }
-        
+        let selectedRoleId = formData.role;
+
+        // Validación de seguridad por si el rol viene vacío
+        if (!selectedRoleId && availableRoles.length > 0) 
+            selectedRoleId = availableRoles[0].id || availableRoles[0].Id;
+
+        // ELIMINADO: Ya no buscamos el nombre (roleObj.name)
+        // const roleObj = availableRoles.find(...) 
+        // const roleName = roleObj ? ...
+
         onSubmit({ 
             ...formData, 
-            role: finalRole,
+            role: selectedRoleId, // <--- ENVIAMOS EL ID DIRECTAMENTE
             photoFile: photoFile 
         });
     };
@@ -211,26 +182,12 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                     {/* FOTO */}
                     <div className="flex justify-center mb-4">
                         <div className="relative group cursor-pointer" onClick={() => fileInputRef.current.click()}>
-                            {/* Verificamos si hay preview valido, si no mostramos icono por defecto */}
                             {photoPreview ? (
-                                <img 
-                                    src={photoPreview} 
-                                    alt="Preview" 
-                                    className="w-24 h-24 rounded-full object-cover border-4 border-pink-100 shadow-sm bg-white"
-                                    onError={(e) => {
-                                        // Si la imagen falla al cargar (ej. 404), mostramos el icono por defecto
-                                        e.target.style.display = 'none'; 
-                                        e.target.nextSibling.style.display = 'flex';
-                                    }}
-                                />
+                                <img src={photoPreview} alt="Preview" className="w-24 h-24 rounded-full object-cover border-4 border-pink-100 shadow-sm bg-white" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
                             ) : null}
-                            
-                            <div 
-                                className={`w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-4 border-white shadow-sm text-gray-400 ${photoPreview ? 'hidden' : 'flex'}`}
-                            >
+                            <div className={`w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-4 border-white shadow-sm text-gray-400 ${photoPreview ? 'hidden' : 'flex'}`}>
                                 <User size={40} />
                             </div>
-
                             <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Camera className="text-white" size={24} />
                             </div>
@@ -252,16 +209,8 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
                         <div className="relative">
-                            {/* Icono Absoluto */}
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <input 
-                                type="email" 
-                                required 
-                                // pl-10 deja espacio para el icono
-                                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" 
-                                value={formData.email} 
-                                onChange={(e) => setFormData({...formData, email: e.target.value})} 
-                            />
+                            <input type="email" required className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
                         </div>
                     </div>
 
@@ -270,17 +219,8 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                             {userToEdit ? 'Nueva Contraseña (Opcional)' : 'Contraseña'}
                         </label>
                         <div className="relative">
-                            {/* Icono Absoluto */}
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <input 
-                                type="password" 
-                                required={!userToEdit} 
-                                // pl-10 deja espacio para el icono
-                                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" 
-                                placeholder={userToEdit ? "Sin cambios" : "******"} 
-                                value={formData.password} 
-                                onChange={(e) => setFormData({...formData, password: e.target.value})} 
-                            />
+                            <input type="password" required={!userToEdit} className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" placeholder={userToEdit ? "Sin cambios" : "******"} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
                         </div>
                     </div>
 
@@ -327,19 +267,9 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                     )}
 
                     <div className="pt-4 flex gap-3 justify-end border-t border-gray-50 mt-4">
-                        <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors">
-                            Cancelar
-                        </button>
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors">Cancelar</button>
                         <button type="submit" className="flex items-center gap-2 px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium shadow-sm active:scale-95 transition-all">
-                            {userToEdit ? (
-                                <>
-                                    <RefreshCw size={18} /> Actualizar Usuario
-                                </>
-                            ) : (
-                                <>
-                                    <Save size={18} /> Guardar Usuario
-                                </>
-                            )}
+                            {userToEdit ? <><RefreshCw size={18} /> Actualizar Usuario</> : <><Save size={18} /> Guardar Usuario</>}
                         </button>
                     </div>
                 </form>
