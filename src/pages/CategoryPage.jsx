@@ -49,18 +49,47 @@ function CategoryPage() {
     };
 
     // --- FIX TOAST: Eliminar ---
+    // --- NUEVO TOAST: Estilo Modal Blanco y Rosa ---
     const handleDelete = (id) => {
         toast((t) => (
-            <div className="flex flex-col gap-2">
-                <span className="font-medium text-gray-800">
-                    ¿Estás seguro de eliminar esta categoría?
-                </span>
-                <div className="flex gap-2 justify-end">
-                    <button onClick={() => toast.dismiss(t.id)} className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-                    <button onClick={() => { toast.dismiss(t.id); performDelete(id); }} className="px-3 py-1 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600">Eliminar</button>
+            <div className="flex flex-col gap-4 min-w-[280px]">
+                {/* Encabezado limpio similar al modal */}
+                <div className="flex flex-col">
+                    <h3 className="font-bold text-gray-800 text-lg">¿Eliminar categoría?</h3>
+                    <p className="text-sm text-gray-500 mt-1">Esta acción es permanente.</p>
+                </div>
+                
+                {/* Botones alineados a la derecha */}
+                <div className="flex gap-3 justify-end">
+                    <button 
+                        onClick={() => toast.dismiss(t.id)} 
+                        className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    
+                    {/* Botón ROSA (bg-pink-500) igual al de 'Guardar Categoría' */}
+                    <button 
+                        onClick={() => { toast.dismiss(t.id); performDelete(id); }} 
+                        className="px-4 py-2 text-sm font-bold bg-pink-500 text-white rounded-xl hover:bg-pink-600 shadow-sm transition-colors flex items-center gap-2"
+                    >
+                        <span>Eliminar</span>
+                    </button>
                 </div>
             </div>
-        ), { duration: 5000, icon: '⚠️' });
+        ), { 
+            duration: 6000, // Se queda abierto hasta que el usuario decida
+            position: 'top-center', // Aparece arriba al centro
+            style: {
+                background: '#ffffff', // FORZAR FONDO BLANCO
+                color: '#1f2937',      // Texto gris oscuro
+                padding: '24px',
+                borderRadius: '16px',  // Bordes redondeados como tu modal
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', // Sombra fuerte para que parezca modal
+                border: '1px solid #f3f4f6'
+            },
+            icon: null // Quitamos el icono de alerta amarillo para que se vea más limpio
+        });
     };
 
     const performDelete = async (id) => {
