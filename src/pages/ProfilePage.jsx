@@ -1,13 +1,36 @@
 // src/pages/ProfilePage.jsx
 
-import React from 'react';
+import {useState} from 'react';
 import PageHeader from '../components/common/PageHeader';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Shield } from 'lucide-react';
+import { User, Mail, Shield, Edit } from 'lucide-react';
+
+import UserModal from '../components/users/UserModal';
+import { userService } from '../services/userService';
+import toast from 'react-hot-toast';
 
 function ProfilePage() {
     const { user } = useAuth();
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
+    // Manejo de la actualización del perfil
+    const handleUpdateProfile = async (formData) => {
+        const toastId = toast.loading("Actualizando perfil...");
+        try {
+            // Usamos el ID del usuario logueado
+            await userService.update(user.id, formData);
+            
+            toast.success("Perfil actualizado correctamente", { id: toastId });
+            setIsModalOpen(false);
+            
+            // Opcional: Recargar para ver cambios si el token no cambia dinámicamente
+            // O podrías hacer una petición para 'refrescar' los datos del usuario en el AuthContext
+            setTimeout(() => window.location.reload(), 1500); 
+
+        } catch (error) {
+            toast.error(error.message || "Error al actualizar perfil", { id: toastId });
+        }
+    };
     return (
         <div className="p-8 max-w-4xl mx-auto">
             <PageHeader title="Mi Perfil" />
@@ -39,8 +62,11 @@ function ProfilePage() {
                             </div>
                         </div>
                         
-                        <button className="bg-pink-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-pink-600 transition-colors shadow-sm">
-                            Editar Información
+                        <button 
+                            onClick={() => setIsModalOpen(true)}
+                            className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-pink-50 hover:text-pink-600 hover:border-pink-200 transition-colors shadow-sm flex items-center gap-2"
+                        >
+                            <Edit size={18} /> Editar Información
                         </button>
                     </div>
 
@@ -97,6 +123,13 @@ function ProfilePage() {
                     </div>
                 </div>
             </div>
+            {/* MODAL DE EDICIÓN (Reutilizamos UserModal) */}
+            <UserModal 
+                isOpen={isModalOpen} 
+                onClose={() => setIsModalOpen(false)} 
+                onSubmit={handleUpdateProfile} 
+                userToEdit={user} // Pasamos el usuario actual para prellenar
+            />
         </div>
     );
 }
