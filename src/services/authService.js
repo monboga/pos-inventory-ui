@@ -98,6 +98,8 @@ export const decodeUserFromToken = (token) => {
 
         return {
             id: Number(userId),
+            firstName,
+            lastName,
             name: fullName,     // Ahora dirá "Diego Monroy"
             email,
             initials: finalInitials, // Ahora dirá "DM"
