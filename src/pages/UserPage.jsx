@@ -95,42 +95,48 @@ function UsersPage() {
     };
 
     // --- FIX TOAST: Eliminar (Confirmación Interactiva) ---
+   // --- NUEVO TOAST: Estilo Modal Blanco y Rosa (Usuarios) ---
+    // Se cierra automáticamente en 6 segundos
     const handleDelete = (id) => {
         toast((t) => (
-            <div className="flex flex-col gap-2">
-                <span className="font-medium text-gray-800">
-                    ¿Estás seguro de desactivar este usuario?
-                </span>
-                <div className="flex gap-2 justify-end">
+            <div className="flex flex-col gap-4 min-w-[280px]">
+                {/* Encabezado limpio */}
+                <div className="flex flex-col">
+                    <h3 className="font-bold text-gray-800 text-lg">¿Desactivar usuario?</h3>
+                    <p className="text-sm text-gray-500 mt-1">El usuario perderá acceso al sistema.</p>
+                </div>
+                
+                {/* Botones alineados a la derecha */}
+                <div className="flex gap-3 justify-end">
                     <button 
-                        onClick={() => toast.dismiss(t.id)}
-                        className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        onClick={() => toast.dismiss(t.id)} 
+                        className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
                     >
                         Cancelar
                     </button>
+                    
+                    {/* Botón ROSA (bg-pink-500) */}
                     <button 
-                        onClick={() => {
-                            toast.dismiss(t.id);
-                            performDelete(id);
-                        }}
-                        className="px-3 py-1 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                        onClick={() => { toast.dismiss(t.id); performDelete(id); }} 
+                        className="px-4 py-2 text-sm font-bold bg-pink-500 text-white rounded-xl hover:bg-pink-600 shadow-sm transition-colors flex items-center gap-2"
                     >
-                        Desactivar
+                        <span>Desactivar</span>
                     </button>
                 </div>
             </div>
-        ), { duration: 5000, icon: '⚠️' });
-    };
-
-    const performDelete = async (id) => {
-        const toastId = toast.loading("Procesando...");
-        try {
-            await userService.delete(id);
-            toast.success("Usuario desactivado", { id: toastId });
-            loadUsers();
-        } catch (error) {
-            toast.error(error.message, { id: toastId });
-        }
+        ), { 
+            duration: 6000, // <--- AQUÍ ESTÁ EL CAMBIO (6 SEGUNDOS)
+            position: 'top-center', 
+            style: {
+                background: '#ffffff', // Fondo BLANCO
+                color: '#1f2937',      // Texto oscuro
+                padding: '24px',
+                borderRadius: '16px',  // Bordes redondeados estilo modal
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', // Sombra fuerte
+                border: '1px solid #f3f4f6'
+            },
+            icon: null 
+        });
     };
 
     const openCreateModal = () => { setCurrentUser(null); setIsModalOpen(true); };
