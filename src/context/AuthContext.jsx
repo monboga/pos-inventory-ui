@@ -1,14 +1,58 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { getToken, decodeUserFromToken, login as authLogin, logout as authLogout, isTokenExpired } from '../services/authService';
-import { userService } from '../services/userService';
+import { getToken, login as authLogin, logout as authLogout, getCurrentUser, isTokenExpired } from '../services/authService';
 
 const AuthContext = createContext();
 const USER_DATA_KEY = 'userData';
-const API_BASE_URL = 'https://localhost:7031'; // URL de tu API para las imágenes
+const API_BASE_URL = 'https://localhost:7031'; // Para prefijo de imágenes
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    // --- FUNCIÓN DE NORMALIZACIÓN (MAPEO) ---
+    // Convierte la respuesta del endpoint /me en un objeto listo para usar en el UI
+    const normalizeUser = (apiUser) => {
+        if (!apiUser) return null;
+
+        // 1. Nombres (Manejo de PascalCase o camelCase)
+        const fName = apiUser.firstName || apiUser.FirstName || "";
+        const lName = apiUser.lastName || apiUser.LastName || "";
+        // Si no hay nombres, usar el inicio del email
+        const fullName = (fName || lName) 
+            ? `${fName} ${lName}`.trim() 
+            : (apiUser.email || apiUser.Email || "").split('@')[0];
+
+        // 2. Foto
+        let photoUrl = apiUser.photo || apiUser.Photo || apiUser.photoUrl || apiUser.PhotoUrl || "";
+        if (photoUrl) {
+            // Si es ruta relativa de servidor
+            if (photoUrl.includes("Uploads")) {
+                const cleanPath = photoUrl.replace(/\\/g, '/');
+                const pathPart = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
+                photoUrl = `${API_BASE_URL}/${pathPart}`;
+            } 
+            // Si es string base64 sin cabecera (común en .NET byte[])
+            else if (!photoUrl.startsWith('http') && !photoUrl.startsWith('data:')) {
+                photoUrl = `data:image/jpeg;base64,${photoUrl}`;
+            }
+        }
+
+        // 3. Rol (El endpoint /me debería devolver los nombres de los roles)
+        const rolesList = apiUser.roles || apiUser.Roles;
+        // Tomamos el primer rol o un default
+        const roleName = (Array.isArray(rolesList) && rolesList.length > 0) ? rolesList[0] : "Usuario";
+
+        return {
+            id: apiUser.id || apiUser.Id,
+            firstName: fName,
+            lastName: lName,
+            name: fullName, 
+            email: apiUser.email || apiUser.Email,
+            photo: photoUrl,
+            role: roleName, // Ahora debe ser el Nombre (ej. "Administrador")
+            initials: (fName.charAt(0) + (lName.charAt(0) || "")).toUpperCase() || "U"
+        };
+    };
 
     const logout = () => {
         authLogout();
@@ -16,100 +60,47 @@ export function AuthProvider({ children }) {
         setUser(null);
     };
 
-    // --- FUNCIÓN INTELIGENTE: NORMALIZAR DATOS ---
-    const normalizeUserData = (apiUser, tokenUser) => {
-        // 1. FOTO: Normalizar URL (Local vs Web)
-        let photoUrl = apiUser.photo || apiUser.Photo || apiUser.photoUrl || apiUser.PhotoUrl || "";
-        if (photoUrl) {
-            if (photoUrl.includes("Uploads")) {
-                const cleanPath = photoUrl.replace(/\\/g, '/');
-                const pathPart = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
-                photoUrl = `${API_BASE_URL}/${pathPart}`; // Agregamos dominio
-            } else if (!photoUrl.startsWith('http') && !photoUrl.startsWith('data:')) {
-                photoUrl = `data:image/jpeg;base64,${photoUrl}`; // Asumimos base64 si no tiene formato
-            }
-        }
-
-        // 2. ROL: Obtener nombre del array o fallback al token
-        // La API suele devolver roles: ["Administrador"]
-        const rolesList = apiUser.roles || apiUser.Roles;
-        const roleName = (rolesList && rolesList.length > 0) ? rolesList[0] : (tokenUser?.role || "Usuario");
-
-        // 3. NOMBRES
-        const fName = apiUser.firstName || apiUser.FirstName || tokenUser?.firstName || "";
-        const lName = apiUser.lastName || apiUser.LastName || tokenUser?.lastName || "";
-
-        return {
-            ...tokenUser, // Mantenemos claims del token (id, exp, etc)
-            ...apiUser,   // Sobrescribimos con datos frescos de DB
-            id: apiUser.id || apiUser.Id || tokenUser.id,
-            firstName: fName,
-            lastName: lName,
-            name: `${fName} ${lName}`.trim(),
-            email: apiUser.email || apiUser.Email || tokenUser.email,
-            photo: photoUrl, // URL Correcta
-            role: roleName,  // Nombre Correcto (no ID)
-            initials: (fName.charAt(0) + lName.charAt(0)).toUpperCase() || "U"
-        };
-    };
-
-    // --- FUNCIÓN PARA RECARGAR DESDE API ---
+    // Función para recargar datos frescos desde el Backend
     const refreshUser = async () => {
-        const token = getToken();
-        if (!token) return;
-        
         try {
-            const tokenData = decodeUserFromToken(token);
-            if (!tokenData || !tokenData.id) return;
-
-            // Consultamos la versión más reciente a la BD
-            const apiData = await userService.getById(tokenData.id);
-            
-            // Mezclamos y normalizamos
-            const freshUser = normalizeUserData(apiData, tokenData);
-            
-            setUser(freshUser);
-            localStorage.setItem(USER_DATA_KEY, JSON.stringify(freshUser));
+            const apiUser = await getCurrentUser(); // Llama a /api/auth/me
+            const cleanUser = normalizeUser(apiUser);
+            setUser(cleanUser);
+            localStorage.setItem(USER_DATA_KEY, JSON.stringify(cleanUser));
         } catch (error) {
-            console.error("Error refrescando usuario:", error);
+            console.warn("No se pudo refrescar sesión:", error);
+            // Si el token es inválido, logout
+            if (error.message.includes("401")) logout();
         }
     };
 
     const login = async (credentials) => {
-        const data = await authLogin(credentials);
-        // Al loguear, intentamos obtener datos completos de inmediato
-        const tokenUser = decodeUserFromToken(data.token);
-        setUser(tokenUser); // Estado inicial rápido
-        
-        // Hidratación asíncrona (traer foto y rol real)
-        try {
-            const apiData = await userService.getById(tokenUser.id);
-            const freshUser = normalizeUserData(apiData, tokenUser);
-            setUser(freshUser);
-            localStorage.setItem(USER_DATA_KEY, JSON.stringify(freshUser));
-        } catch (e) {
-            localStorage.setItem(USER_DATA_KEY, JSON.stringify(tokenUser));
-        }
+        // 1. Obtener Token
+        await authLogin(credentials);
+        // 2. Obtener Perfil inmediatamente
+        await refreshUser();
+    };
+
+    const updateUser = (newData) => {
+        setUser((prev) => {
+            const updated = { ...prev, ...newData };
+            localStorage.setItem(USER_DATA_KEY, JSON.stringify(updated));
+            return updated;
+        });
     };
 
     useEffect(() => {
         const initAuth = async () => {
             const token = getToken();
             if (token && !isTokenExpired(token)) {
-                // 1. Intentar cargar de caché local (rápido)
-                const stored = localStorage.getItem(USER_DATA_KEY);
-                if (stored) {
-                    setUser(JSON.parse(stored));
-                    // Opcional: refrescar en segundo plano para asegurar datos frescos
-                    // refreshUser(); 
-                } else {
-                    // 2. Si no hay caché, decodificar y buscar en API
-                    const tokenData = decodeUserFromToken(token);
-                    setUser(tokenData);
-                    await refreshUser(); 
-                }
+                // Carga optimista de caché
+                const cached = localStorage.getItem(USER_DATA_KEY);
+                if (cached) setUser(JSON.parse(cached));
+                
+                // Validación y refresco de fondo
+                await refreshUser();
             } else {
-                if (token) logout();
+                logout();
             }
             setLoading(false);
         };
@@ -117,7 +108,7 @@ export function AuthProvider({ children }) {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, refreshUser, loading, isAuthenticated: !!user }}>
+        <AuthContext.Provider value={{ user, login, logout, refreshUser, updateUser, loading, isAuthenticated: !!user }}>
             {children}
         </AuthContext.Provider>
     );
