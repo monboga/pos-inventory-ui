@@ -23,6 +23,7 @@ function CustomerPage() {
             setClients(data);
         } catch (error) {
             console.error(error);
+            toast.error("Error al cargar clientes");
         } finally {
             setLoading(false);
         }
@@ -46,48 +47,32 @@ function CustomerPage() {
             toast.error(error.message, { id: toastId });
         }
     };
-// --- NUEVO TOAST: Estilo Modal Blanco y Rosa (Clientes) ---
+
     const handleDelete = (id) => {
         toast((t) => (
             <div className="flex flex-col gap-4 min-w-[280px]">
-                {/* Encabezado limpio estilo modal */}
                 <div className="flex flex-col">
                     <h3 className="font-bold text-gray-800 text-lg">¿Eliminar cliente?</h3>
                     <p className="text-sm text-gray-500 mt-1">Se eliminarán sus datos permanentemente.</p>
                 </div>
-                
-                {/* Botones alineados a la derecha */}
                 <div className="flex gap-3 justify-end">
-                    <button 
-                        onClick={() => toast.dismiss(t.id)} 
-                        className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
-                    >
-                        Cancelar
-                    </button>
-                    
-                    {/* Botón ROSA (bg-pink-500) para coincidir con el resto del diseño */}
-                    <button 
-                        onClick={() => { toast.dismiss(t.id); performDelete(id); }} 
-                        className="px-4 py-2 text-sm font-bold bg-pink-500 text-white rounded-xl hover:bg-pink-600 shadow-sm transition-colors flex items-center gap-2"
-                    >
-                        <span>Eliminar</span>
-                    </button>
+                    <button onClick={() => toast.dismiss(t.id)} className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors">Cancelar</button>
+                    <button onClick={() => { toast.dismiss(t.id); performDelete(id); }} className="px-4 py-2 text-sm font-bold bg-pink-500 text-white rounded-xl hover:bg-pink-600 shadow-sm transition-colors flex items-center gap-2"><span>Eliminar</span></button>
                 </div>
             </div>
-        ), { 
-            duration: 6000, 
-            position: 'top-center', 
-            style: {
-                background: '#ffffff', // Fondo BLANCO para evitar el gris oscuro
-                color: '#1f2937',      // Texto gris oscuro
-                padding: '24px',
-                borderRadius: '16px',  // Bordes redondeados suaves
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', // Sombra fuerte para efecto modal
-                border: '1px solid #f3f4f6'
-            },
-            icon: null // Sin icono amarillo por defecto
-        });
+        ), { duration: 6000, position: 'top-center', style: { background: '#ffffff', color: '#1f2937', padding: '24px', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid #f3f4f6' }, icon: null });
     };
+
+    const performDelete = async (id) => {
+        try {
+            await clientService.delete(id);
+            toast.success("Cliente eliminado");
+            loadClients();
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
+
     const openCreate = () => { setCurrentClient(null); setIsModalOpen(true); };
     const openEdit = (client) => { setCurrentClient(client); setIsModalOpen(true); };
 
@@ -95,16 +80,17 @@ function CustomerPage() {
         {
             header: "Cliente",
             render: (row) => {
-                // FIX: Usamos fullName directamente del backend
-                const fullName = row.fullName || row.FullName || "Cliente";
+                // --- FIX: Mapeo correcto de FirstName y LastName separados ---
+                const fName = row.firstName || row.FirstName || "";
+                const lName = row.lastName || row.LastName || "";
+                
+                // Construimos nombre completo. Si ambos faltan, fallback a "Cliente"
+                const fullName = (fName || lName) ? `${fName} ${lName}`.trim() : "Cliente Sin Nombre";
 
-                // Generar iniciales
-                const initials = fullName
-                    .split(' ')
-                    .map(n => n[0])
-                    .slice(0, 2)
-                    .join('')
-                    .toUpperCase();
+                // Iniciales: Primera letra del nombre + Primera letra del apellido
+                const initial1 = fName ? fName.charAt(0) : "";
+                const initial2 = lName ? lName.charAt(0) : "";
+                const initials = (initial1 + initial2).toUpperCase() || "C";
 
                 return (
                     <div className="flex items-center gap-3">
@@ -132,9 +118,7 @@ function CustomerPage() {
         {
             header: "Datos Fiscales",
             render: (row) => {
-                // FIX: Mapeo considerando el posible typo 'Descripion' en el backend (según tu imagen)
                 const regimenName = row.regimenFiscalDescripion || row.regimenFiscalDescripcion || row.RegimenFiscalDescripion || "Sin Régimen";
-
                 return (
                     <div className="flex flex-col">
                         <div className="flex items-center gap-1 text-sm font-bold text-gray-700">
@@ -171,12 +155,17 @@ function CustomerPage() {
         }
     ], []);
 
+    // --- FIX: Filtro actualizado para buscar en nombre y apellido por separado ---
     const filtered = clients.filter(c => {
         const term = searchTerm.toLowerCase();
-        // Buscamos sobre fullName que es lo que tenemos
-        const fullName = (c.fullName || c.FullName || "").toLowerCase();
+        
+        const fName = (c.firstName || c.FirstName || "").toLowerCase();
+        const lName = (c.lastName || c.LastName || "").toLowerCase();
+        const fullName = `${fName} ${lName}`; // Concatenamos para búsqueda flexible
+        
         const email = (c.email || c.Email || "").toLowerCase();
         const rfc = (c.rfc || c.Rfc || "").toLowerCase();
+        
         return fullName.includes(term) || email.includes(term) || rfc.includes(term);
     });
 
