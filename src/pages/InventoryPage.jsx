@@ -3,13 +3,17 @@ import PageHeader from '../components/common/PageHeader';
 import DynamicTable from '../components/common/DynamicTable';
 import ProductModal from '../components/inventory/ProductModal';
 import { productService } from '../services/productService';
-import { Search, Plus, Edit, Trash2, Box, Package, AlertOctagon } from 'lucide-react';
-import toast from 'react-hot-toast'; // <--- IMPORTANTE
+import { categoryService } from '../services/categoryService'; // <--- 1. IMPORTAR CATEGORY SERVICE
+import { Search, Plus, Edit, Trash2, Box, Package, AlertOctagon, Tag } from 'lucide-react'; // Agregamos Tag icon
+import toast from 'react-hot-toast';
 
 const API_BASE_URL = 'https://localhost:7031';
 
 function InventoryPage() {
     const [products, setProducts] = useState([]);
+    // Estado para guardar el mapa de ID -> Nombre de categoría
+    const [categoriesMap, setCategoriesMap] = useState({}); 
+    
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -17,11 +21,25 @@ function InventoryPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentProduct, setCurrentProduct] = useState(null);
 
-    const loadProducts = async () => {
+    // --- 2. CARGA DE DATOS (Productos + Categorías) ---
+    const loadData = async () => {
         try {
             setLoading(true);
-            const data = await productService.getAll();
-            setProducts(data);
+            // Ejecutamos ambas peticiones en paralelo para eficiencia
+            const [productsData, categoriesData] = await Promise.all([
+                productService.getAll(),
+                categoryService.getAll()
+            ]);
+
+            setProducts(productsData);
+
+            // Creamos un diccionario rápido para buscar nombres: { "1": "Bebidas", "2": "Snacks" }
+            const catMap = {};
+            categoriesData.forEach(cat => {
+                catMap[cat.id || cat.Id] = cat.description || cat.Description;
+            });
+            setCategoriesMap(catMap);
+
         } catch (error) {
             console.error(error);
             toast.error("Error al cargar inventario");
@@ -30,9 +48,8 @@ function InventoryPage() {
         }
     };
 
-    useEffect(() => { loadProducts(); }, []);
+    useEffect(() => { loadData(); }, []);
 
-    // --- FIX TOAST: Guardar ---
     const handleSave = async (formData) => {
         const toastId = toast.loading("Guardando producto...");
         try {
@@ -44,61 +61,33 @@ function InventoryPage() {
                 toast.success("Producto creado correctamente", { id: toastId });
             }
             setIsModalOpen(false);
-            loadProducts();
+            loadData(); // Recargamos todo
         } catch (error) {
             toast.error(error.message, { id: toastId });
         }
     };
 
-    // --- FIX TOAST: Eliminar ---
-   // --- NUEVO TOAST: Estilo Modal Blanco y Rosa (Inventario) ---
     const handleDelete = (id) => {
         toast((t) => (
             <div className="flex flex-col gap-4 min-w-[280px]">
-                {/* Encabezado limpio */}
                 <div className="flex flex-col">
                     <h3 className="font-bold text-gray-800 text-lg">¿Eliminar producto?</h3>
                     <p className="text-sm text-gray-500 mt-1">El inventario se actualizará.</p>
                 </div>
-                
-                {/* Botones alineados a la derecha */}
                 <div className="flex gap-3 justify-end">
-                    <button 
-                        onClick={() => toast.dismiss(t.id)} 
-                        className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
-                    >
-                        Cancelar
-                    </button>
-                    
-                    {/* Botón ROSA (bg-pink-500) consistente con 'Nuevo Producto' */}
-                    <button 
-                        onClick={() => { toast.dismiss(t.id); performDelete(id); }} 
-                        className="px-4 py-2 text-sm font-bold bg-pink-500 text-white rounded-xl hover:bg-pink-600 shadow-sm transition-colors flex items-center gap-2"
-                    >
-                        <span>Eliminar</span>
-                    </button>
+                    <button onClick={() => toast.dismiss(t.id)} className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors">Cancelar</button>
+                    <button onClick={() => { toast.dismiss(t.id); performDelete(id); }} className="px-4 py-2 text-sm font-bold bg-pink-500 text-white rounded-xl hover:bg-pink-600 shadow-sm transition-colors flex items-center gap-2"><span>Eliminar</span></button>
                 </div>
             </div>
-        ), { 
-            duration: 6000, 
-            position: 'top-center', 
-            style: {
-                background: '#ffffff', // Fondo BLANCO forzado
-                color: '#1f2937',      // Texto oscuro
-                padding: '24px',
-                borderRadius: '16px',  // Bordes redondeados
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', // Sombra de elevación
-                border: '1px solid #f3f4f6'
-            },
-            icon: null 
-        });
+        ), { duration: 6000, position: 'top-center', style: { background: '#ffffff', color: '#1f2937', padding: '24px', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid #f3f4f6' }, icon: null });
     };
+
     const performDelete = async (id) => {
         const toastId = toast.loading("Eliminando...");
         try {
             await productService.delete(id);
             toast.success("Producto eliminado", { id: toastId });
-            loadProducts();
+            loadData();
         } catch (error) {
             toast.error(error.message, { id: toastId });
         }
@@ -134,7 +123,21 @@ function InventoryPage() {
                 );
             }
         },
-        { header: "Marca", render: (row) => row.brand || row.Brand || "-" },
+        // --- 3. CAMBIO: Columna Categoría en vez de Marca ---
+        { 
+            header: "Categoría", 
+            render: (row) => {
+                const catId = row.categoryId || row.CategoryId;
+                const catName = categoriesMap[catId] || "Sin Categoría";
+                
+                return (
+                    <div className="flex items-center gap-2">
+                        <Tag size={14} className="text-pink-400" />
+                        <span className="text-gray-700 font-medium text-sm">{catName}</span>
+                    </div>
+                );
+            }
+        },
         {
             header: "Stock",
             className: "text-center",
@@ -187,13 +190,17 @@ function InventoryPage() {
                 </div>
             )
         }
-    ], []);
+    ], [categoriesMap]); // Agregamos categoriesMap a las dependencias para que refresque cuando carguen
 
     const filtered = products.filter(p => {
         const term = searchTerm.toLowerCase();
         const desc = (p.description || p.Description || "").toLowerCase();
         const code = (p.barcode || p.Barcode || "").toLowerCase();
-        return desc.includes(term) || code.includes(term);
+        // Opcional: También filtrar por nombre de categoría
+        const catId = p.categoryId || p.CategoryId;
+        const catName = (categoriesMap[catId] || "").toLowerCase();
+
+        return desc.includes(term) || code.includes(term) || catName.includes(term);
     });
 
     const indexOfLast = currentPage * itemsPerPage;
