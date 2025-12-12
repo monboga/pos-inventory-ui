@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, RefreshCw, Box, Tag, Image as ImageIcon, ToggleLeft, ToggleRight, FileText, Percent } from 'lucide-react'; // Agregamos Percent si quieres icono, o usamos texto simple
+import { X, Save, RefreshCw, Box, Tag, Image as ImageIcon, ToggleLeft, ToggleRight, FileText, Percent } from 'lucide-react';
 import { categoryService } from '../../services/categoryService';
 import { satService } from '../../services/satService';
 
@@ -31,7 +31,6 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
     const [photoPreview, setPhotoPreview] = useState(null);
     const [photoFile, setPhotoFile] = useState(null);
 
-    // --- Helper Robusto para IDs ---
     const extractId = (obj, keyBase) => {
         if (!obj) return '';
         let val = obj[keyBase + 'Id'] || obj[keyBase.charAt(0).toUpperCase() + keyBase.slice(1) + 'Id'];
@@ -41,11 +40,8 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
         return val ? String(val) : '';
     };
 
-    // --- FIX UX: AUTO-SELECT ---
-    // Esta función selecciona todo el texto del input cuando recibe el foco
     const handleFocus = (e) => e.target.select();
 
-    // 1. CARGA DE DATOS
     useEffect(() => {
         if (isOpen && categories.length === 0) {
             const loadAllData = async () => {
@@ -68,7 +64,6 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
         }
     }, [isOpen]);
 
-    // 2. RELLENADO DE FORMULARIO
     useEffect(() => {
         if (isOpen) {
             setPhotoFile(null);
@@ -116,7 +111,7 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
         }
     }, [isOpen, productToEdit]);
 
-    const compressImageToFile = (file) => { /* ... Lógica de compresión igual ... */ 
+    const compressImageToFile = (file) => { 
         return new Promise((resolve) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -149,16 +144,21 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        
+        // Validación manual de Categoría (ya que el HTML 'required' en select a veces falla si el value inicial es "")
         if (!formData.categoryId || formData.categoryId === "" || formData.categoryId === "0") {
             alert("⚠️ Selecciona una categoría válida.");
             return;
         }
+
         const safeData = { ...formData };
+        // Asignación de defaults SAT si faltan
         if (!safeData.catalogoImpuestoId) safeData.catalogoImpuestoId = DEFAULT_SAT_VALUES.IMPUESTO;
         if (!safeData.catalogoObjetoImpuestoId) safeData.catalogoObjetoImpuestoId = DEFAULT_SAT_VALUES.OBJETO_IMP;
         if (!safeData.claveProductoServicioId) safeData.claveProductoServicioId = DEFAULT_SAT_VALUES.CLAVE_PROD;
         if (!safeData.medidaLocalId) safeData.medidaLocalId = DEFAULT_SAT_VALUES.MEDIDA_LOCAL;
         if (!safeData.medidaSatId) safeData.medidaSatId = DEFAULT_SAT_VALUES.MEDIDA_SAT;
+        
         onSubmit({ ...safeData, photoFile });
     };
 
@@ -186,22 +186,24 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
 
                         <div className="flex-1 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
+                                {/* CODIGO DE BARRAS: Opcional */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Código de Barras</label>
                                     <input 
                                         type="text" 
-                                        required 
+                                        // Eliminado required
                                         className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
                                         value={formData.barcode} 
                                         onChange={e => setFormData({ ...formData, barcode: e.target.value })} 
+                                        placeholder="Opcional"
                                     />
                                 </div>
+                                {/* STOCK: Obligatorio */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Stock</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Stock <span className="text-red-500">*</span></label>
                                     <input 
                                         type="number" 
                                         required 
-                                        // FIX 1: Auto-select en foco
                                         onFocus={handleFocus}
                                         className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
                                         value={formData.stock} 
@@ -209,8 +211,9 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                                     />
                                 </div>
                             </div>
+                            {/* DESCRIPCIÓN: Obligatorio */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción / Nombre</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción / Nombre <span className="text-red-500">*</span></label>
                                 <input 
                                     type="text" 
                                     required 
@@ -224,17 +227,20 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
 
                     {/* SECCIÓN 2: DETALLES */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* MARCA: Opcional */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Marca</label>
                             <input 
                                 type="text" 
+                                // Opcional
                                 className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
                                 value={formData.brand} 
                                 onChange={e => setFormData({ ...formData, brand: e.target.value })} 
+                                placeholder="Opcional"
                             />
                         </div>
 
-                        {/* SELECT CATEGORÍA */}
+                        {/* CATEGORÍA: Obligatorio */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Categoría <span className="text-red-500">*</span></label>
                             <div className="relative">
@@ -256,15 +262,15 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
-                            {/* PRECIO (Con Auto-select) */}
+                            {/* PRECIO: Obligatorio */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Precio</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Precio <span className="text-red-500">*</span></label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
                                     <input 
                                         type="number" 
                                         step="0.01" 
-                                        // FIX 1: Auto-select
+                                        required
                                         onFocus={handleFocus}
                                         className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
                                         value={formData.price} 
@@ -273,21 +279,19 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                                 </div>
                             </div>
                             
-                            {/* DESCUENTO (FIX UI: Visualmente es %) */}
+                            {/* DESCUENTO: Obligatorio (aunque sea 0) */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Descuento</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Descuento <span className="text-red-500">*</span></label>
                                 <div className="relative">
                                     <input 
                                         type="number" 
                                         step="0.01" 
-                                        // FIX 1: Auto-select
+                                        required
                                         onFocus={handleFocus}
-                                        // FIX 2: pr-8 para dar espacio al icono %
                                         className="w-full pl-3 pr-8 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
                                         value={formData.discount} 
                                         onChange={e => setFormData({ ...formData, discount: e.target.value })} 
                                     />
-                                    {/* Símbolo % fijo a la derecha */}
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                                         <Percent size={14} strokeWidth={3} />
                                     </div>
@@ -296,7 +300,7 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                         </div>
                     </div>
 
-                    {/* SECCIÓN 3: SAT */}
+                    {/* SECCIÓN 3: SAT (Se mantienen igual, ya tienen valores por defecto) */}
                     <div className="pt-4 border-t border-gray-100">
                         <h3 className="text-sm font-bold text-gray-900 pb-3 flex items-center gap-2"><FileText size={16} /> Información Fiscal (SAT)</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -308,7 +312,7 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                         </div>
                     </div>
 
-                    {/* --- TOGGLE ESTADO --- */}
+                    {/* TOGGLE ESTADO */}
                     {productToEdit && (
                         <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
                             <span className="text-sm font-medium text-gray-700">Estado del producto</span>

@@ -12,9 +12,9 @@ export const productService = {
     create: async (productData) => {
         const formData = new FormData();
 
-        formData.append('Barcode', productData.barcode);
+        // formData.append('Barcode', productData.barcode);
         formData.append('Description', productData.description);
-        formData.append('Brand', productData.brand);
+        // formData.append('Brand', productData.brand);
         formData.append('Stock', productData.stock);
         formData.append('Price', productData.price);
         formData.append('Discount', productData.discount || 0);
@@ -49,9 +49,9 @@ export const productService = {
         const formData = new FormData();
 
         formData.append('Id', id);
-        formData.append('Barcode', productData.barcode);
+        // formData.append('Barcode', productData.barcode);
         formData.append('Description', productData.description);
-        formData.append('Brand', productData.brand);
+        // formData.append('Brand', productData.brand);
         formData.append('Stock', productData.stock);
         formData.append('Price', productData.price);
         formData.append('Discount', productData.discount || 0);
