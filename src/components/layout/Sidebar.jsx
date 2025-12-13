@@ -3,20 +3,22 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { 
-    LayoutDashboard, 
-    Package, 
-    Store, 
-    Users, 
-    UserRound, 
-    History,   
-    ChevronLeft, 
-    ChevronRight, 
+import { PERMISSIONS } from '../../constants/permissions';
+import PermissionGate from '../auth/PermissionGate';
+import {
+    LayoutDashboard,
+    Package,
+    Store,
+    Users,
+    UserRound,
+    History,
+    ChevronLeft,
+    ChevronRight,
     Building,
-    LogOut, 
+    LogOut,
     ChevronsUpDown,
     UserCircle,
-    Tags 
+    Tags
 } from 'lucide-react';
 
 // --- Sub-componente MenuItem ---
@@ -28,15 +30,15 @@ function MenuItem({ icon: Icon, text, active, isCollapsed, onClick, to }) {
                 onClick={onClick}
                 className={`
                     flex items-center p-3 my-1.5 rounded-xl transition-all duration-200 
-                    ${active 
-                        ? "bg-pink-100 text-pink-600 shadow-sm" 
+                    ${active
+                        ? "bg-pink-100 text-pink-600 shadow-sm"
                         : "text-gray-500 hover:bg-pink-50 hover:text-pink-500"
                     } 
                     ${isCollapsed ? "justify-center" : "w-full"}
                 `}
             >
                 <Icon size={22} strokeWidth={active ? 2.5 : 2} className="flex-shrink-0" />
-                
+
                 {/* Texto oculto con 'hidden' absoluto al colapsar para evitar bugs visuales */}
                 <span className={`ml-3 font-medium text-sm whitespace-nowrap overflow-hidden transition-all duration-200 ${isCollapsed ? 'hidden' : 'block'}`}>
                     {text}
@@ -62,8 +64,8 @@ function MenuItem({ icon: Icon, text, active, isCollapsed, onClick, to }) {
 function Sidebar({ logoUrl }) {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
-    const location = useLocation(); 
-    
+    const location = useLocation();
+
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -73,7 +75,7 @@ function Sidebar({ logoUrl }) {
     const displayName = user?.name || "Cargando...";
     const userEmail = user?.email || "";
     const userInitials = user?.initials || displayName.charAt(0).toUpperCase() || "U";
-    const userRole = user?.role || "Usuario"; 
+    const userRole = user?.role || "Usuario";
 
     // Función para detectar ruta activa
     const isActive = (path) => {
@@ -107,10 +109,10 @@ function Sidebar({ logoUrl }) {
                 {/* Header Logo */}
                 <header className={`flex items-center justify-center h-24 flex-shrink-0 ${isCollapsed ? 'px-2' : 'px-6'}`}>
                     {logoUrl ? (
-                        <img 
-                            src={logoUrl} 
-                            alt="Logo" 
-                            className={`object-contain transition-all duration-300 ${isCollapsed ? 'w-10 h-10' : 'h-14 w-auto'}`} 
+                        <img
+                            src={logoUrl}
+                            alt="Logo"
+                            className={`object-contain transition-all duration-300 ${isCollapsed ? 'w-10 h-10' : 'h-14 w-auto'}`}
                         />
                     ) : (
                         // Fallback Icono Marketplace/Store
@@ -122,29 +124,38 @@ function Sidebar({ logoUrl }) {
 
                 {/* Navegación Scrollable */}
                 <nav className={`flex-grow px-3 py-4 space-y-1 ${isCollapsed ? 'overflow-visible' : 'overflow-y-auto custom-scrollbar'}`}>
-                    
+
                     {/* SECCIÓN VENTAS */}
                     <p className={`text-xs font-bold text-gray-400 uppercase mb-2 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>
                         Ventas
                     </p>
-                    
-                    <MenuItem to="/" text="Dashboard" icon={LayoutDashboard} isCollapsed={isCollapsed} active={isActive('/')} />
-                    <MenuItem to="/pos" text="Punto de Venta" icon={Store} isCollapsed={isCollapsed} active={isActive('/pos')} />
-                    <MenuItem to="/sales-history" text="Historial Ventas" icon={History} isCollapsed={isCollapsed} active={isActive('/sales-history')} />
 
+                    <MenuItem to="/" text="Dashboard" icon={LayoutDashboard} isCollapsed={isCollapsed} active={isActive('/')} />
+                    <PermissionGate permission={PERMISSIONS.SALES.CREATE}>
+                        <MenuItem to="/pos" text="Punto de Venta" icon={Store} isCollapsed={isCollapsed} active={isActive('/pos')} />
+                    </PermissionGate>
+                    <PermissionGate permission={PERMISSIONS.SALES.VIEW}>
+                        <MenuItem to="/sales-history" text="Historial Ventas" icon={History} isCollapsed={isCollapsed} active={isActive('/sales-history')} />
+                    </PermissionGate>
                     <div className="my-4 border-t border-gray-100"></div>
-                    
+
                     {/* SECCIÓN GESTIÓN */}
                     <p className={`text-xs font-bold text-gray-400 uppercase mb-2 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>
                         Gestión
                     </p>
 
-                    <MenuItem to="/inventory" text="Inventario" icon={Package} isCollapsed={isCollapsed} active={isActive('/inventory')} />
-                    <MenuItem to="/customers" text="Clientes" icon={UserRound} isCollapsed={isCollapsed} active={isActive('/customers')} />
-                    <MenuItem to="/users" text="Usuarios" icon={Users} isCollapsed={isCollapsed} active={isActive('/users')} />
-                    <MenuItem to="/categories" text="Categorías" icon={Tags} isCollapsed={isCollapsed} active={isActive('/categories')} />
+                    <PermissionGate permission={PERMISSIONS.PRODUCTS.VIEW}>
+                        <MenuItem to="/inventory" text="Inventario" icon={Package} isCollapsed={isCollapsed} active={isActive('/inventory')} />
+                        <MenuItem to="/categories" text="Categorías" icon={Tags} isCollapsed={isCollapsed} active={isActive('/categories')} />
+                    </PermissionGate>
+                    <PermissionGate permission={PERMISSIONS.CLIENTS.VIEW}>
+                        <MenuItem to="/customers" text="Clientes" icon={UserRound} isCollapsed={isCollapsed} active={isActive('/customers')} />
+                    </PermissionGate>
+                    <PermissionGate permission={PERMISSIONS.USERS.VIEW}>
+                        <MenuItem to="/users" text="Usuarios" icon={Users} isCollapsed={isCollapsed} active={isActive('/users')} />
+                    </PermissionGate>
 
-                    <div className="my-2 border-t border-gray-100"></div>
+
                     <MenuItem to="/business" text="Negocio" icon={Building} isCollapsed={isCollapsed} active={isActive('/business')} />
                 </nav>
 
@@ -155,14 +166,14 @@ function Sidebar({ logoUrl }) {
                         relative flex items-center p-2 rounded-xl cursor-pointer transition-colors hover:bg-white hover:shadow-sm
                         ${isCollapsed ? 'justify-center' : ''}
                     `}
-                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                        onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                     >
                         {/* LÓGICA DE AVATAR: FOTO vs INICIALES */}
                         {user?.photo ? (
-                            <img 
-                                src={user.photo} 
-                                alt="Profile" 
-                                className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md flex-shrink-0" 
+                            <img
+                                src={user.photo}
+                                alt="Profile"
+                                className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md flex-shrink-0"
                             />
                         ) : (
                             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-400 to-pink-600 text-white flex items-center justify-center font-bold text-sm shadow-md flex-shrink-0">
@@ -191,18 +202,18 @@ function Sidebar({ logoUrl }) {
                                 <p className="text-sm font-bold text-gray-800">{displayName}</p>
                                 <p className="text-xs text-gray-500 truncate">{userEmail}</p>
                             </div>
-                            
-                            <Link 
-                                to="/profile" 
+
+                            <Link
+                                to="/profile"
                                 onClick={() => setIsUserMenuOpen(false)}
                                 className="flex items-center px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-pink-50 hover:text-pink-600 transition-colors"
                             >
                                 <UserCircle size={16} className="mr-2" />
                                 Ver Perfil
                             </Link>
-                            
-                            <button 
-                                onClick={handleLogout} 
+
+                            <button
+                                onClick={handleLogout}
                                 className="w-full flex items-center px-3 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors mt-1"
                             >
                                 <LogOut size={16} className="mr-2" />
