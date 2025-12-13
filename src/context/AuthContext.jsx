@@ -50,7 +50,8 @@ export function AuthProvider({ children }) {
             email: apiUser.email || apiUser.Email,
             photo: photoUrl,
             role: roleName, // Ahora debe ser el Nombre (ej. "Administrador")
-            initials: (fName.charAt(0) + (lName.charAt(0) || "")).toUpperCase() || "U"
+            initials: (fName.charAt(0) + (lName.charAt(0) || "")).toUpperCase() || "U",
+            permissions: apiUser.permissions || apiUser.Permissions || []
         };
     };
 

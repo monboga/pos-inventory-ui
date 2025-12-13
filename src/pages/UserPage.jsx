@@ -5,12 +5,15 @@ import DynamicTable from '../components/common/DynamicTable';
 import ViewSelector from '../components/common/ViewSelector'; // Componente de vistas
 import { userService } from '../services/userService';
 import { Search, Plus, Edit, Trash2, Shield } from 'lucide-react';
+import { PERMISSIONS } from '../constants/permissions';
+import PermissionGate from '../components/auth/PermissionGate';
 import toast from 'react-hot-toast';
 
 // URL BASE DE TU API (Ajusta si cambia el puerto)
 const API_BASE_URL = 'https://localhost:7031'; 
 
 function UsersPage() {
+    console.log("DEBUG: Renderizando UsersPage...");
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     
@@ -237,9 +240,13 @@ function UsersPage() {
             className: "text-right",
             render: (user) => (
                 <div className="flex items-center justify-end gap-2">
-                    <button onClick={() => openEditModal(user)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar"><Edit size={18} /></button>
+                    <PermissionGate permission={PERMISSIONS.USERS.EDIT}>
+                        <button onClick={() => openEditModal(user)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar"><Edit size={18} /></button>
+                    </PermissionGate>
                     {user.isActive && (
-                        <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Desactivar"><Trash2 size={18} /></button>
+                        <PermissionGate permission={PERMISSIONS.USERS.DELETE}>
+                            <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Desactivar"><Trash2 size={18} /></button>
+                        </PermissionGate>
                     )}
                 </div>
             )
