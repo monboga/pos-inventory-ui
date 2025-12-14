@@ -1,6 +1,6 @@
 import { apiFetch } from './api';
 
-const API_URL = 'https://localhost:7031/api/products'; 
+const API_URL = 'https://localhost:7031/api/products';
 
 export const productService = {
     getAll: async () => {
@@ -12,14 +12,14 @@ export const productService = {
     create: async (productData) => {
         const formData = new FormData();
 
-        // formData.append('Barcode', productData.barcode);
+        formData.append('Barcode', productData.barcode);
         formData.append('Description', productData.description);
-        // formData.append('Brand', productData.brand);
+        formData.append('Brand', productData.brand);
         formData.append('Stock', productData.stock);
         formData.append('Price', productData.price);
         formData.append('Discount', productData.discount || 0);
         formData.append('CategoryId', productData.categoryId);
-        formData.append('IsActive', true); 
+        formData.append('IsActive', true);
 
         // SAT
         formData.append('CatalogoImpuestoId', productData.catalogoImpuestoId);
@@ -49,9 +49,9 @@ export const productService = {
         const formData = new FormData();
 
         formData.append('Id', id);
-        // formData.append('Barcode', productData.barcode);
+        formData.append('Barcode', productData.barcode);
         formData.append('Description', productData.description);
-        // formData.append('Brand', productData.brand);
+        formData.append('Brand', productData.brand);
         formData.append('Stock', productData.stock);
         formData.append('Price', productData.price);
         formData.append('Discount', productData.discount || 0);
