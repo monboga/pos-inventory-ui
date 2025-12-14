@@ -8,7 +8,7 @@ import { getToken, logout } from './authService';
  */
 export const apiFetch = async (endpoint, options = {}) => {
     const token = getToken();
-    
+
     // Base headers
     const headers = {
         ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -32,9 +32,15 @@ export const apiFetch = async (endpoint, options = {}) => {
         // Interceptor de Error 401 (Token Vencido o Inválido)
         if (response.status === 401) {
             console.warn("Sesión caducada (401). Cerrando sesión...");
-            logout(); 
-            window.location.href = '/login'; 
-            return; 
+            logout();
+            window.location.href = '/login';
+            return;
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+
+            throw new Error(errorData.message || `Error del servidor: ${response.status}`);
         }
 
         return response;

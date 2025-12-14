@@ -10,22 +10,22 @@ import PermissionGate from '../components/auth/PermissionGate';
 import toast from 'react-hot-toast';
 
 // URL BASE DE TU API (Ajusta si cambia el puerto)
-const API_BASE_URL = 'https://localhost:7031'; 
+const API_BASE_URL = 'https://localhost:7031';
 
 function UsersPage() {
     console.log("DEBUG: Renderizando UsersPage...");
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
-    
+
     // --- ESTADOS DE FILTROS ---
     const [searchTerm, setSearchTerm] = useState("");
     // null = Todos, true = Activos, false = Inactivos
-    const [statusFilter, setStatusFilter] = useState(null); 
+    const [statusFilter, setStatusFilter] = useState(null);
 
     // --- PAGINACIÓN ---
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(5);
-    
+
     // --- MODALES ---
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
@@ -52,13 +52,13 @@ function UsersPage() {
 
         let normalizedPhoto = "";
         const rawPhoto = rawUser.photo || rawUser.Photo || rawUser.photoUrl || rawUser.PhotoUrl;
-        
+
         if (rawPhoto) {
             if (rawPhoto.includes("Uploads")) {
                 const cleanPath = rawPhoto.replace(/\\/g, '/');
                 const pathPart = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
                 normalizedPhoto = `${API_BASE_URL}/${pathPart}`;
-            } 
+            }
             else if (rawPhoto.startsWith('data:') || rawPhoto.startsWith('http')) {
                 normalizedPhoto = rawPhoto;
             }
@@ -72,7 +72,7 @@ function UsersPage() {
             firstName: fName,
             lastName: lName,
             email: email,
-            photo: normalizedPhoto, 
+            photo: normalizedPhoto,
             roles: rawUser.roles || rawUser.Roles || ["Usuario"],
             isActive: rawUser.isActive !== undefined ? rawUser.isActive : rawUser.IsActive
         };
@@ -108,14 +108,14 @@ function UsersPage() {
 
         // Aplicar valores del JSON guardado
         if (savedConfig.searchTerm !== undefined) setSearchTerm(savedConfig.searchTerm);
-        
+
         // Recuperar el filtro de estado (true/false/null)
         if (savedConfig.isActive !== undefined) {
             setStatusFilter(savedConfig.isActive);
         } else {
             setStatusFilter(null);
         }
-        
+
         setCurrentPage(1); // Reset paginación
         toast.success("Vista personalizada cargada");
     };
@@ -134,6 +134,8 @@ function UsersPage() {
             setIsModalOpen(false);
             loadUsers();
         } catch (error) {
+            console.error("Error al guardar usuario: ", error);
+
             toast.error(error.message, { id: toastId });
         }
     };
@@ -230,9 +232,9 @@ function UsersPage() {
             header: "Estado",
             className: "text-center",
             render: (user) => (
-                user.isActive ? 
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">Activo</span> : 
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">Inactivo</span>
+                user.isActive ?
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">Activo</span> :
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">Inactivo</span>
             )
         },
         {
@@ -257,9 +259,9 @@ function UsersPage() {
     const filteredUsers = users.filter(user => {
         // 1. Filtro Texto
         const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
-        const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || 
-                              user.email.toLowerCase().includes(searchTerm.toLowerCase());
-        
+        const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchTerm.toLowerCase());
+
         // 2. Filtro Estado (Visual)
         let matchesStatus = true;
         if (statusFilter === true) matchesStatus = user.isActive === true;
@@ -279,12 +281,12 @@ function UsersPage() {
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                     <div className="relative w-full sm:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input 
-                            type="text" 
-                            placeholder="Buscar usuario..." 
-                            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm transition-all" 
-                            value={searchTerm} 
-                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} 
+                        <input
+                            type="text"
+                            placeholder="Buscar usuario..."
+                            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm transition-all"
+                            value={searchTerm}
+                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                         />
                     </div>
                     <button onClick={openCreateModal} className="flex items-center justify-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm whitespace-nowrap">
@@ -295,29 +297,29 @@ function UsersPage() {
 
             {/* --- CONTROLES DE VISTA Y FILTRO --- */}
             <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
-                
+
                 {/* 1. Selector de Vistas Guardadas */}
-                <ViewSelector 
-                    entityName="Users" 
-                    currentFilters={currentFiltersState} 
-                    onApplyView={handleApplyView} 
+                <ViewSelector
+                    entityName="Users"
+                    currentFilters={currentFiltersState}
+                    onApplyView={handleApplyView}
                 />
 
                 {/* 2. Filtros Visuales de Estado */}
                 <div className="flex gap-2 p-1 bg-gray-100/50 w-fit rounded-xl self-start">
-                    <button 
+                    <button
                         onClick={() => setStatusFilter(null)}
                         className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${statusFilter === null ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         Todos
                     </button>
-                    <button 
+                    <button
                         onClick={() => setStatusFilter(true)}
                         className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${statusFilter === true ? 'bg-white text-green-700 shadow-sm border border-green-100' : 'text-gray-500 hover:text-green-600'}`}
                     >
                         Activos
                     </button>
-                    <button 
+                    <button
                         onClick={() => setStatusFilter(false)}
                         className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${statusFilter === false ? 'bg-white text-red-700 shadow-sm border border-red-100' : 'text-gray-500 hover:text-red-600'}`}
                     >
@@ -327,11 +329,11 @@ function UsersPage() {
             </div>
 
             <div className="w-full">
-                <DynamicTable 
-                    columns={columns} 
-                    data={currentUsers} 
-                    loading={loading} 
-                    pagination={{ currentPage, totalPages }} 
+                <DynamicTable
+                    columns={columns}
+                    data={currentUsers}
+                    loading={loading}
+                    pagination={{ currentPage, totalPages }}
                     onPageChange={setCurrentPage}
                     itemsPerPage={itemsPerPage}
                     onItemsPerPageChange={(val) => {
