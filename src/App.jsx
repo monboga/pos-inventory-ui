@@ -25,6 +25,7 @@ import { businessService } from './services/businessService';
 // --- IMPORTS DE SEGURIDAD ---
 import { PERMISSIONS } from './constants/permissions';
 import ProtectedRoute from './components/auth/ProtectedRoute'; // <--- Usamos el componente externo
+import { useToastLimit } from './hooks/useToastLimit';
 
 const API_BASE_URL = 'https://localhost:7031';
 
@@ -81,6 +82,7 @@ function AppLayout() {
 }
 
 function App() {
+  useToastLimit(1);
   return (
     <>
       <Toaster
@@ -98,7 +100,7 @@ function App() {
           },
         }}
       />
-      
+
       <Routes>
         {/* Rutas Públicas */}
         <Route path="/login" element={<LoginPage logoUrl={null} />} />
@@ -108,20 +110,20 @@ function App() {
         {/* --- RUTAS PROTEGIDAS --- */}
         {/* Nivel 1: Verificar que esté Logueado */}
         <Route element={<ProtectedRoute />}>
-          
+
           {/* Nivel 2: Renderizar el Layout (Sidebar) */}
           <Route element={<AppLayout />}>
-            
+
             {/* Rutas Accesibles para cualquier usuario logueado */}
             <Route path="/" element={<DashboardPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="business" element={<BusinessPage />} />
 
             {/* --- ZONAS VIP (Con Permisos Específicos) --- */}
-            
+
             {/* Ventas */}
             <Route element={<ProtectedRoute requiredPermission={PERMISSIONS.SALES.CREATE} />}>
-               <Route path="pos" element={<PointOfSalePage />} />
+              <Route path="pos" element={<PointOfSalePage />} />
             </Route>
             <Route element={<ProtectedRoute requiredPermission={PERMISSIONS.SALES.VIEW} />}>
               <Route path="sales-history" element={<SalesHistoryPage />} />
