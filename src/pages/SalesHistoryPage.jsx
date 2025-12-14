@@ -20,13 +20,14 @@ function SalesHistoryPage() {
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [selectedSale, setSelectedSale] = useState(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
-    
+
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     const [dateRange, setDateRange] = useState({ start: null, end: null });
     const [showExportMenu, setShowExportMenu] = useState(false);
-    
+
     // Estado para saber qué PDF se está descargando (para mostrar spinner en el botón)
     const [downloadingPdfId, setDownloadingPdfId] = useState(null);
+    const [downloadingExcelId, setDownloadingExcelId] = useState(null);
 
     // ... (Estados de KPIs y useEffect loadSales se mantienen igual) ...
     const [kpis, setKpis] = useState({ todaySales: 0, totalTickets: 0, avgTicket: 0 });
@@ -80,17 +81,17 @@ function SalesHistoryPage() {
     const handleDownloadPdf = async (id, saleNumber) => {
         setDownloadingPdfId(id);
         const toastId = toast.loading("Generando documento...");
-        
+
         try {
             // 1. Llamar al servicio
             const blob = await saleService.getPdf(id);
-            
+
             // 2. Crear URL temporal
             const url = window.URL.createObjectURL(blob);
-            
+
             // 3. Abrir en nueva pestaña
             window.open(url, '_blank');
-            
+
             toast.success(`Documento ${saleNumber} generado`, { id: toastId });
 
         } catch (error) {
@@ -98,6 +99,37 @@ function SalesHistoryPage() {
             toast.error("No se pudo generar el PDF", { id: toastId });
         } finally {
             setDownloadingPdfId(null);
+        }
+    };
+
+    const handleDownloadExcel = async (id, saleNumber) => {
+        setDownloadingExcelId(id);
+        const toastId = toast.loading("Generando Excel...");
+
+        try {
+            const blob = await saleService.getExcel(id);
+
+            // Crear URL temporal
+            const url = window.URL.createObjectURL(blob);
+
+            // Crear elemento enlace invisible para forzar descarga
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Venta_${saleNumber}.xlsx`); // Nombre del archivo
+            document.body.appendChild(link);
+            link.click();
+
+            // Limpieza
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            toast.success(`Reporte Excel descargado`, { id: toastId });
+
+        } catch (error) {
+            console.error(error);
+            toast.error("Error al descargar Excel", { id: toastId });
+        } finally {
+            setDownloadingExcelId(null);
         }
     };
 
@@ -119,8 +151,8 @@ function SalesHistoryPage() {
         },
         {
             header: "Fecha y Hora",
-            render: (row) => new Date(row.registrationDate).toLocaleString('es-MX', { 
-                day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute:'2-digit' 
+            render: (row) => new Date(row.registrationDate).toLocaleString('es-MX', {
+                day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit'
             })
         },
         {
@@ -133,7 +165,7 @@ function SalesHistoryPage() {
             render: (row) => (
                 <div className="flex justify-center">
                     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${row.documentType === 'Factura' ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                        <FileText size={12}/> {row.documentType || "Ticket"}
+                        <FileText size={12} /> {row.documentType || "Ticket"}
                     </span>
                 </div>
             )
@@ -148,10 +180,23 @@ function SalesHistoryPage() {
             className: "text-right",
             render: (row) => (
                 <div className="flex items-center justify-end gap-2">
-                    
+
+                    {/* BOTÓN EXCEL */}
+                    <button
+                        onClick={() => handleDownloadExcel(row.id || row.Id, row.saleNumber)}
+                        disabled={downloadingExcelId === (row.id || row.Id)}
+                        className="p-2 text-green-600 hover:bg-green-50 hover:text-green-700 rounded-lg transition-colors"
+                        title="Descargar Reporte Excel"
+                    >
+                        {downloadingExcelId === (row.id || row.Id) ? (
+                            <Loader size={18} className="animate-spin" />
+                        ) : (
+                            <FileSpreadsheet size={18} />
+                        )}
+                    </button>
                     {/* BOTÓN PDF */}
-                    <button 
-                        onClick={() => handleDownloadPdf(row.id || row.Id, row.saleNumber)} 
+                    <button
+                        onClick={() => handleDownloadPdf(row.id || row.Id, row.saleNumber)}
                         disabled={downloadingPdfId === (row.id || row.Id)}
                         className="p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 rounded-lg transition-colors"
                         title="Ver Comprobante PDF"
@@ -164,8 +209,8 @@ function SalesHistoryPage() {
                     </button>
 
                     {/* BOTÓN DETALLES */}
-                    <button 
-                        onClick={() => handleViewDetail(row)} 
+                    <button
+                        onClick={() => handleViewDetail(row)}
                         className="p-2 text-pink-500 hover:bg-pink-50 hover:text-pink-700 rounded-lg transition-colors"
                         title="Ver Detalles"
                     >
@@ -211,7 +256,7 @@ function SalesHistoryPage() {
             <div className="flex flex-col md:flex-row gap-4 mb-6 justify-between items-center">
                 <div className="relative w-full md:w-96">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input 
+                    <input
                         type="text" placeholder="Buscar por # Venta o Cliente..." className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm transition-all"
                         value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -229,8 +274,8 @@ function SalesHistoryPage() {
                         </button>
                         {showExportMenu && (
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-20">
-                                <button onClick={() => handleExport('PDF')} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 flex items-center gap-2"><FileText size={16}/> Lista PDF</button>
-                                <button onClick={() => handleExport('Excel')} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 flex items-center gap-2"><FileSpreadsheet size={16}/> Lista Excel</button>
+                                <button onClick={() => handleExport('PDF')} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 flex items-center gap-2"><FileText size={16} /> Lista PDF</button>
+                                <button onClick={() => handleExport('Excel')} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 flex items-center gap-2"><FileSpreadsheet size={16} /> Lista Excel</button>
                             </div>
                         )}
                     </div>
@@ -238,8 +283,8 @@ function SalesHistoryPage() {
             </div>
 
             <div className="w-full">
-                <DynamicTable 
-                    columns={columns} data={currentData} loading={loading} 
+                <DynamicTable
+                    columns={columns} data={currentData} loading={loading}
                     pagination={{ currentPage, totalPages }} onPageChange={setCurrentPage}
                     itemsPerPage={itemsPerPage} onItemsPerPageChange={(val) => { setItemsPerPage(val); setCurrentPage(1); }}
                 />

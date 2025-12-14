@@ -31,12 +31,22 @@ export const saleService = {
     getPdf: async (id) => {
         // apiFetch ya inyecta el Token de autorización
         const response = await apiFetch(`${API_URL}/${id}/pdf`);
-        
+
         if (!response.ok) {
             throw new Error('Error al generar el PDF del comprobante');
         }
-        
+
         // Retornamos el Blob (archivo binario)
+        return await response.blob();
+    },
+    getExcel: async (id) => {
+        const response = await apiFetch(`${API_URL}/${id}/excel`);
+
+        if (!response.ok) {
+            throw new Error('Error al generar el reporte Excel');
+        }
+
+        // Retornamos el Blob igual que en PDF
         return await response.blob();
     }
 };
