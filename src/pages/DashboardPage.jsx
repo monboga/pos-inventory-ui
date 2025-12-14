@@ -14,7 +14,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 function DashboardPage() {
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
-    
+
     const [kpis, setKpis] = useState({ todaySales: 0, monthSales: 0, totalOrders: 0 });
     const [salesChartData, setSalesChartData] = useState([]);
     const [lowStockProducts, setLowStockProducts] = useState([]);
@@ -54,7 +54,7 @@ function DashboardPage() {
         const todayTotal = sales
             .filter(s => new Date(s.registrationDate).toLocaleDateString() === todayStr)
             .reduce((acc, curr) => acc + curr.total, 0);
-        
+
         const monthTotal = sales
             .filter(s => new Date(s.registrationDate).getMonth() === currentMonth)
             .reduce((acc, curr) => acc + curr.total, 0);
@@ -67,7 +67,7 @@ function DashboardPage() {
             const d = new Date();
             d.setDate(d.getDate() - i);
             const dateLabel = d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' });
-            
+
             const daySales = sales
                 .filter(s => new Date(s.registrationDate).toLocaleDateString() === d.toLocaleDateString())
                 .reduce((acc, curr) => acc + curr.total, 0);
@@ -84,14 +84,14 @@ function DashboardPage() {
         const lowStock = products.filter(p => {
             // Leemos la propiedad (soporta mayúscula/minúscula)
             const rawStock = p.stock !== undefined ? p.stock : p.Stock;
-            
+
             // Convertimos a número. Si es null/undefined se vuelve 0.
             const qty = Number(rawStock);
-            
+
             // Validamos: Es número válido Y es menor o igual a 5
             return !isNaN(qty) && qty <= 5;
         });
-        
+
         // Ordenar: Primero los Agotados (0)
         const sortedLowStock = lowStock.sort((a, b) => {
             const stockA = Number(a.stock ?? a.Stock ?? 0);
@@ -134,8 +134,8 @@ function DashboardPage() {
             className: "text-right",
             render: (row) => {
                 const stockVal = Number(row.stock !== undefined ? row.stock : row.Stock);
-                return stockVal === 0 
-                    ? <span className="text-xs text-red-500 font-bold">Agotado</span> 
+                return stockVal === 0
+                    ? <span className="text-xs text-red-500 font-bold">Agotado</span>
                     : <span className="text-xs text-orange-500 font-bold">Bajo</span>;
             }
         }
@@ -145,7 +145,7 @@ function DashboardPage() {
 
     return (
         <div className="p-6 md:p-8 max-w-7xl mx-auto h-full flex flex-col">
-            
+
             {/* Header con Fecha */}
             <PageHeader title="Dashboard">
                 <div className="text-right hidden sm:block">
@@ -167,16 +167,16 @@ function DashboardPage() {
                 {/* Gráfica */}
                 <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-                        <TrendingUp size={20} className="text-pink-500"/>
+                        <TrendingUp size={20} className="text-pink-500" />
                         Comportamiento de Ventas (7 días)
                     </h3>
                     <div className="h-80 w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={salesChartData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} dy={10} />
-                                <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} tickFormatter={(val) => `$${val}`} />
-                                <Tooltip cursor={{fill: '#FCE7F3'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}} />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} tickFormatter={(val) => `$${val}`} />
+                                <Tooltip cursor={{ fill: '#FCE7F3' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
                                 <Bar dataKey="ventas" name="Ventas ($)" fill="#EC4899" radius={[4, 4, 0, 0]} barSize={40} />
                             </BarChart>
                         </ResponsiveContainer>
@@ -184,35 +184,36 @@ function DashboardPage() {
                 </div>
 
                 {/* Tabla de Alertas */}
-                <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden h-[420px]">
-                    <div className="p-5 border-b border-gray-50 flex justify-between items-center bg-white">
-                        <div>
-                            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                                <AlertTriangle size={20} className="text-orange-500"/>
-                                Alertas de Stock
-                            </h3>
-                            <p className="text-xs text-gray-400">Menos de 5 piezas</p>
-                        </div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col h-fit lg:self-start">
+                    <div className="flex items-center justify-between mb-6">
+
+                        <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
+                            <PackageX className="text-red-500" size={24} />
+                            Productos sin Stock
+                        </h3>
+                        <p className="text-xs text-gray-400">Menos de 5 piezas</p>
+
                         {lowStockProducts.length > 0 && (
                             <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full animate-pulse">
                                 {lowStockProducts.length}
                             </span>
                         )}
                     </div>
-                    
+
                     <div className="flex-1 overflow-auto p-0">
                         {lowStockProducts.length > 0 ? (
-                            <DynamicTable 
-                                columns={columns} 
-                                data={lowStockProducts} 
-                                loading={false} 
-                                pagination={{ currentPage: 1, totalPages: 1 }} 
-                                onPageChange={()=>{}}
+                            <DynamicTable
+                                columns={columns}
+                                data={lowStockProducts}
+                                loading={false}
+                                pagination={{ currentPage: 1, totalPages: 1 }}
+                                onPageChange={() => { }}
+                                compact={true}
                             />
                         ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-gray-400 text-center p-8">
+                            <div className="flex flex-col items-center justify-center text-gray-400 text-center p-8">
                                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-2">
-                                    <ShoppingBag className="text-green-500" size={24}/>
+                                    <ShoppingBag className="text-green-500" size={24} />
                                 </div>
                                 <p className="text-sm font-medium">Inventario Saludable</p>
                             </div>

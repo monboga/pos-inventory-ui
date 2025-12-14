@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, User, RefreshCw, Mail, Lock, Shield, Camera, ToggleLeft, ToggleRight } from 'lucide-react';
+import { X, Save, User, RefreshCw, Mail, Lock, Shield, Camera, ToggleLeft, ToggleRight, AlertCircle } from 'lucide-react';
 import { roleService } from '../../services/roleService';
 
-const API_BASE_URL = 'https://localhost:7031'; 
+const API_BASE_URL = 'https://localhost:7031';
 
 function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
+    const [error, setError] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const fileInputRef = useRef(null);
     const [availableRoles, setAvailableRoles] = useState([]);
     const [loadingRoles, setLoadingRoles] = useState(false);
@@ -14,7 +16,7 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
         lastName: '',
         email: '',
         password: '',
-        role: '', 
+        role: '',
         isActive: true
     };
 
@@ -46,7 +48,7 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                     canvas.width = width; canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    
+
                     canvas.toBlob((blob) => {
                         resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
                     }, 'image/jpeg', 0.7);
@@ -54,6 +56,11 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
             };
         });
     };
+
+    // --- EFECTOS ---
+    useEffect(() => {
+        setError(null);
+    }, [isOpen, formData.email]);
 
     // Cargar Roles
     useEffect(() => {
@@ -90,7 +97,7 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                     if (!fName && parts.length > 0) fName = parts[0];
                     if (!lName && parts.length > 1) lName = parts.slice(1).join(' ');
                 }
-                
+
                 // Imagen
                 let existingPhoto = "";
                 const rawPhoto = userToEdit.photo || userToEdit.Photo || userToEdit.photoUrl || userToEdit.PhotoUrl;
@@ -122,7 +129,7 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
 
             } else {
                 // Crear: Seleccionar el primer rol por defecto (ID)
-               let defaultRole = availableRoles.length > 0 ? (availableRoles[0].id || availableRoles[0].Id) : "";
+                let defaultRole = availableRoles.length > 0 ? (availableRoles[0].id || availableRoles[0].Id) : "";
                 setFormData({ ...initialFormState, role: defaultRole, isActive: true });
                 setPhotoPreview(null);
             }
@@ -143,24 +150,30 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
     };
 
     // --- FIX DEL ERROR DE ROL ---
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        
+        setError(null);
+        setIsSubmitting(true);
+
         let selectedRoleId = formData.role;
 
         // Validación de seguridad por si el rol viene vacío
-        if (!selectedRoleId && availableRoles.length > 0) 
-            selectedRoleId = availableRoles[0].id || availableRoles[0].Id;
+        if (!selectedRoleId && availableRoles.length > 0) selectedRoleId = availableRoles[0].id || availableRoles[0].Id;
 
-        // ELIMINADO: Ya no buscamos el nombre (roleObj.name)
-        // const roleObj = availableRoles.find(...) 
-        // const roleName = roleObj ? ...
+        try {
+            onSubmit({
+                ...formData,
+                role: selectedRoleId, // <--- ENVIAMOS EL ID DIRECTAMENTE
+                photoFile: photoFile
+            });
 
-        onSubmit({ 
-            ...formData, 
-            role: selectedRoleId, // <--- ENVIAMOS EL ID DIRECTAMENTE
-            photoFile: photoFile 
-        });
+            setIsSubmitting(false);
+        } catch (err) {
+            console.error("Error al guardar el usuario:", err);
+            const message = err.response?.data?.message || err.response?.data || err.message || "Error al guardar el usuario.";
+            setError(message);
+            setIsSubmitting(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -178,7 +191,15 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto custom-scrollbar">
-                    
+                    {error && (
+                        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-r">
+                            <div className="flex items-center">
+                                <AlertCircle className="text-red-500 mr-2" size={20} />
+                                <p className="text-sm text-red-700 font-bold">Error</p>
+                            </div>
+                            <p className="text-sm text-red-600 mt-1">{error}</p>
+                        </div>
+                    )}
                     {/* FOTO */}
                     <div className="flex justify-center mb-4">
                         <div className="relative group cursor-pointer" onClick={() => fileInputRef.current.click()}>
@@ -198,19 +219,26 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                            <input type="text" required className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" value={formData.firstName} onChange={(e) => setFormData({...formData, firstName: e.target.value})} />
+                            <input type="text" required className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Apellido</label>
-                            <input type="text" required className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" value={formData.lastName} onChange={(e) => setFormData({...formData, lastName: e.target.value})} />
+                            <input type="text" required className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
                         </div>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
                         <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <input type="email" required className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                            <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 ${error && error.includes('correo') ? 'text-red-400' : 'text-gray-400'}`} size={18} />
+                            <input
+                                type="email"
+                                required
+                                className={`w-full pl-10 pr-4 py-2 border rounded-lg outline-none transition-all ${error ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-pink-500 focus:ring-2'
+                                    }`}
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            />
                         </div>
                     </div>
 
@@ -220,7 +248,7 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                         </label>
                         <div className="relative">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <input type="password" required={!userToEdit} className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" placeholder={userToEdit ? "Sin cambios" : "******"} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
+                            <input type="password" required={!userToEdit} className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all" placeholder={userToEdit ? "Sin cambios" : "******"} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
                         </div>
                     </div>
 
@@ -228,10 +256,10 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
                         <div className="relative">
                             <Shield size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                            <select 
+                            <select
                                 className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none bg-white appearance-none"
                                 value={formData.role}
-                                onChange={(e) => setFormData({...formData, role: e.target.value})}
+                                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                                 disabled={loadingRoles}
                             >
                                 {loadingRoles ? (
@@ -255,11 +283,10 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                             <button
                                 type="button"
                                 onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold transition-colors ${
-                                    formData.isActive 
-                                        ? 'bg-green-100 text-green-700 border border-green-200' 
-                                        : 'bg-red-100 text-red-700 border border-red-200'
-                                }`}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold transition-colors ${formData.isActive
+                                    ? 'bg-green-100 text-green-700 border border-green-200'
+                                    : 'bg-red-100 text-red-700 border border-red-200'
+                                    }`}
                             >
                                 {formData.isActive ? <><ToggleRight size={18} /> Activo</> : <><ToggleLeft size={18} /> Inactivo</>}
                             </button>
@@ -267,9 +294,20 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                     )}
 
                     <div className="pt-4 flex gap-3 justify-end border-t border-gray-50 mt-4">
-                        <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors">Cancelar</button>
-                        <button type="submit" className="flex items-center gap-2 px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium shadow-sm active:scale-95 transition-all">
-                            {userToEdit ? <><RefreshCw size={18} /> Actualizar Usuario</> : <><Save size={18} /> Guardar Usuario</>}
+                        <button type="button" onClick={onClose} disabled={isSubmitting} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors">
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isSubmitting} // Deshabilitar mientras carga
+                            className={`flex items-center gap-2 px-6 py-2 text-white rounded-lg font-medium shadow-sm transition-all ${isSubmitting ? 'bg-pink-300 cursor-not-allowed' : 'bg-pink-500 hover:bg-pink-600 active:scale-95'
+                                }`}
+                        >
+                            {isSubmitting ? (
+                                <>Guardando...</>
+                            ) : (
+                                userToEdit ? <><RefreshCw size={18} /> Actualizar Usuario</> : <><Save size={18} /> Guardar Usuario</>
+                            )}
                         </button>
                     </div>
                 </form>
