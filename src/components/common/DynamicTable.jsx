@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, ListFilter } from 'lucide-react';
 
-function DynamicTable({ columns, data, loading, pagination, onPageChange, itemsPerPage, onItemsPerPageChange, compact = false }) {
+function DynamicTable({ columns, data, loading, pagination, onPageChange, itemsPerPage, onItemsPerPageChange, compact = false, selectable = false, selectedItems = [], onSelectionChange }) {
 
     if (loading) {
         return (
@@ -12,13 +12,28 @@ function DynamicTable({ columns, data, loading, pagination, onPageChange, itemsP
         );
     }
 
-    if (!data || data.length === 0) {
-        return (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center text-gray-500">
-                No hay registros para mostrar.
-            </div>
-        );
-    }
+    if (!data || data.length === 0) return (<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center text-gray-500">No hay registros para mostrar.</div>);
+
+    const allSelected = data.length > 0 && data.every(row => selectedItems.includes(row.id || row.Id));
+
+    const handleSelectAll = () => {
+        if (allSelected) {
+            const newSelected = selectedItems.filter(id => !data.find(row => (row.id || row.Id) === id));
+            onSelectionChange(newSelected);
+        } else {
+            const idsOnPage = data.map(row => row.id || row.Id);
+            const newSelected = [...new Set([...selectedItems, ...idsOnPage])];
+            onSelectionChange(newSelected);
+        }
+    };
+
+    const handleSelectRow = (id) => {
+        if (selectedItems.includes(id)) {
+            onSelectionChange(selectedItems.filter(item => item !== id));
+        } else {
+            onSelectionChange([...selectedItems, id]);
+        }
+    };
 
     // Cálculos seguros para visualización
     const totalItems = pagination?.totalItems || data.length;
@@ -36,30 +51,53 @@ function DynamicTable({ columns, data, loading, pagination, onPageChange, itemsP
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold tracking-wider">
+                        <tr className="border-b border-gray-100 bg-gray-50/50">
+                            {/* CHECKBOX HEADER */}
+                            {selectable && (
+                                <th className="p-4 w-10">
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-gray-300 text-pink-500 focus:ring-pink-500 cursor-pointer"
+                                        checked={allSelected}
+                                        onChange={handleSelectAll}
+                                    />
+                                </th>
+                            )}
+
                             {columns.map((col, index) => (
-                                <th
-                                    key={index}
-                                    className={`p-4 whitespace-nowrap ${index === 0 ? 'pl-6' : ''} ${index === columns.length - 1 ? 'pr-6 text-right' : ''} ${col.className || ''}`}
-                                >
+                                <th key={index} className={`p-4 text-xs font-bold text-gray-500 uppercase tracking-wider ${col.className || ''}`}>
                                     {col.header}
                                 </th>
                             ))}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                        {data.map((row, rowIndex) => (
-                            <tr key={row.id || rowIndex} className="hover:bg-pink-50/30 transition-colors group">
-                                {columns.map((col, colIndex) => (
-                                    <td
-                                        key={`${rowIndex}-${colIndex}`}
-                                        className={`p-4 text-sm text-gray-700 whitespace-nowrap ${colIndex === 0 ? 'pl-6' : ''} ${colIndex === columns.length - 1 ? 'pr-6 text-right' : ''} ${col.className || ''}`}
-                                    >
-                                        {col.render ? col.render(row) : row[col.accessor]}
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
+                        {data.map((row, rowIndex) => {
+                            const rowId = row.id || row.Id;
+                            const isSelected = selectedItems.includes(rowId);
+
+                            return (
+                                <tr key={rowIndex} className={`hover:bg-pink-50/30 transition-colors ${isSelected ? 'bg-pink-50/40' : ''}`}>
+                                    {/* CHECKBOX ROW */}
+                                    {selectable && (
+                                        <td className="p-4">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-gray-300 text-pink-500 focus:ring-pink-500 cursor-pointer"
+                                                checked={isSelected}
+                                                onChange={() => handleSelectRow(rowId)}
+                                            />
+                                        </td>
+                                    )}
+
+                                    {columns.map((col, colIndex) => (
+                                        <td key={colIndex} className={`p-4 text-sm text-gray-600 ${col.className || ''}`}>
+                                            {col.render ? col.render(row) : row[col.accessor]}
+                                        </td>
+                                    ))}
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
