@@ -29,6 +29,8 @@ function SalesHistoryPage() {
     const [downloadingPdfId, setDownloadingPdfId] = useState(null);
     const [downloadingExcelId, setDownloadingExcelId] = useState(null);
 
+    const [selectedIds, setSelectedIds] = useState([]);
+
     // ... (Estados de KPIs y useEffect loadSales se mantienen igual) ...
     const [kpis, setKpis] = useState({ todaySales: 0, totalTickets: 0, avgTicket: 0 });
 
@@ -133,10 +135,32 @@ function SalesHistoryPage() {
         }
     };
 
-    // ... (handleExport placeholder) ...
-    const handleExport = (type) => {
-        toast.success(`Exportando listado a ${type}... (Próximamente)`);
-        setShowExportMenu(false);
+    const handleBulkExport = async (format) => {
+        if (selectedIds.length === 0) {
+            toast.error("Selecciona al menos una venta");
+            return;
+        }
+
+        const toastId = toast.loading(`Generando ${format}...`);
+        try {
+            const blob = await saleService.exportSales(selectedIds, format);
+
+            // Descarga
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Reporte_Ventas.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            toast.success("Exportación exitosa", { id: toastId });
+            setSelectedIds([]); // Limpiar selección
+            setShowExportMenu(false);
+        } catch (error) {
+            console.error(error);
+            toast.error("Error en exportación", { id: toastId });
+        }
     };
 
     // --- COLUMNAS ACTUALIZADAS ---
@@ -274,8 +298,8 @@ function SalesHistoryPage() {
                         </button>
                         {showExportMenu && (
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-20">
-                                <button onClick={() => handleExport('PDF')} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 flex items-center gap-2"><FileText size={16} /> Lista PDF</button>
-                                <button onClick={() => handleExport('Excel')} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 flex items-center gap-2"><FileSpreadsheet size={16} /> Lista Excel</button>
+                                <button onClick={() => handleBulkExport('pdf')} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 flex items-center gap-2"><FileText size={16} /> Lista PDF</button>
+                                <button onClick={() => handleBulkExport('excel')} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 flex items-center gap-2"><FileSpreadsheet size={16} /> Lista Excel</button>
                             </div>
                         )}
                     </div>
@@ -284,9 +308,18 @@ function SalesHistoryPage() {
 
             <div className="w-full">
                 <DynamicTable
-                    columns={columns} data={currentData} loading={loading}
-                    pagination={{ currentPage, totalPages }} onPageChange={setCurrentPage}
-                    itemsPerPage={itemsPerPage} onItemsPerPageChange={(val) => { setItemsPerPage(val); setCurrentPage(1); }}
+                    columns={columns}
+                    data={currentData}
+                    loading={loading}
+                    pagination={{ currentPage, totalPages }}
+                    onPageChange={setCurrentPage}
+                    itemsPerPage={itemsPerPage}
+                    onItemsPerPageChange={(val) => {
+                        setItemsPerPage(val); setCurrentPage(1);
+                    }}
+                    selectable={true}
+                    selectedItems={selectedIds}
+                    onSelectionChange={setSelectedIds}
                 />
             </div>
 
