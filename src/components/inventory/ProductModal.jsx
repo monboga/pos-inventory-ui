@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, RefreshCw, Box, Tag, Image as ImageIcon, ToggleLeft, ToggleRight, FileText, Percent } from 'lucide-react';
+import { X, Save, RefreshCw, Box, Tag, Image as ImageIcon, ToggleLeft, ToggleRight, FileText, Percent, Package } from 'lucide-react';
 import { categoryService } from '../../services/categoryService';
 import { satService } from '../../services/satService';
 
@@ -11,6 +11,8 @@ const DEFAULT_SAT_VALUES = {
 
 function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
     const fileInputRef = useRef(null);
+    const [error, setError] = useState(null);
+    const [categoryError, setCategoryError] = useState(false);
 
     const [categories, setCategories] = useState([]);
     const [impuestos, setImpuestos] = useState([]);
@@ -41,6 +43,11 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
     };
 
     const handleFocus = (e) => e.target.select();
+
+    useEffect(() => {
+        setError(null);
+        setCategoryError(false);
+    }, [isOpen, formData.categoryId]);
 
     useEffect(() => {
         if (isOpen && categories.length === 0) {
@@ -111,7 +118,7 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
         }
     }, [isOpen, productToEdit]);
 
-    const compressImageToFile = (file) => { 
+    const compressImageToFile = (file) => {
         return new Promise((resolve) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -142,9 +149,23 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        
+        setError(null);
+
+        try {
+            await onSubmit(formData);
+            onClose();
+        } catch (err) {
+            console.error("Error al guardar producto:", err);
+
+            const message = err.message || "Error al guardar el producto.";
+
+            toast.error(message);
+
+            setError(message);
+        }
+
         // Validación manual de Categoría (ya que el HTML 'required' en select a veces falla si el value inicial es "")
         if (!formData.categoryId || formData.categoryId === "" || formData.categoryId === "0") {
             alert("⚠️ Selecciona una categoría válida.");
@@ -158,7 +179,7 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
         if (!safeData.claveProductoServicioId) safeData.claveProductoServicioId = DEFAULT_SAT_VALUES.CLAVE_PROD;
         if (!safeData.medidaLocalId) safeData.medidaLocalId = DEFAULT_SAT_VALUES.MEDIDA_LOCAL;
         if (!safeData.medidaSatId) safeData.medidaSatId = DEFAULT_SAT_VALUES.MEDIDA_SAT;
-        
+
         onSubmit({ ...safeData, photoFile });
     };
 
@@ -188,39 +209,53 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                             <div className="grid grid-cols-2 gap-4">
                                 {/* CODIGO DE BARRAS: Opcional */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Código de Barras</label>
-                                    <input 
-                                        type="text" 
-                                        // Eliminado required
-                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
-                                        value={formData.barcode} 
-                                        onChange={e => setFormData({ ...formData, barcode: e.target.value })} 
-                                        placeholder="Opcional"
-                                    />
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Código de Barras
+                                        <span className="text-gray-400 font-normal text-xs ml-2">(Opcional)</span>
+                                    </label>
+                                    <div className="relative">
+                                        <Box size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500 transition-all"
+                                            value={formData.barcode}
+                                            onChange={e => setFormData({ ...formData, barcode: e.target.value })}
+                                            placeholder="Ej. 750100..." // Placeholder real
+                                        />
+                                    </div>
                                 </div>
                                 {/* STOCK: Obligatorio */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Stock <span className="text-red-500">*</span></label>
-                                    <input 
-                                        type="number" 
-                                        required 
-                                        onFocus={handleFocus}
-                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
-                                        value={formData.stock} 
-                                        onChange={e => setFormData({ ...formData, stock: e.target.value })} 
-                                    />
+                                    <div className="relative">
+                                        <Package size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <input
+                                            type="number"
+                                            required
+                                            onFocus={handleFocus}
+                                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500"
+                                            value={formData.stock}
+                                            onChange={e => setFormData({ ...formData, stock: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                            {/* DESCRIPCIÓN: Obligatorio */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Descripción / Nombre <span className="text-red-500">*</span></label>
-                                <input 
-                                    type="text" 
-                                    required 
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
-                                    value={formData.description} 
-                                    onChange={e => setFormData({ ...formData, description: e.target.value })} 
-                                />
+                                <div className="relative">
+                                    <FileText size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${error ? 'text-red-400' : 'text-gray-400'}`} />
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Blister 0.07D"
+                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg outline-none transition-all ${error
+                                            ? 'border-red-500 focus:ring-red-200 focus:ring-2 bg-red-50' // Estilo de Error
+                                            : 'border-gray-200 focus:ring-pink-500 focus:ring-2'         // Estilo Original
+                                            }`}
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    />
+                                </div>
+                                {error && <p className="text-xs text-red-500 mt-1 ml-1">{error}</p>}
                             </div>
                         </div>
                     </div>
@@ -229,26 +264,40 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* MARCA: Opcional */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Marca</label>
-                            <input 
-                                type="text" 
-                                // Opcional
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
-                                value={formData.brand} 
-                                onChange={e => setFormData({ ...formData, brand: e.target.value })} 
-                                placeholder="Opcional"
-                            />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Marca
+                                <span className="text-gray-400 font-normal text-xs ml-2">(Opcional)</span>
+                            </label>
+                            <div className="relative">
+                                <Tag size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${error ? 'text-red-400' : 'text-gray-400'}`} />
+                                <input
+                                    type="text"
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg outline-none transition-all ${error
+                                        ? 'border-red-500 focus:ring-red-200 focus:ring-2 bg-red-50' // Estilo Error
+                                        : 'border-gray-200 focus:ring-pink-500 focus:ring-2'         // Estilo Normal
+                                        }`}
+                                    value={formData.brand}
+                                    onChange={e => setFormData({ ...formData, brand: e.target.value })}
+                                    placeholder="J Lash, Nagaraku, Vetus"
+                                />
+                            </div>
                         </div>
 
                         {/* CATEGORÍA: Obligatorio */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Categoría <span className="text-red-500">*</span></label>
                             <div className="relative">
-                                <Tag size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <Tag size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${categoryError ? 'text-red-400' : 'text-gray-400'}`} />
                                 <select
-                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg outline-none bg-white focus:ring-2 focus:ring-pink-500 ${!formData.categoryId ? 'border-red-300' : 'border-gray-200'}`}
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg outline-none bg-white focus:ring-2 transition-all ${categoryError
+                                            ? 'border-red-500 focus:ring-red-200 bg-red-50' // Solo rojo si falló validación
+                                            : 'border-gray-200 focus:ring-pink-500'         // Gris normal al inicio
+                                        }`}
                                     value={String(formData.categoryId)}
-                                    onChange={e => setFormData({ ...formData, categoryId: e.target.value })}
+                                    onChange={e => {
+                                        setFormData({ ...formData, categoryId: e.target.value });
+                                        setError(null) // Limpiar error al seleccionar
+                                    }}
                                     required
                                 >
                                     <option value="" disabled>Seleccionar...</option>
@@ -267,30 +316,30 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Precio <span className="text-red-500">*</span></label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                                    <input 
-                                        type="number" 
-                                        step="0.01" 
+                                    <input
+                                        type="number"
+                                        step="0.01"
                                         required
                                         onFocus={handleFocus}
-                                        className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
-                                        value={formData.price} 
-                                        onChange={e => setFormData({ ...formData, price: e.target.value })} 
+                                        className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500"
+                                        value={formData.price}
+                                        onChange={e => setFormData({ ...formData, price: e.target.value })}
                                     />
                                 </div>
                             </div>
-                            
+
                             {/* DESCUENTO: Obligatorio (aunque sea 0) */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Descuento <span className="text-red-500">*</span></label>
                                 <div className="relative">
-                                    <input 
-                                        type="number" 
-                                        step="0.01" 
+                                    <input
+                                        type="number"
+                                        step="0.01"
                                         required
                                         onFocus={handleFocus}
-                                        className="w-full pl-3 pr-8 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500" 
-                                        value={formData.discount} 
-                                        onChange={e => setFormData({ ...formData, discount: e.target.value })} 
+                                        className="w-full pl-3 pr-8 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-500"
+                                        value={formData.discount}
+                                        onChange={e => setFormData({ ...formData, discount: e.target.value })}
                                     />
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                                         <Percent size={14} strokeWidth={3} />
@@ -320,8 +369,8 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                                 type="button"
                                 onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
                                 className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold transition-colors ${formData.isActive
-                                        ? 'bg-green-100 text-green-700 border border-green-200'
-                                        : 'bg-red-100 text-red-700 border border-red-200'
+                                    ? 'bg-green-100 text-green-700 border border-green-200'
+                                    : 'bg-red-100 text-red-700 border border-red-200'
                                     }`}
                             >
                                 {formData.isActive ? <><ToggleRight size={18} /> Activo</> : <><ToggleLeft size={18} /> Inactivo</>}
