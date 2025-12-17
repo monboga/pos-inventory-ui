@@ -62,7 +62,10 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                         satService.getMedidasLocales(),
                         satService.getMedidasSat()
                     ]);
-                    setCategories(cats); setImpuestos(imps); setObjetosImp(objs);
+
+                    const activeCategories = cats.filter(c => c.isActive || c.IsActive);
+
+                    setCategories(activeCategories); setImpuestos(imps); setObjetosImp(objs);
                     setClavesProd(prods); setMedidasLocales(locals); setMedidasSat(sats);
                 } catch (e) { console.error("Error catálogos", e); }
                 finally { setLoadingData(false); }
