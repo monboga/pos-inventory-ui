@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Store, ChevronsUpDown, UserCircle, LogOut } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,8 +11,16 @@ const Sidebar = ({ logoUrl }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(() => {
+        const savedState = localStorage.getItem('sidebar-collapsed');
+        return savedState === 'true';
+    });
+
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+    useEffect(() => {
+        localStorage.setItem('sidebar-collapsed', isCollapsed);
+    }, [isCollapsed]);
 
     const handleLogout = () => { logout(); navigate('/login'); };
 
