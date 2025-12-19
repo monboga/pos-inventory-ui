@@ -1,60 +1,48 @@
-import { apiFetch } from './api';
+import api from '../api/axiosConfig';
 
-const API_URL = 'https://localhost:7031/api/Sales';
+const BASE_ENDPOINT = '/api/Sales';
 
 export const saleService = {
     getAll: async () => {
-        const response = await apiFetch(API_URL);
-        if (!response.ok) throw new Error('Error al cargar el historial de ventas');
-        return await response.json();
+        const response = await api.get(BASE_ENDPOINT);
+        return response.data;
     },
 
     getById: async (id) => {
-        const response = await apiFetch(`${API_URL}/${id}`);
-        if (!response.ok) throw new Error('Error al cargar el detalle de la venta');
-        return await response.json();
+        const response = await api.get(`${BASE_ENDPOINT}/${id}`);
+        return response.data;
     },
 
     create: async (saleData) => {
-        const response = await apiFetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify(saleData)
-        });
-
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.title || error.message || 'Error al procesar la venta');
+        try {
+            const response = await api.post(BASE_ENDPOINT, saleData);
+            return response.data;
+        } catch (error) {
+            const errorData = error.response?.data || {};
+            throw new Error(errorData.title || errorData.message || 'Error al procesar la venta');
         }
-        return await response.json();
     },
 
     getPdf: async (id) => {
-        // apiFetch ya inyecta el Token de autorización
-        const response = await apiFetch(`${API_URL}/${id}/pdf`);
-
-        if (!response.ok) {
-            throw new Error('Error al generar el PDF del comprobante');
-        }
-
-        // Retornamos el Blob (archivo binario)
-        return await response.blob();
-    },
-    getExcel: async (id) => {
-        const response = await apiFetch(`${API_URL}/${id}/excel`);
-
-        if (!response.ok) {
-            throw new Error('Error al generar el reporte Excel');
-        }
-
-        // Retornamos el Blob igual que en PDF
-        return await response.blob();
-    },
-    exportSales: async (ids, format) => {
-        const response = await apiFetch(`${API_URL}/export`, {
-            method: 'POST',
-            body: JSON.stringify({ saleIds: ids, format: format })
+        // Configuramos responseType blob para recibir binarios
+        const response = await api.get(`${BASE_ENDPOINT}/${id}/pdf`, {
+            responseType: 'blob'
         });
-        if (!response.ok) throw new Error('Error al exportar');
-        return await response.blob();
+        return response.data; // Esto ya es el Blob
+    },
+
+    getExcel: async (id) => {
+        const response = await api.get(`${BASE_ENDPOINT}/${id}/excel`, {
+            responseType: 'blob'
+        });
+        return response.data;
+    },
+
+    exportSales: async (ids, format) => {
+        const response = await api.post(`${BASE_ENDPOINT}/export`, 
+            { saleIds: ids, format: format },
+            { responseType: 'blob' }
+        );
+        return response.data;
     }
 };
