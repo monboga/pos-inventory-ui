@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Save, LayoutList, ChevronDown, Trash2 } from 'lucide-react'; // Agregamos Trash2 si quieres borrar
+import { Save, LayoutList } from 'lucide-react'; 
 import { viewService } from '../../services/viewService';
 import SaveViewModal from './SaveViewModal';
+import AnimatedSelect from '../common/AnimatedSelect'; // <--- Importamos nuestro componente estrella
 import toast from 'react-hot-toast';
 
 function ViewSelector({ entityName, currentFilters, onApplyView }) {
@@ -22,15 +23,16 @@ function ViewSelector({ entityName, currentFilters, onApplyView }) {
         }
     };
 
-    const handleViewChange = (e) => {
-        const viewId = e.target.value;
+    // Adaptamos el handler para recibir el valor directo del AnimatedSelect
+    const handleViewChange = (viewId) => {
         setSelectedViewId(viewId);
 
         if (viewId === "") {
+            // Restaurar vista por defecto (sin filtros)
             onApplyView(null);
         } else {
             const view = views.find(v => String(v.id) === String(viewId));
-            if (view && view.configurationJson) { // FIX: Usar configurationJson
+            if (view && view.configurationJson) {
                 try {
                     const parsedFilters = JSON.parse(view.configurationJson);
                     onApplyView(parsedFilters);
@@ -44,57 +46,64 @@ function ViewSelector({ entityName, currentFilters, onApplyView }) {
     const handleSaveView = async (viewName) => {
         const toastId = toast.loading("Guardando vista...");
         try {
-            // --- FIX CRÍTICO: NOMBRES DE PROPIEDADES ---
-            // Deben coincidir con CreateUserViewCommand.cs
             const payload = {
                 name: viewName,
-                resource: entityName,        // Antes era 'entity', ahora 'resource'
-                configurationJson: JSON.stringify(currentFilters) // Antes 'filtersJson', ahora 'configurationJson'
+                resource: entityName,
+                configurationJson: JSON.stringify(currentFilters)
             };
 
             await viewService.createView(payload);
             
             toast.success("Vista guardada exitosamente", { id: toastId });
-            await loadViews(); // Recargar lista para ver la nueva
-            
-            // Opcional: Auto-seleccionar la vista recién creada si el backend devolviera el objeto completo
-            // Pero con recargar la lista es suficiente por ahora.
+            await loadViews(); 
             
         } catch (error) {
             console.error(error);
-            toast.error("Error al guardar la vista. Verifica los datos.", { id: toastId });
+            toast.error("Error al guardar la vista.", { id: toastId });
         }
     };
 
+    // Preparamos las opciones para el AnimatedSelect
+    // Agregamos manualmente la opción "Default" al principio
+    const selectOptions = [
+        { id: "", name: "Vista Predeterminada" }, 
+        ...views
+    ];
+
     return (
         <>
-            <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-200 shadow-sm mb-4 w-fit animate-in fade-in slide-in-from-top-2">
-                <div className="flex items-center pl-3 pr-1 text-gray-400">
-                    <LayoutList size={18} />
-                </div>
+            {/* CONTENEDOR FLOTANTE A LA DERECHA */}
+            {/* justify-end: Empuja todo a la derecha. items-center: Alineación vertical. */}
+            <div className="flex flex-col sm:flex-row items-end sm:items-center justify-end gap-3 mb-6 w-full animate-in fade-in slide-in-from-top-1">
                 
-                <div className="relative">
-                    <select 
-                        value={selectedViewId} 
+                {/* 1. SELECTOR DE VISTAS */}
+                {/* Le damos un ancho fijo (w-64) para que se vea uniforme */}
+                <div className="w-full sm:w-64 z-20"> 
+                    <AnimatedSelect
+                        label="" // Sin label externo para ser minimalista
+                        icon={LayoutList} // Icono dentro del input
+                        options={selectOptions}
+                        value={selectedViewId}
                         onChange={handleViewChange}
-                        className="appearance-none bg-transparent border-none text-sm font-semibold text-gray-700 focus:ring-0 cursor-pointer py-2 pl-1 pr-8 min-w-[180px] outline-none"
-                    >
-                        <option value="">-- Vista Predeterminada --</option>
-                        {views.length > 0 && <option disabled>──────────</option>}
-                        {views.map(v => (
-                            <option key={v.id} value={v.id}>{v.name}</option>
-                        ))}
-                    </select>
-                    <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        placeholder="Seleccionar Vista"
+                    />
                 </div>
 
-                <div className="w-px h-6 bg-gray-200 mx-1"></div>
-
+                {/* 2. BOTÓN GUARDAR */}
+                {/* Diseño independiente 'Outline' que combina con el select */}
                 <button 
                     onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-1.5 text-xs font-bold text-pink-600 bg-pink-50 hover:bg-pink-100 rounded-lg transition-colors m-1"
+                    className="
+                        flex items-center gap-2 px-4 py-2.5 
+                        bg-white border border-gray-200 
+                        text-pink-600 font-bold text-sm rounded-xl 
+                        hover:bg-pink-50 hover:border-pink-200 hover:shadow-sm 
+                        transition-all active:scale-95 whitespace-nowrap
+                        h-[42px] // Altura forzada para coincidir exactamente con el input del AnimatedSelect
+                    "
+                    title="Guardar filtros actuales como nueva vista"
                 >
-                    <Save size={14} />
+                    <Save size={18} />
                     <span>Guardar Vista</span>
                 </button>
             </div>
