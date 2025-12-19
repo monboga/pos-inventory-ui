@@ -1,0 +1,80 @@
+/* src/components/ui/CartLoader/CartLoader.css */
+.cart-loader-container {
+    --primary: #ec4899; /* Tu color Rosa */
+    --track: rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 100%;
+    max-width: 20em;
+}
+
+.cart-svg {
+    display: block;
+    margin: 0 auto 1.5em auto;
+    width: 8em;
+    height: 8em;
+}
+
+/* Animaciones del SVG */
+.cart__lines,
+.cart__top,
+.cart__wheel1,
+.cart__wheel2,
+.cart__wheel-stroke {
+    animation: cartLines 2s ease-in-out infinite;
+}
+
+.cart__lines {
+    stroke: var(--primary);
+}
+
+.cart__top {
+    animation-name: cartTop;
+}
+
+.cart__wheel1 {
+    animation-name: cartWheel1;
+    transform: rotate(-0.25turn);
+    transform-origin: 43px 111px;
+}
+
+.cart__wheel2 {
+    animation-name: cartWheel2;
+    transform: rotate(0.25turn);
+    transform-origin: 102px 111px;
+}
+
+.cart__wheel-stroke {
+    animation-name: cartWheelStroke;
+}
+
+.cart__track {
+    stroke: var(--track);
+    transition: stroke 0.3s;
+}
+
+/* KEYFRAMES (Copiados y adaptados de tu ejemplo) */
+@keyframes cartLines {
+    from, to { opacity: 0; }
+    8%, 92% { opacity: 1; }
+}
+
+@keyframes cartTop {
+    from { stroke-dashoffset: -338; }
+    50% { stroke-dashoffset: 0; }
+    to { stroke-dashoffset: 338; }
+}
+
+@keyframes cartWheel1 {
+    from { transform: rotate(-0.25turn); }
+    to { transform: rotate(2.75turn); }
+}
+
+@keyframes cartWheel2 {
+    from { transform: rotate(0.25turn); }
+    to { transform: rotate(3.25turn); }
+}
+
+@keyframes cartWheelStroke {
+    from, to { stroke-dashoffset: 81.68; }
+    50% { stroke-dashoffset: 40.84; }
+}

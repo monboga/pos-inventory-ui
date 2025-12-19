@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Store, Loader2 } from 'lucide-react';
+import { getFriendlyErrorMessage } from '../utils/errorUtils';
 
 function LoginPage({ logoUrl }) {
     const navigate = useNavigate();
@@ -126,7 +127,7 @@ function LoginPage({ logoUrl }) {
 
                         {error && (
                             <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm font-medium rounded-r-lg animate-in fade-in slide-in-from-top-2">
-                                {error}
+                                {getFriendlyErrorMessage(error)}
                             </div>
                         )}
 
