@@ -1,12 +1,11 @@
-import { apiFetch } from './api';
+import api from '../api/axiosConfig';
 
-const API_URL = 'https://localhost:7031/api/categories';
+const BASE_ENDPOINT = '/api/categories';
 
 export const categoryService = {
     getAll: async () => {
-        const response = await apiFetch(API_URL);
-        if (!response.ok) throw new Error('Error al cargar categorías');
-        return await response.json();
+        const response = await api.get(BASE_ENDPOINT);
+        return response.data;
     },
 
     create: async (categoryData) => {
@@ -14,17 +13,8 @@ export const categoryService = {
             Description: categoryData.description,
             IsActive: categoryData.isActive !== undefined ? categoryData.isActive : true
         };
-
-        const response = await apiFetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.title || 'Error al crear categoría');
-        }
-        return await response.json();
+        const response = await api.post(BASE_ENDPOINT, payload);
+        return response.data;
     },
 
     update: async (id, categoryData) => {
@@ -33,26 +23,12 @@ export const categoryService = {
             Description: categoryData.description || categoryData.Description,
             IsActive: categoryData.isActive
         };
-
-        const response = await apiFetch(`${API_URL}/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.title || 'Error al actualizar categoría');
-        }
-
-        const text = await response.text();
-        return text ? JSON.parse(text) : {};
+        const response = await api.put(`${BASE_ENDPOINT}/${id}`, payload);
+        return response.data;
     },
 
     delete: async (id) => {
-        const response = await apiFetch(`${API_URL}/${id}`, {
-            method: 'DELETE'
-        });
-        if (!response.ok) throw new Error('Error al eliminar categoría');
+        await api.delete(`${BASE_ENDPOINT}/${id}`);
         return true;
     }
 };

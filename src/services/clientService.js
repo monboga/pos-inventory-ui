@@ -1,47 +1,35 @@
-import { apiFetch } from './api';
+import api from '../api/axiosConfig';
 
-const API_URL = 'https://localhost:7031/api/Clients'; 
+const BASE_ENDPOINT = '/api/Clients'; 
 
 export const clientService = {
     getAll: async () => {
-        const response = await apiFetch(API_URL);
-        if (!response.ok) throw new Error('Error al cargar clientes');
-        return await response.json();
+        const response = await api.get(BASE_ENDPOINT);
+        return response.data;
     },
 
     create: async (clientData) => {
-        const response = await apiFetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify(clientData)
-        });
-        
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.title || 'Error al crear cliente');
+        try {
+            const response = await api.post(BASE_ENDPOINT, clientData);
+            return response.data;
+        } catch (error) {
+            const errorData = error.response?.data || {};
+            throw new Error(errorData.title || 'Error al crear cliente');
         }
-        return await response.json();
     },
 
     update: async (id, clientData) => {
-        const response = await apiFetch(`${API_URL}/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify({ ...clientData, id }) 
-        });
-
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.title || 'Error al actualizar cliente');
+        try {
+            const response = await api.put(`${BASE_ENDPOINT}/${id}`, { ...clientData, id });
+            return response.data;
+        } catch (error) {
+            const errorData = error.response?.data || {};
+            throw new Error(errorData.title || 'Error al actualizar cliente');
         }
-        
-        const text = await response.text();
-        return text ? JSON.parse(text) : {};
     },
 
     delete: async (id) => {
-        const response = await apiFetch(`${API_URL}/${id}`, {
-            method: 'DELETE'
-        });
-        if (!response.ok) throw new Error('Error al eliminar cliente');
+        await api.delete(`${BASE_ENDPOINT}/${id}`);
         return true;
     }
 };
