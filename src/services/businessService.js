@@ -1,16 +1,13 @@
-import { apiFetch } from './api';
+import api from '../api/axiosConfig';
 
-const API_URL = 'https://localhost:7031/api/business'; 
+const BASE_ENDPOINT = '/api/business'; 
 
 export const businessService = {
-    // GET
     getBusiness: async () => {
-        const response = await apiFetch(API_URL);
-        if (!response.ok) throw new Error('Error al cargar información del negocio');
-        return await response.json(); // Esto devuelve un Array: [{...}]
+        const response = await api.get(BASE_ENDPOINT);
+        return response.data; 
     },
 
-    // POST
     create: async (businessData) => {
         const formData = new FormData();
         formData.append('Rfc', businessData.rfc);
@@ -22,24 +19,22 @@ export const businessService = {
         formData.append('CurrencyType', businessData.currencyType || 'MXN');
         formData.append('RegimenFiscalId', businessData.regimenFiscalId);
 
-        // Envío de archivo binario
         if (businessData.logoFile) {
             formData.append('Logo', businessData.logoFile);
         }
 
-        const response = await apiFetch(API_URL, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.title || 'Error al registrar el negocio');
+        try {
+            // --- FIX: HEADER MULTIPART ---
+            const response = await api.post(BASE_ENDPOINT, formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+            return response.data;
+        } catch (error) {
+            const errorData = error.response?.data || {};
+            throw new Error(errorData.title || 'Error al registrar el negocio');
         }
-        return await response.json();
     },
 
-    // PUT
     update: async (id, businessData) => {
         const formData = new FormData();
         formData.append('Id', id);
@@ -52,22 +47,19 @@ export const businessService = {
         formData.append('CurrencyType', businessData.currencyType || 'MXN');
         formData.append('RegimenFiscalId', businessData.regimenFiscalId);
 
-        // Solo enviamos 'Logo' si el usuario seleccionó uno nuevo
         if (businessData.logoFile) {
             formData.append('Logo', businessData.logoFile);
         }
 
-        const response = await apiFetch(`${API_URL}/${id}`, {
-            method: 'PUT',
-            body: formData
-        });
-
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.title || 'Error al actualizar negocio');
+        try {
+            // --- FIX: HEADER MULTIPART ---
+            const response = await api.put(`${BASE_ENDPOINT}/${id}`, formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+            return response.data;
+        } catch (error) {
+            const errorData = error.response?.data || {};
+            throw new Error(errorData.title || 'Error al actualizar negocio');
         }
-        
-        const text = await response.text();
-        return text ? JSON.parse(text) : {};
     }
 };

@@ -1,27 +1,27 @@
-import { apiFetch } from './api';
+import api from '../api/axiosConfig';
 
-const API_URL = 'https://localhost:7031/api/products';
+const BASE_ENDPOINT = '/api/products';
 
 export const productService = {
     getAll: async () => {
-        const response = await apiFetch(API_URL);
-        if (!response.ok) throw new Error('Error al cargar productos');
-        return await response.json();
+        const response = await api.get(BASE_ENDPOINT);
+        return response.data;
     },
 
     create: async (productData) => {
         const formData = new FormData();
 
-        formData.append('Barcode', productData.barcode);
+        // Campos principales
+        formData.append('Barcode', productData.barcode || ''); // Enviar vacío si no hay
         formData.append('Description', productData.description);
-        formData.append('Brand', productData.brand);
+        formData.append('Brand', productData.brand || '');
         formData.append('Stock', productData.stock);
         formData.append('Price', productData.price);
         formData.append('Discount', productData.discount || 0);
         formData.append('CategoryId', productData.categoryId);
         formData.append('IsActive', true);
 
-        // SAT
+        // Campos SAT (Facturación)
         formData.append('CatalogoImpuestoId', productData.catalogoImpuestoId);
         formData.append('CatalogoObjetoImpuestoId', productData.catalogoObjetoImpuestoId);
         formData.append('ClaveProductoServicioId', productData.claveProductoServicioId);
@@ -32,26 +32,25 @@ export const productService = {
             formData.append('ImageFile', productData.photoFile);
         }
 
-        // apiFetch detecta FormData y evita el content-type json
-        const response = await apiFetch(API_URL, {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.title || 'Error al crear producto');
+        try {
+            // --- FIX: HEADER MULTIPART ---
+            const response = await api.post(BASE_ENDPOINT, formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+            return response.data;
+        } catch (error) {
+            const errorData = error.response?.data || {};
+            throw new Error(errorData.title || errorData.message || 'Error al crear producto');
         }
-        return await response.json();
     },
 
     update: async (id, productData) => {
         const formData = new FormData();
 
         formData.append('Id', id);
-        formData.append('Barcode', productData.barcode);
+        formData.append('Barcode', productData.barcode || '');
         formData.append('Description', productData.description);
-        formData.append('Brand', productData.brand);
+        formData.append('Brand', productData.brand || '');
         formData.append('Stock', productData.stock);
         formData.append('Price', productData.price);
         formData.append('Discount', productData.discount || 0);
@@ -69,27 +68,22 @@ export const productService = {
             formData.append('ImageFile', productData.photoFile);
         }
 
-        const response = await apiFetch(`${API_URL}/${id}`, {
-            method: 'PUT',
-            body: formData
-        });
-
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            let msg = error.title || 'Error al actualizar';
-            if (error.errors) msg += `: ${JSON.stringify(error.errors)}`;
+        try {
+            // --- FIX: HEADER MULTIPART ---
+            const response = await api.put(`${BASE_ENDPOINT}/${id}`, formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+            return response.data;
+        } catch (error) {
+            const errorData = error.response?.data || {};
+            let msg = errorData.title || 'Error al actualizar';
+            if (errorData.errors) msg += `: ${JSON.stringify(errorData.errors)}`;
             throw new Error(msg);
         }
-
-        const text = await response.text();
-        return text ? JSON.parse(text) : {};
     },
 
     delete: async (id) => {
-        const response = await apiFetch(`${API_URL}/${id}`, {
-            method: 'DELETE'
-        });
-        if (!response.ok) throw new Error('Error al eliminar producto');
+        await api.delete(`${BASE_ENDPOINT}/${id}`);
         return true;
     }
 };
