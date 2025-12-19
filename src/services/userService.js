@@ -1,12 +1,11 @@
-import { apiFetch } from "./api";
+import api from '../api/axiosConfig';
 
-const API_URL = 'https://localhost:7031/api/users'; 
+const BASE_ENDPOINT = '/api/users'; 
 
 export const userService = {
     getAll: async () => {
-        const response = await apiFetch(API_URL);
-        if (!response.ok) throw new Error('Error al cargar usuarios');
-        return await response.json();
+        const response = await api.get(BASE_ENDPOINT);
+        return response.data;
     },
 
     create: async (userData) => {
@@ -23,15 +22,16 @@ export const userService = {
             formData.append('Photo', userData.photoFile);
         }
 
-        // Ya no necesitamos headers manuales, api.js lo maneja
-        const response = await apiFetch(API_URL, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            let msg = errorData.title || "Error al crear";
+        try {
+            // --- FIX CRÍTICO: ESPECIFICAR HEADER MULTIPART ---
+            const response = await api.post(BASE_ENDPOINT, formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+            return response.data;
+        } catch (error) {
+            const errorData = error.response?.data || {};
+            let msg = errorData.message || errorData.title || "Error al crear el usuario";
+            
             if (errorData.errors) {
                 const details = Object.entries(errorData.errors)
                     .map(([key, msgs]) => `${key}: ${msgs.join(', ')}`)
@@ -40,7 +40,6 @@ export const userService = {
             }
             throw new Error(msg);
         }
-        return await response.json();
     },
 
     update: async (id, userData) => {
@@ -51,25 +50,23 @@ export const userService = {
         formData.append('LastName', userData.lastName);
         formData.append('Email', userData.email);
         formData.append('Roles', userData.role);
-        // Asegurar booleano
         formData.append('IsActive', userData.isActive);
 
         if (userData.photoFile) {
              formData.append('Photo', userData.photoFile);
         }
 
-        if (userData.password && userData.password.trim() !== "") {
-            formData.append('Password', userData.password);
-        }
-
-        const response = await apiFetch(`${API_URL}/${id}`, {
-            method: 'PUT',
-            body: formData
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            let msg = errorData.title || "Error al actualizar";
+        // En Update NO enviamos password, ya que no hay campo en el modal
+        
+        try {
+            // --- FIX CRÍTICO: ESPECIFICAR HEADER MULTIPART ---
+            const response = await api.put(`${BASE_ENDPOINT}/${id}`, formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+            return response.data;
+        } catch (error) {
+            const errorData = error.response?.data || {};
+            let msg = errorData.message || errorData.title || "Error al actualizar";
             if (errorData.errors) {
                 const details = Object.entries(errorData.errors)
                     .map(([key, msgs]) => `${key}: ${msgs.join(', ')}`)
@@ -78,21 +75,15 @@ export const userService = {
             }
             throw new Error(msg);
         }
-        
-        const text = await response.text();
-        return text ? JSON.parse(text) : {}; 
     },
 
     delete: async (id) => {
-        const response = await apiFetch(`${API_URL}/${id}`, {
-            method: 'DELETE'
-        });
-        if (!response.ok) throw new Error('Error al eliminar usuario');
+        await api.delete(`${BASE_ENDPOINT}/${id}`);
         return true;
     },
+
     getById: async (id) => {
-        const response = await apiFetch(`${API_URL}/${id}`);
-        if (!response.ok) throw new Error('Error al cargar perfil de usuario');
-        return await response.json();
+        const response = await api.get(`${BASE_ENDPOINT}/${id}`);
+        return response.data;
     }
 };
