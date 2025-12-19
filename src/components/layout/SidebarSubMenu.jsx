@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export const SidebarSubmenu = ({ item, isCollapsed }) => {
+const SidebarSubmenu = ({ item, isCollapsed }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
 
@@ -144,3 +144,4 @@ export const SidebarSubmenu = ({ item, isCollapsed }) => {
         </div>
     );
 };
+export default SidebarSubmenu;

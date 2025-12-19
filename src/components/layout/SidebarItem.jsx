@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { usePermission } from '../../hooks/usePermission';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export const SidebarItem = ({ item, isCollapsed }) => {
+const SidebarItem = ({ item, isCollapsed }) => {
     const [isHovered, setIsHovered] = useState(false);
     const hasPermission = usePermission(item.permission);
 
@@ -73,3 +73,4 @@ export const SidebarItem = ({ item, isCollapsed }) => {
         </div>
     );
 };
+export default SidebarItem;
