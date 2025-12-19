@@ -1,174 +1,129 @@
-// src/components/layout/Sidebar.jsx
-
-import React, { useState } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import React, { useState, useMemo } from 'react';
+import { ChevronLeft, ChevronRight, Store, ChevronsUpDown, UserCircle, LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MENU_ITEMS } from '../../constants/menuConfig';
+import SidebarItem from './SidebarItem';
+import SidebarSubmenu from './SidebarSubmenu';
 import { useAuth } from '../../context/AuthContext';
-import { PERMISSIONS } from '../../constants/permissions';
-import PermissionGate from '../auth/PermissionGate';
-import {
-    LayoutDashboard,
-    Package,
-    Store,
-    Users,
-    UserRound,
-    History,
-    ChevronLeft,
-    ChevronRight,
-    Building,
-    LogOut,
-    ChevronsUpDown,
-    UserCircle,
-    Tags
-} from 'lucide-react';
 
-// --- Sub-componente MenuItem ---
-function MenuItem({ icon: Icon, text, active, isCollapsed, onClick, to }) {
-    return (
-        <div className="relative group">
-            <Link
-                to={to}
-                onClick={onClick}
-                className={`
-                    flex items-center p-3 my-1.5 rounded-xl transition-all duration-200 
-                    ${active
-                        ? "bg-pink-100 text-pink-600 shadow-sm"
-                        : "text-gray-500 hover:bg-pink-50 hover:text-pink-500"
-                    } 
-                    ${isCollapsed ? "justify-center" : "w-full"}
-                `}
-            >
-                <Icon size={22} strokeWidth={active ? 2.5 : 2} className="flex-shrink-0" />
-
-                {/* Texto oculto con 'hidden' absoluto al colapsar para evitar bugs visuales */}
-                <span className={`ml-3 font-medium text-sm whitespace-nowrap overflow-hidden transition-all duration-200 ${isCollapsed ? 'hidden' : 'block'}`}>
-                    {text}
-                </span>
-            </Link>
-
-            {/* Tooltip flotante (Solo visible colapsado + hover) */}
-            {isCollapsed && (
-                <div className="
-                    absolute left-full top-1/2 -translate-y-1/2 ml-3
-                    z-50 hidden group-hover:block
-                    bg-gray-800 text-white text-xs font-bold px-3 py-2 rounded-md shadow-xl
-                    whitespace-nowrap animate-in fade-in zoom-in duration-200
-                ">
-                    <div className="absolute top-1/2 -translate-y-1/2 -left-1 w-2 h-2 bg-gray-800 rotate-45"></div>
-                    {text}
-                </div>
-            )}
-        </div>
-    );
-}
-
-function Sidebar({ logoUrl }) {
+const Sidebar = ({ logoUrl }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
-    const location = useLocation();
-
+    
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
     const handleLogout = () => { logout(); navigate('/login'); };
 
-    // Datos del usuario con fallbacks seguros
     const displayName = user?.name || "Cargando...";
     const userEmail = user?.email || "";
     const userInitials = user?.initials || displayName.charAt(0).toUpperCase() || "U";
     const userRole = user?.role || "Usuario";
 
-    // Función para detectar ruta activa
-    const isActive = (path) => {
-        if (path === '/') return location.pathname === '/';
-        return location.pathname.startsWith(path);
+    const sidebarVariants = {
+        expanded: { width: "18rem" },
+        collapsed: { width: "5rem" } 
     };
 
+    const userMenuVariants = {
+        hidden: { opacity: 0, y: 20, scale: 0.8 },
+        visible: { 
+            opacity: 1, y: 0, scale: 1,
+            transition: { type: "spring", stiffness: 400, damping: 25 } 
+        },
+        exit: { opacity: 0, y: 10, scale: 0.9, transition: { duration: 0.15 } }
+    };
+
+    const filteredMenu = useMemo(() => {
+        if (!user) return [];
+        const hasPermission = (requiredPermission) => {
+            if (!requiredPermission) return true;
+            return user.permissions && user.permissions.includes(requiredPermission);
+        };
+        const filterItems = (items) => {
+            return items.reduce((acc, item) => {
+                const canViewItem = hasPermission(item.permission);
+                if (!canViewItem) return acc;
+                if (item.submenu) {
+                    const visibleChildren = filterItems(item.submenu);
+                    if (visibleChildren.length === 0) return acc; 
+                    acc.push({ ...item, submenu: visibleChildren });
+                } else {
+                    acc.push(item);
+                }
+                return acc;
+            }, []);
+        };
+        return filterItems(MENU_ITEMS);
+    }, [user]);
+
     return (
-        // FIX: Cambiado h-screen a h-full para que respete al Layout padre
         <div className="relative h-full hidden md:flex z-50 flex-col">
-            {/* Botón flotante para colapsar */}
-            <button
+            
+            <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 className={`
                     absolute top-9 -right-3 
                     bg-white text-gray-400 hover:text-pink-500
                     p-1 rounded-full border border-gray-100 shadow-md 
-                    transition-transform duration-300 z-50
-                    hover:scale-110
+                    z-50
                 `}>
                 {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-            </button>
+            </motion.button>
 
-            {/* Aside Principal */}
-            <aside className={`
-                h-full bg-white border-r border-gray-100
-                transition-all duration-300 ease-in-out 
-                ${isCollapsed ? 'w-20' : 'w-72'} 
-                flex flex-col relative
-            `}>
-                {/* Header Logo */}
-                <header className={`flex items-center justify-center h-24 flex-shrink-0 ${isCollapsed ? 'px-2' : 'px-6'}`}>
+            <motion.aside 
+                initial={false}
+                animate={isCollapsed ? "collapsed" : "expanded"}
+                variants={sidebarVariants}
+                transition={{ type: "spring", stiffness: 300, damping: 30, mass: 0.8 }}
+                className="h-full bg-white border-r border-gray-100 flex flex-col relative"
+            >
+                {/* --- HEADER CON DROP SHADOW --- */}
+                <header className={`flex items-center justify-center h-24 flex-shrink-0 ${isCollapsed ? 'px-2' : 'px-6'} relative z-10`}>
                     {logoUrl ? (
-                        <img
+                        <motion.img
+                            layout
                             src={logoUrl}
                             alt="Logo"
-                            className={`object-contain transition-all duration-300 ${isCollapsed ? 'w-10 h-10' : 'h-14 w-auto'}`}
+                            // AQUI ESTÁ EL CAMBIO: 'drop-shadow-xl' para que la imagen resalte sobre el fondo
+                            className={`object-contain drop-shadow-xl transition-all duration-300 ${isCollapsed ? 'w-10 h-10' : 'h-14 w-auto'}`}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.5 }}
                         />
                     ) : (
-                        // Fallback Icono Marketplace/Store
-                        <div className={`bg-pink-500 rounded-xl flex items-center justify-center text-white transition-all duration-300 ${isCollapsed ? 'w-10 h-10' : 'w-12 h-12'}`}>
+                        <motion.div 
+                            layout
+                            // Fallback también con shadow fuerte
+                            className={`bg-pink-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-pink-200 ${isCollapsed ? 'w-10 h-10' : 'w-12 h-12'}`}
+                            whileHover={{ scale: 1.05 }}
+                        >
                             <Store size={isCollapsed ? 20 : 24} />
-                        </div>
+                        </motion.div>
                     )}
                 </header>
 
-                {/* Navegación Scrollable */}
-                <nav className={`flex-grow px-3 py-4 space-y-1 ${isCollapsed ? 'overflow-visible' : 'overflow-y-auto custom-scrollbar'}`}>
-
-                    {/* SECCIÓN VENTAS */}
-                    <p className={`text-xs font-bold text-gray-400 uppercase mb-2 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>
-                        Ventas
-                    </p>
-
-                    <MenuItem to="/" text="Dashboard" icon={LayoutDashboard} isCollapsed={isCollapsed} active={isActive('/')} />
-                    <PermissionGate permission={PERMISSIONS.SALES.CREATE}>
-                        <MenuItem to="/pos" text="Punto de Venta" icon={Store} isCollapsed={isCollapsed} active={isActive('/pos')} />
-                    </PermissionGate>
-                    <PermissionGate permission={PERMISSIONS.SALES.VIEW}>
-                        <MenuItem to="/sales-history" text="Historial Ventas" icon={History} isCollapsed={isCollapsed} active={isActive('/sales-history')} />
-                    </PermissionGate>
-                    <div className="my-4 border-t border-gray-100"></div>
-
-                    {/* SECCIÓN GESTIÓN */}
-                    <p className={`text-xs font-bold text-gray-400 uppercase mb-2 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>
-                        Gestión
-                    </p>
-
-                    <PermissionGate permission={PERMISSIONS.PRODUCTS.VIEW}>
-                        <MenuItem to="/inventory" text="Inventario" icon={Package} isCollapsed={isCollapsed} active={isActive('/inventory')} />
-                        <MenuItem to="/categories" text="Categorías" icon={Tags} isCollapsed={isCollapsed} active={isActive('/categories')} />
-                    </PermissionGate>
-                    <PermissionGate permission={PERMISSIONS.CLIENTS.VIEW}>
-                        <MenuItem to="/customers" text="Clientes" icon={UserRound} isCollapsed={isCollapsed} active={isActive('/customers')} />
-                    </PermissionGate>
-                    <PermissionGate permission={PERMISSIONS.USERS.VIEW}>
-                        <MenuItem to="/users" text="Usuarios" icon={Users} isCollapsed={isCollapsed} active={isActive('/users')} />
-                    </PermissionGate>
-
-
-                    <MenuItem to="/business" text="Negocio" icon={Building} isCollapsed={isCollapsed} active={isActive('/business')} />
+                {/* Nav */}
+                <nav className={`flex-grow py-4 space-y-1 ${isCollapsed ? 'overflow-visible' : 'overflow-y-auto custom-scrollbar overflow-x-hidden'}`}>
+                    {filteredMenu.map((item, index) => {
+                        if (item.submenu) {
+                            return <SidebarSubmenu key={index} item={item} isCollapsed={isCollapsed} />;
+                        }
+                        return <SidebarItem key={index} item={item} isCollapsed={isCollapsed} />;
+                    })}
                 </nav>
 
-                {/* Footer del Usuario */}
+                {/* Footer */}
                 <div className="p-3 border-t border-gray-100 bg-gray-50/50 mt-auto">
-                    {/* Botón Trigger del Menú */}
                     <div className={`
                         relative flex items-center p-2 rounded-xl cursor-pointer transition-colors hover:bg-white hover:shadow-sm
                         ${isCollapsed ? 'justify-center' : ''}
                     `}
                         onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                     >
-                        {/* LÓGICA DE AVATAR: FOTO vs INICIALES */}
                         {user?.photo ? (
                             <img
                                 src={user.photo}
@@ -181,50 +136,64 @@ function Sidebar({ logoUrl }) {
                             </div>
                         )}
 
-                        <div className={`ml-3 overflow-hidden transition-all duration-300 ${isCollapsed ? 'hidden' : 'block'}`}>
-                            <p className="text-sm font-bold text-gray-700 truncate max-w-[140px]">{displayName}</p>
-                            <p className="text-xs text-gray-500 truncate capitalize">{userRole}</p>
-                        </div>
+                        {!isCollapsed && (
+                             <motion.div 
+                                initial={{ opacity: 0 }} 
+                                animate={{ opacity: 1 }} 
+                                exit={{ opacity: 0 }}
+                                className="ml-3 overflow-hidden whitespace-nowrap"
+                             >
+                                <p className="text-sm font-bold text-gray-700 truncate max-w-[140px]">{displayName}</p>
+                                <p className="text-xs text-gray-500 truncate capitalize">{userRole}</p>
+                            </motion.div>
+                        )}
 
                         {!isCollapsed && (
                             <ChevronsUpDown size={16} className="ml-auto text-gray-400" />
                         )}
                     </div>
 
-                    {/* Menú Popup Flotante */}
-                    {isUserMenuOpen && (
-                        <div className={`
-                            absolute bottom-20 bg-white rounded-xl shadow-2xl border border-gray-100 p-1.5 w-64 z-[60]
-                            ${isCollapsed ? 'left-16' : 'left-4 right-4 w-auto'}
-                            origin-bottom-left animate-in fade-in slide-in-from-bottom-2 duration-200
-                        `}>
-                            <div className="px-3 py-3 border-b border-gray-100 mb-1 bg-gray-50 rounded-t-lg">
-                                <p className="text-sm font-bold text-gray-800">{displayName}</p>
-                                <p className="text-xs text-gray-500 truncate">{userEmail}</p>
-                            </div>
-
-                            <Link
-                                to="/profile"
-                                onClick={() => setIsUserMenuOpen(false)}
-                                className="flex items-center px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-pink-50 hover:text-pink-600 transition-colors"
+                    <AnimatePresence>
+                        {isUserMenuOpen && (
+                            <motion.div 
+                                variants={userMenuVariants}
+                                initial="hidden"
+                                animate="visible"
+                                exit="exit"
+                                className={`
+                                    absolute bottom-20 bg-white rounded-xl shadow-2xl border border-gray-100 p-1.5 w-64 z-[60]
+                                    ${isCollapsed ? 'left-16' : 'left-4 right-4 w-auto'}
+                                    origin-bottom-left
+                                `}
                             >
-                                <UserCircle size={16} className="mr-2" />
-                                Ver Perfil
-                            </Link>
+                                <div className="px-3 py-3 border-b border-gray-100 mb-1 bg-gray-50 rounded-t-lg">
+                                    <p className="text-sm font-bold text-gray-800">{displayName}</p>
+                                    <p className="text-xs text-gray-500 truncate">{userEmail}</p>
+                                </div>
 
-                            <button
-                                onClick={handleLogout}
-                                className="w-full flex items-center px-3 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors mt-1"
-                            >
-                                <LogOut size={16} className="mr-2" />
-                                Cerrar Sesión
-                            </button>
-                        </div>
-                    )}
+                                <Link
+                                    to="/profile"
+                                    onClick={() => setIsUserMenuOpen(false)}
+                                    className="flex items-center px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-pink-50 hover:text-pink-600 transition-colors"
+                                >
+                                    <UserCircle size={16} className="mr-2" />
+                                    Ver Perfil
+                                </Link>
+
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full flex items-center px-3 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors mt-1"
+                                >
+                                    <LogOut size={16} className="mr-2" />
+                                    Cerrar Sesión
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
-            </aside>
+            </motion.aside>
         </div>
     );
-}
+};
 
 export default Sidebar;
