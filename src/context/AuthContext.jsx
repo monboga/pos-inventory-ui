@@ -76,10 +76,18 @@ export function AuthProvider({ children }) {
     };
 
     const login = async (credentials) => {
-        // 1. Obtener Token
-        await authLogin(credentials);
-        // 2. Obtener Perfil inmediatamente
-        await refreshUser();
+        setLoading(true);
+        try {
+            // 2. Proceso de Login
+            await authLogin(credentials);
+            await refreshUser();
+        } catch (error) {
+            console.error(error);
+            throw error; // Re-lanzamos para que el Formulario muestre el error
+        } finally {
+            // 3. Desactivamos Loading (Aquí ocurrirá la transición de salida)
+            setLoading(false);
+        }
     };
 
     const updateUser = (newData) => {
