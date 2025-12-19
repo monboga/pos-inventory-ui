@@ -8,8 +8,9 @@ import WelcomeBanner from '../components/dashboard/WelcomeBanner';
 import SummaryCard from '../components/common/SummaryCard';
 import DynamicTable from '../components/common/DynamicTable';
 
-import { TrendingUp, ShoppingBag, DollarSign, AlertTriangle, PackageX } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { TrendingUp, ShoppingBag, DollarSign, PackageX } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { motion } from 'framer-motion'; // <--- IMPORTANTE
 
 function DashboardPage() {
     const { user } = useAuth();
@@ -19,11 +20,34 @@ function DashboardPage() {
     const [salesChartData, setSalesChartData] = useState([]);
     const [lowStockProducts, setLowStockProducts] = useState([]);
 
-    // Fecha Header
     const currentDate = new Date().toLocaleDateString('es-MX', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
     const formattedDate = currentDate.charAt(0).toUpperCase() + currentDate.slice(1);
+
+    // --- CONFIGURACIÓN DE ANIMACIONES ---
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1 // Efecto cascada: cada hijo aparece 0.1s después del anterior
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { y: 20, opacity: 0 },
+        visible: {
+            y: 0,
+            opacity: 1,
+            transition: {
+                type: "spring", // Tipo rebote
+                stiffness: 100, // Rigidez del resorte
+                damping: 15     // Amortiguación
+            }
+        }
+    };
 
     useEffect(() => {
         const loadDashboardData = async () => {
@@ -46,6 +70,7 @@ function DashboardPage() {
         loadDashboardData();
     }, []);
 
+    // ... (Mantén las funciones processSalesData, processStockData y columns IGUAL que en tu código original) ...
     const processSalesData = (sales) => {
         const now = new Date();
         const todayStr = now.toLocaleDateString();
@@ -61,45 +86,30 @@ function DashboardPage() {
 
         setKpis({ todaySales: todayTotal, monthSales: monthTotal, totalOrders: sales.length });
 
-        // Gráfica
         const last7Days = [];
         for (let i = 6; i >= 0; i--) {
             const d = new Date();
             d.setDate(d.getDate() - i);
             const dateLabel = d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' });
-
             const daySales = sales
                 .filter(s => new Date(s.registrationDate).toLocaleDateString() === d.toLocaleDateString())
                 .reduce((acc, curr) => acc + curr.total, 0);
-
             last7Days.push({ name: dateLabel, ventas: daySales });
         }
         setSalesChartData(last7Days);
     };
 
-    // --- FIX LÓGICA STOCK ---
     const processStockData = (products) => {
-        console.log("Total productos analizados:", products.length);
-
         const lowStock = products.filter(p => {
-            // Leemos la propiedad (soporta mayúscula/minúscula)
             const rawStock = p.stock !== undefined ? p.stock : p.Stock;
-
-            // Convertimos a número. Si es null/undefined se vuelve 0.
             const qty = Number(rawStock);
-
-            // Validamos: Es número válido Y es menor o igual a 5
             return !isNaN(qty) && qty <= 5;
         });
-
-        // Ordenar: Primero los Agotados (0)
         const sortedLowStock = lowStock.sort((a, b) => {
             const stockA = Number(a.stock ?? a.Stock ?? 0);
             const stockB = Number(b.stock ?? b.Stock ?? 0);
             return stockA - stockB;
         });
-
-        console.log("Productos con alerta:", sortedLowStock);
         setLowStockProducts(sortedLowStock);
     };
 
@@ -141,31 +151,49 @@ function DashboardPage() {
         }
     ], []);
 
-    if (loading) return <div className="p-8 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div></div>;
+    // Spinner de carga (puedes usar tu CartLoader aquí si quieres)
+    if (loading) return <div className="p-8 flex justify-center h-full items-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div></div>;
 
     return (
-        <div className="p-6 md:p-8 max-w-7xl mx-auto h-full flex flex-col">
+        // motion.div envuelve todo el contenido
+        <motion.div 
+            className="p-6 md:p-8 max-w-7xl mx-auto h-full flex flex-col"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+        >
 
             {/* Header con Fecha */}
-            <PageHeader title="Dashboard">
-                <div className="text-right hidden sm:block">
-                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Hoy es</p>
-                    <p className="text-sm font-bold text-gray-700 capitalize">{formattedDate}</p>
-                </div>
-            </PageHeader>
+            <motion.div variants={itemVariants}>
+                <PageHeader title="Dashboard">
+                    <div className="text-right hidden sm:block">
+                        <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Hoy es</p>
+                        <p className="text-sm font-bold text-gray-700 capitalize">{formattedDate}</p>
+                    </div>
+                </PageHeader>
+            </motion.div>
 
-            <WelcomeBanner userName={user?.name?.split(' ')[0] || 'Admin'} />
+            {/* Banner */}
+            <motion.div variants={itemVariants}>
+                <WelcomeBanner userName={user?.name?.split(' ')[0] || 'Admin'} />
+            </motion.div>
 
             {/* KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <motion.div 
+                className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+                variants={itemVariants}
+            >
                 <SummaryCard title="Ventas de Hoy" value={`$${kpis.todaySales.toFixed(2)}`} subtitle={new Date().toLocaleDateString()} icon={DollarSign} colorClass="bg-green-100 text-green-600" />
                 <SummaryCard title="Ventas del Mes" value={`$${kpis.monthSales.toFixed(2)}`} subtitle="Acumulado mensual" icon={TrendingUp} colorClass="bg-pink-100 text-pink-600" />
                 <SummaryCard title="Total Pedidos" value={kpis.totalOrders} subtitle="Histórico total" icon={ShoppingBag} colorClass="bg-blue-100 text-blue-600" />
-            </div>
+            </motion.div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Gráfica */}
-                <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <motion.div 
+                    className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
+                    variants={itemVariants}
+                >
                     <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
                         <TrendingUp size={20} className="text-pink-500" />
                         Comportamiento de Ventas (7 días)
@@ -177,16 +205,18 @@ function DashboardPage() {
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} dy={10} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} tickFormatter={(val) => `$${val}`} />
                                 <Tooltip cursor={{ fill: '#FCE7F3' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-                                <Bar dataKey="ventas" name="Ventas ($)" fill="#EC4899" radius={[4, 4, 0, 0]} barSize={40} />
+                                <Bar dataKey="ventas" name="Ventas ($)" fill="#EC4899" radius={[4, 4, 0, 0]} barSize={40} animationDuration={1500} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Tabla de Alertas */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col h-fit lg:self-start">
+                <motion.div 
+                    className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col h-fit lg:self-start"
+                    variants={itemVariants}
+                >
                     <div className="flex items-center justify-between mb-6">
-
                         <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
                             <PackageX className="text-red-500" size={24} />
                             Productos sin Stock
@@ -219,9 +249,9 @@ function DashboardPage() {
                             </div>
                         )}
                     </div>
-                </div>
+                </motion.div>
             </div>
-        </div>
+        </motion.div>
     );
 }
 
