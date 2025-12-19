@@ -1,20 +1,12 @@
-import { apiFetch } from "./api";
+import api from '../api/axiosConfig';
 
-const BASE_URL = 'https://localhost:7031/api';
+const BASE_ENDPOINT = '/api'; // Prefijo común
 
-const getHeaders = () => ({
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${getToken()}`
-});
-
+// Helper interno para no repetir try/catch
 const fetchCatalog = async (endpoint) => {
     try {
-        const response = await apiFetch(`${BASE_URL}/${endpoint}`);
-        if (!response.ok) {
-            console.warn(`Falló la carga de: ${endpoint}`);
-            return [];
-        }
-        return await response.json();
+        const response = await api.get(`${BASE_ENDPOINT}/${endpoint}`);
+        return response.data;
     } catch (error) {
         console.error(`Error fetching ${endpoint}:`, error);
         return [];
@@ -22,20 +14,10 @@ const fetchCatalog = async (endpoint) => {
 };
 
 export const satService = {
-    // 1. Catálogo Impuestos (Endpoint según tu Swagger)
     getImpuestos: () => fetchCatalog('CatalogoImpuestos'),
-
-    // 2. Objeto Impuesto
     getObjetosImpuesto: () => fetchCatalog('CatalogoObjetoImpuestos'),
-
-    // 3. Claves Prod/Serv
     getClavesProdServ: () => fetchCatalog('ClavesProductoServicio'),
-
-    // 4. Medidas Locales
     getMedidasLocales: () => fetchCatalog('MedidasLocales'),
-
-    // 5. Medidas SAT
     getMedidasSat: () => fetchCatalog('MedidasSat'),
-
     getRegimenesFiscales: () => fetchCatalog('RegimenesFiscales')
 };
