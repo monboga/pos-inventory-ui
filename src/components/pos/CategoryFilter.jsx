@@ -2,58 +2,63 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Layers, Tag } from 'lucide-react';
 
-// Variantes para la animación de entrada (Cascada)
+// CONFIGURACIÓN DE ANIMACIÓN OPTIMIZADA
+// Usamos tiempos muy cortos para que no se sienta "trabado"
 const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
         transition: {
-            staggerChildren: 0.08 // Retraso entre cada píldora
+            staggerChildren: 0.03, // Muy rápido (30ms entre items)
+            delayChildren: 0.1
         }
     }
 };
 
-// Variantes para cada botón (Rebote)
 const itemVariants = {
-    hidden: { y: -20, opacity: 0, scale: 0.5 },
+    hidden: { y: 15, opacity: 0, scale: 0.9 },
     visible: {
         y: 0,
         opacity: 1,
         scale: 1,
-        transition: { type: "spring", stiffness: 300, damping: 20 }
+        transition: { 
+            type: "spring", 
+            stiffness: 400, // Alto = Rápido
+            damping: 25,    // Alto = Sin rebote excesivo (frena rápido)
+            mass: 0.5 
+        }
     }
 };
 
 const CategoryFilter = ({ categories, activeCategory, onSelectCategory }) => {
     return (
         <div className="w-full py-2">
-            {/* Título pequeño opcional o simplemente el scroll */}
-            {/* Contenedor Scrollable */}
             <motion.div 
-                className="flex items-center gap-3 overflow-x-auto pb-4 pt-2 px-1 custom-scrollbar -mx-1"
+                className="flex items-center gap-2 overflow-x-auto pb-4 pt-2 px-1 custom-scrollbar -mx-1"
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
             >
                 {/* Opción "Todos" */}
                 <CategoryPill 
+                    id="Todos"
                     label="Todos" 
                     isActive={activeCategory === 'Todos'} 
                     onClick={() => onSelectCategory('Todos')}
                     icon={Layers}
                 />
 
-                {/* Divisor visual sutil */}
-                <motion.div variants={itemVariants} className="w-px h-6 bg-gray-200 mx-1 flex-shrink-0" />
+                {/* Divisor */}
+                <div className="w-px h-5 bg-gray-200 mx-1 flex-shrink-0" />
 
                 {/* Categorías Dinámicas */}
                 {categories.map((cat) => (
                     <CategoryPill 
                         key={cat.id || cat.Id}
+                        id={String(cat.id || cat.Id)}
                         label={cat.description || cat.Description}
                         isActive={activeCategory === String(cat.id || cat.Id)}
                         onClick={() => onSelectCategory(String(cat.id || cat.Id))}
-                        // Si quieres iconos por categoría, podrías mapearlos aquí, por defecto usamos Tag
                         icon={Tag} 
                     />
                 ))}
@@ -62,39 +67,35 @@ const CategoryFilter = ({ categories, activeCategory, onSelectCategory }) => {
     );
 };
 
-// Sub-componente para cada Botón (Píldora)
-const CategoryPill = ({ label, isActive, onClick, icon: Icon }) => {
+// --- SUB-COMPONENTE PILL OPTIMIZADO ---
+const CategoryPill = ({ id, label, isActive, onClick, icon: Icon }) => {
     return (
         <motion.button
             variants={itemVariants}
             onClick={onClick}
-            whileHover={{ scale: 1.05, y: -2 }}
+            // Eliminamos hover complex para evitar lag, solo escala sutil
+            whileHover={{ scale: 1.02 }} 
             whileTap={{ scale: 0.95 }}
             className={`
-                group relative flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold whitespace-nowrap transition-all outline-none
-                ${isActive 
-                    ? 'bg-pink-500 text-white shadow-lg shadow-pink-200 ring-2 ring-pink-100 ring-offset-1' 
-                    : 'bg-white text-gray-500 border border-gray-100 hover:border-pink-200 hover:text-pink-500 shadow-sm hover:shadow-md'
-                }
+                relative flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold whitespace-nowrap transition-colors outline-none z-0
+                ${isActive ? 'text-white' : 'text-gray-500 hover:text-gray-700'}
             `}
         >
-            {/* Icono con transición de color */}
-            {Icon && (
-                <Icon 
-                    size={16} 
-                    className={`transition-colors ${isActive ? "text-pink-100" : "text-gray-400 group-hover:text-pink-400"}`} 
-                />
-            )}
-            
-            <span>{label}</span>
-
-            {/* Indicador de activo (puntito) opcional */}
+            {/* FONDO ANIMADO FLOTANTE (Magic Motion) */}
+            {/* Esto crea el efecto de que el fondo se desliza de un botón a otro */}
             {isActive && (
-                <motion.div 
-                    layoutId="activeDot"
-                    className="absolute -bottom-1 left-1/2 w-1 h-1 bg-pink-500 rounded-full"
+                <motion.div
+                    layoutId="activeCategoryBackground" // ID único compartido
+                    className="absolute inset-0 bg-pink-500 rounded-2xl shadow-md shadow-pink-200 -z-10"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 />
             )}
+
+            {/* Contenido (debe estar por encima del fondo) */}
+            <span className="relative z-10 flex items-center gap-2">
+                {Icon && <Icon size={16} className={isActive ? "text-white" : "text-gray-400"} />}
+                {label}
+            </span>
         </motion.button>
     );
 };
