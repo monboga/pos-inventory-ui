@@ -5,7 +5,7 @@ export const getFriendlyErrorMessage = (error) => {
 
     // 1. Error de conexión (Backend caído o sin internet)
     if (message.includes("Failed to fetch") || message.includes("Network Error")) {
-        return "No se pudo conectar con el servidor. Verifica que el Backend esté encendido.";
+        return "No se pudo conectar con el servidor. Verifica que el servidor esté encendido.";
     }
 
     // 2. Errores comunes de Auth
