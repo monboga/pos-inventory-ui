@@ -57,7 +57,7 @@ export const MENU_ITEMS = [
             },
             {
                 title: "Clientes",
-                path: "/clients",
+                path: "/customers",
                 icon: Users,
                 permission: PERMISSIONS.CLIENTS.VIEW
             }
@@ -70,7 +70,7 @@ export const MENU_ITEMS = [
         submenu: [
             {
                 title: "Productos",
-                path: "/products",
+                path: "/inventory",
                 icon: Package,
                 permission: PERMISSIONS.PRODUCTS.VIEW
             },
