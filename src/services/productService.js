@@ -11,17 +11,19 @@ export const productService = {
     create: async (productData) => {
         const formData = new FormData();
 
-        // Campos principales
-        formData.append('Barcode', productData.barcode || ''); // Enviar vacío si no hay
+        formData.append('Barcode', productData.barcode || '');
         formData.append('Description', productData.description);
         formData.append('Brand', productData.brand || '');
         formData.append('Stock', productData.stock);
         formData.append('Price', productData.price);
-        formData.append('Discount', productData.discount || 0);
         formData.append('CategoryId', productData.categoryId);
         formData.append('IsActive', true);
 
-        // Campos SAT (Facturación)
+        // FIX: Agregar DiscountId
+        // Nota: Para FormData y .NET, enviamos cadena vacía si es null
+        formData.append('DiscountId', productData.discountId || '');
+
+        // Campos SAT
         formData.append('CatalogoImpuestoId', productData.catalogoImpuestoId);
         formData.append('CatalogoObjetoImpuestoId', productData.catalogoObjetoImpuestoId);
         formData.append('ClaveProductoServicioId', productData.claveProductoServicioId);
@@ -33,7 +35,6 @@ export const productService = {
         }
 
         try {
-            // --- FIX: HEADER MULTIPART ---
             const response = await api.post(BASE_ENDPOINT, formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
@@ -53,9 +54,11 @@ export const productService = {
         formData.append('Brand', productData.brand || '');
         formData.append('Stock', productData.stock);
         formData.append('Price', productData.price);
-        formData.append('Discount', productData.discount || 0);
         formData.append('CategoryId', productData.categoryId);
         formData.append('IsActive', productData.isActive);
+
+        // FIX: Agregar DiscountId en Update también
+        formData.append('DiscountId', productData.discountId || '');
 
         // SAT
         formData.append('CatalogoImpuestoId', productData.catalogoImpuestoId);
@@ -69,7 +72,6 @@ export const productService = {
         }
 
         try {
-            // --- FIX: HEADER MULTIPART ---
             const response = await api.put(`${BASE_ENDPOINT}/${id}`, formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
