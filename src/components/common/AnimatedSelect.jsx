@@ -1,86 +1,108 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom'; // <--- CLAVE PARA FLOTAR SOBRE EL MODAL
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Check } from 'lucide-react';
 
 const dropdownVariants = {
-    hidden: { 
-        opacity: 0, 
-        y: -10, 
-        scaleY: 0.95, 
-        transformOrigin: "top" 
+    hidden: {
+        opacity: 0,
+        y: -10,
+        scaleY: 0.95,
+        transformOrigin: "top"
     },
-    visible: { 
-        opacity: 1, 
-        y: 0, 
+    visible: {
+        opacity: 1,
+        y: 0,
         scaleY: 1,
-        transition: { 
-            type: "spring", 
-            stiffness: 400, 
-            damping: 30 
+        transition: {
+            type: "spring",
+            stiffness: 400,
+            damping: 30
         }
     },
-    exit: { 
-        opacity: 0, 
-        y: -10, 
-        scaleY: 0.95, 
-        transition: { duration: 0.15 } 
+    exit: {
+        opacity: 0,
+        y: -10,
+        scaleY: 0.95,
+        transition: { duration: 0.15 }
     }
 };
 
-const AnimatedSelect = ({ 
-    label, 
-    options = [], 
-    value, 
-    onChange, 
-    icon: Icon, 
-    placeholder = "Seleccionar...", 
-    disabled = false 
+const AnimatedSelect = ({
+    label,
+    options = [],
+    value,
+    onChange,
+    icon: Icon,
+    placeholder = "Seleccionar...",
+    disabled = false
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
+
+    // Refs independientes para el botón (trigger) y la lista (dropdown)
     const containerRef = useRef(null);
+    const dropdownRef = useRef(null);
 
-    const selectedOption = options.find(opt => (opt.id || opt.Id) == value);
+    // Encontrar la opción seleccionada (manejo robusto de ID vs Id)
+    const selectedOption = options.find(opt => {
+        const optId = opt.id !== undefined ? opt.id : opt.Id;
+        return String(optId) === String(value); // Comparación como string para seguridad
+    });
 
-    // Calcular posición exacta en la pantalla al abrir
     const updateCoords = () => {
         if (containerRef.current) {
             const rect = containerRef.current.getBoundingClientRect();
             setCoords({
-                top: rect.bottom + window.scrollY + 4, // 4px de gap
+                top: rect.bottom + window.scrollY + 4,
                 left: rect.left + window.scrollX,
                 width: rect.width
             });
         }
     };
 
-    // Actualizar coordenadas al abrir
+    // --- FIX SCROLL & RESIZE ---
     useEffect(() => {
+        const handleScroll = (e) => {
+            // FIX: Si el evento de scroll viene de dentro del dropdown, NO cerrar
+            if (dropdownRef.current && dropdownRef.current.contains(e.target)) {
+                return;
+            }
+            // Si el scroll es de la ventana o contenedor padre, cerrar para que no se desacople
+            if (isOpen) setIsOpen(false);
+        };
+
+        const handleResize = () => setIsOpen(false);
+
         if (isOpen) {
             updateCoords();
-            // Cierra el menú si el usuario hace scroll en la ventana o cambia el tamaño
-            // Esto evita que el menú flotante se quede "despegado" del input
-            window.addEventListener("scroll", () => setIsOpen(false), true); 
-            window.addEventListener("resize", () => setIsOpen(false));
+            // 'true' en useCapture para detectar scroll en cualquier elemento padre
+            window.addEventListener("scroll", handleScroll, true);
+            window.addEventListener("resize", handleResize);
         }
+
         return () => {
-            window.removeEventListener("scroll", () => setIsOpen(false), true);
-            window.removeEventListener("resize", () => setIsOpen(false));
+            window.removeEventListener("scroll", handleScroll, true);
+            window.removeEventListener("resize", handleResize);
         };
     }, [isOpen]);
 
-    // Cerrar clic fuera
+    // --- FIX CLIC FUERA (Manejo de Portal) ---
     useEffect(() => {
         const handleClickOutside = (event) => {
-            // Nota: Al usar Portal, el menú ya no está "dentro" del containerRef en el DOM,
-            // pero lógica de React suele propagar eventos. Para seguridad, verificamos ambos.
-            if (containerRef.current && !containerRef.current.contains(event.target)) {
-                // Verificación simple: si el clic no fue en el botón, cerramos.
-                // (El clic dentro del menú se maneja en handleSelect)
-                setIsOpen(false);
+            // Si el clic fue en el botón TRIGGER, no hacer nada (ya lo maneja su onClick)
+            if (containerRef.current && containerRef.current.contains(event.target)) {
+                return;
             }
+            // Si el clic fue DENTRO del menú flotante, no cerrar (lo maneja handleSelect)
+            if (dropdownRef.current && dropdownRef.current.contains(event.target)) {
+                return;
+            }
+
+            // Si fue afuera de ambos, cerrar
+            setIsOpen(false);
         };
+
         if (isOpen) document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [isOpen]);
@@ -92,14 +114,14 @@ const AnimatedSelect = ({
 
     return (
         <div className="w-full relative" ref={containerRef}>
-            {label && <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>}
-            
+            {label && <label className="block text-sm font-medium text-gray-700 mb-1.5 truncate">{label}</label>}
+
             {/* BOTÓN TRIGGER */}
             <button
                 type="button"
                 onClick={() => {
                     if (!disabled) {
-                        updateCoords(); // Recalcular antes de abrir por si acaso
+                        updateCoords();
                         setIsOpen(!isOpen);
                     }
                 }}
@@ -108,87 +130,97 @@ const AnimatedSelect = ({
                     w-full relative flex items-center justify-between
                     pl-10 pr-4 py-2.5 border rounded-xl text-left bg-white
                     transition-all duration-200 outline-none
-                    ${isOpen 
-                        ? 'border-pink-500 ring-2 ring-pink-500/10' // Ring más sutil
+                    ${isOpen
+                        ? 'border-pink-500 ring-2 ring-pink-500/10'
                         : 'border-gray-200 hover:border-gray-300'
                     }
                     ${disabled ? 'bg-gray-50 cursor-not-allowed opacity-70' : 'cursor-pointer'}
                 `}
             >
                 {Icon && (
-                    <Icon 
-                        className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${isOpen ? 'text-pink-500' : 'text-gray-400'}`} 
-                        size={18} 
+                    <Icon
+                        className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${isOpen ? 'text-pink-500' : 'text-gray-400'}`}
+                        size={18}
                     />
                 )}
 
-                <span className={`block truncate text-sm ${!selectedOption ? 'text-gray-400' : 'text-gray-700 font-medium'}`}>
+                {/* FIX TEXTO LARGO: 'truncate' y 'max-w' para evitar desbordes */}
+                <span className={`block truncate mr-2 ${!selectedOption ? 'text-gray-400' : 'text-gray-700 font-medium'}`}>
                     {selectedOption ? (selectedOption.name || selectedOption.Name) : placeholder}
                 </span>
 
-                <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                <span className="pointer-events-none flex items-center">
                     <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.3 }}>
                         <ChevronDown className={`h-4 w-4 ${isOpen ? 'text-pink-500' : 'text-gray-400'}`} />
                     </motion.div>
                 </span>
             </button>
 
-            {/* PORTAL: Renderiza el menú fuera del DOM actual (en el body) */}
+            {/* PORTAL */}
             {createPortal(
                 <AnimatePresence>
                     {isOpen && (
-                        <motion.ul
+                        <motion.div
+                            key="dropdown"
                             variants={dropdownVariants}
                             initial="hidden"
                             animate="visible"
                             exit="exit"
                             style={{
-                                position: 'fixed', // Posición fija en pantalla
+                                position: 'fixed',
                                 top: coords.top,
                                 left: coords.left,
                                 width: coords.width,
-                                zIndex: 9999 // Z-Index muy alto para ganar al Modal (que suele ser 50)
+                                zIndex: 9999
                             }}
-                            className="
-                                bg-white shadow-2xl rounded-xl py-1 text-base 
-                                border border-gray-100 max-h-60 overflow-auto focus:outline-none custom-scrollbar
-                            "
                         >
-                            {options.length === 0 ? (
-                                <li className="text-gray-400 select-none relative py-3 pl-3 pr-9 text-sm text-center">
-                                    No hay opciones disponibles
-                                </li>
-                            ) : (
-                                options.map((option) => {
-                                    const isSelected = (option.id || option.Id) == value;
-                                    return (
-                                        <li
-                                            key={option.id || option.Id}
-                                            onClick={(e) => {
-                                                e.stopPropagation(); // Evitar cerrar inmediatamente por evento externo
-                                                handleSelect(option.id || option.Id);
-                                            }}
-                                            className={`
-                                                cursor-pointer select-none relative py-2.5 pl-10 pr-4 transition-colors text-sm
-                                                ${isSelected ? 'bg-pink-50 text-pink-700 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}
-                                            `}
-                                        >
-                                            {isSelected && (
-                                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-pink-500">
-                                                    <Check className="h-4 w-4" />
+                            <ul
+                                ref={dropdownRef} // FIX: Referencia al UL para detectar clics/scroll dentro
+                                className="
+                                    bg-white shadow-2xl rounded-xl py-1 text-base 
+                                    border border-gray-100 max-h-60 overflow-auto focus:outline-none custom-scrollbar
+                                "
+                            >
+                                {options.length === 0 ? (
+                                    <li className="text-gray-400 select-none relative py-3 pl-3 pr-9 text-sm text-center">
+                                        No hay opciones disponibles
+                                    </li>
+                                ) : (
+                                    options.map((option) => {
+                                        const optId = option.id !== undefined ? option.id : option.Id;
+                                        const isSelected = String(optId) === String(value);
+
+                                        return (
+                                            <li
+                                                key={optId}
+                                                // FIX: Usamos onMouseDown para asegurar que se dispare antes del blur/click-outside
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault(); // Evita que el botón pierda foco
+                                                    handleSelect(optId);
+                                                }}
+                                                className={`
+                                                    cursor-pointer select-none relative py-2.5 pl-10 pr-4 transition-colors text-sm
+                                                    ${isSelected ? 'bg-pink-50 text-pink-700 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}
+                                                `}
+                                            >
+                                                {isSelected && (
+                                                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-pink-500">
+                                                        <Check className="h-4 w-4" />
+                                                    </span>
+                                                )}
+                                                {/* FIX TEXTO LARGO EN OPCIONES */}
+                                                <span className="block truncate">
+                                                    {option.name || option.Name}
                                                 </span>
-                                            )}
-                                            <span className="block truncate">
-                                                {option.name || option.Name}
-                                            </span>
-                                        </li>
-                                    );
-                                })
-                            )}
-                        </motion.ul>
+                                            </li>
+                                        );
+                                    })
+                                )}
+                            </ul>
+                        </motion.div>
                     )}
                 </AnimatePresence>,
-                document.body // Destino del Portal
+                document.body
             )}
         </div>
     );
