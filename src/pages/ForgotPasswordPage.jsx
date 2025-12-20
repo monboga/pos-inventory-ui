@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import { forgotPassword } from '../services/authService';
+import PageTransition from '../components/common/PageTransition'; // <--- IMPORTAR
 
 function ForgotPasswordPage() {
     const [email, setEmail] = useState('');
@@ -9,6 +10,7 @@ function ForgotPasswordPage() {
     const [msg, setMsg] = useState('');
 
     const handleSubmit = async (e) => {
+        // ... (tu lógica existente se queda igual) ...
         e.preventDefault();
         setStatus('loading');
         try {
@@ -22,16 +24,18 @@ function ForgotPasswordPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        // Envolvemos TODO el return en PageTransition
+        <PageTransition className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
             <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
                 {status === 'success' ? (
+                    // ... (tu código de éxito existente) ...
                     <div className="text-center">
                         <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                             <CheckCircle size={32} />
                         </div>
                         <h2 className="text-2xl font-bold text-gray-800 mb-2">Revisa tu correo</h2>
                         <p className="text-gray-500 mb-6">{msg}</p>
-                        <Link to="/reset-password" 
+                        <Link to="/reset-password"
                             className="block w-full py-3 bg-pink-500 text-white font-bold rounded-xl hover:bg-pink-600 transition-colors text-center">
                             Tengo el código (OTP)
                         </Link>
@@ -45,6 +49,7 @@ function ForgotPasswordPage() {
                         <p className="text-gray-500 mb-8 text-sm">No te preocupes. Ingresa tu correo y te ayudaremos.</p>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* ... (tus inputs y botones existentes) ... */}
                             <div>
                                 <label className="text-sm font-bold text-gray-700">Correo Electrónico</label>
                                 <div className="relative mt-2">
@@ -69,7 +74,7 @@ function ForgotPasswordPage() {
                     </>
                 )}
             </div>
-        </div>
+        </PageTransition>
     );
 }
 
