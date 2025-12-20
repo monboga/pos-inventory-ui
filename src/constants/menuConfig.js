@@ -1,15 +1,16 @@
 import { PERMISSIONS } from './permissions'; // Ajusta la ruta si es necesario
 // Importamos los iconos como objetos/funciones, NO como componentes
-import { 
-    LayoutDashboard, 
-    ShoppingCart, 
-    History, 
-    Store, 
-    Settings, 
-    Briefcase, 
-    Users, 
-    Package, 
-    Tags 
+import {
+    LayoutDashboard,
+    ShoppingCart,
+    History,
+    Store,
+    Settings,
+    Briefcase,
+    Users,
+    Package,
+    Tags,
+    Percent
 } from 'lucide-react';
 
 export const MENU_ITEMS = [
@@ -22,7 +23,7 @@ export const MENU_ITEMS = [
     {
         title: "Ventas",
         icon: ShoppingCart, // SOLO EL NOMBRE
-        permission: null, 
+        permission: null,
         submenu: [
             {
                 title: "Punto de Venta",
@@ -79,6 +80,11 @@ export const MENU_ITEMS = [
                 path: "/categories",
                 icon: Tags,
                 permission: PERMISSIONS.PRODUCTS.VIEW
+            },
+            {
+                title: 'Descuentos',
+                path: '/discounts',
+                icon: Percent
             }
         ]
     }
