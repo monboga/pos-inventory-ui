@@ -3,32 +3,31 @@ import { NavLink } from 'react-router-dom';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const SidebarSubmenu = ({ item, isCollapsed }) => {
-    const [isOpen, setIsOpen] = useState(false);
+const SidebarSubmenu = ({ item, isCollapsed, isOpen, onToggle }) => {
     const [isPopupOpen, setIsPopupOpen] = useState(false);
 
     const ParentIcon = item.icon;
 
     const listVariants = {
-        hidden: { 
+        hidden: {
             opacity: 0,
             height: 0,
             transition: { when: "afterChildren" }
         },
-        visible: { 
+        visible: {
             opacity: 1,
             height: "auto",
-            transition: { 
+            transition: {
                 duration: 0.3,
-                when: "beforeChildren", 
-                staggerChildren: 0.1 
+                when: "beforeChildren",
+                staggerChildren: 0.1
             }
         }
     };
 
     const itemVariants = {
         hidden: { x: -20, opacity: 0 },
-        visible: { 
+        visible: {
             x: 0, opacity: 1,
             transition: { type: "spring", stiffness: 300, damping: 24 }
         }
@@ -36,7 +35,7 @@ const SidebarSubmenu = ({ item, isCollapsed }) => {
 
     const popupVariants = {
         hidden: { opacity: 0, x: -10, scale: 0.95 },
-        visible: { 
+        visible: {
             opacity: 1, x: 0, scale: 1,
             transition: { type: "spring", stiffness: 300, damping: 20 }
         },
@@ -47,17 +46,17 @@ const SidebarSubmenu = ({ item, isCollapsed }) => {
         return item.submenu.map((subItem, index) => {
             const SubIcon = subItem.icon;
             return (
-                <motion.li 
-                    key={index} 
+                <motion.li
+                    key={index}
                     className="mb-1"
-                    variants={itemVariants} 
+                    variants={itemVariants}
                 >
-                    <NavLink 
+                    <NavLink
                         to={subItem.path}
-                        className={({ isActive }) => 
+                        className={({ isActive }) =>
                             `flex items-center gap-2 p-2 pl-3 text-sm transition-colors rounded-lg
-                            ${isActive 
-                                ? "text-pink-600 font-bold bg-pink-50" 
+                            ${isActive
+                                ? "text-pink-600 font-bold bg-pink-50"
                                 : "text-gray-500 hover:text-pink-500 hover:bg-pink-50/50"}`
                         }
                     >
@@ -72,7 +71,7 @@ const SidebarSubmenu = ({ item, isCollapsed }) => {
     // --- MODO COLAPSADO (POPUP) ---
     if (isCollapsed) {
         return (
-            <div 
+            <div
                 className="relative group px-3"
                 onMouseEnter={() => setIsPopupOpen(true)}
                 onMouseLeave={() => setIsPopupOpen(false)}
@@ -83,20 +82,20 @@ const SidebarSubmenu = ({ item, isCollapsed }) => {
 
                 <AnimatePresence>
                     {isPopupOpen && (
-                        <motion.div 
+                        <motion.div
                             initial="hidden"
                             animate="visible"
                             exit="exit"
                             variants={popupVariants}
                             // pl-3 crea el puente invisible para que no se cierre al mover el mouse
-                            className="absolute left-full top-0 pl-3 z-50 w-56" 
+                            className="absolute left-full top-0 pl-3 z-50 w-56"
                         >
                             <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden py-2">
                                 <div className="px-4 py-2 text-gray-400 text-xs font-bold uppercase tracking-wider border-b border-gray-50 mb-1">
                                     {item.title}
                                 </div>
                                 <ul className="px-2 py-1 space-y-1">
-                                    {renderSubItems()} 
+                                    {renderSubItems()}
                                 </ul>
                             </div>
                         </motion.div>
@@ -109,24 +108,22 @@ const SidebarSubmenu = ({ item, isCollapsed }) => {
     // --- MODO EXPANDIDO (ACORDEÓN) ---
     return (
         <div className="px-3">
-            <button 
-                onClick={() => setIsOpen(!isOpen)}
+            <button
+                onClick={onToggle} // <--- USAMOS LA FUNCIÓN DEL PADRE
                 className={`w-full flex items-center p-3 my-1.5 rounded-xl transition-all duration-200 
                 ${isOpen ? "bg-gray-50 text-gray-800" : "text-gray-500 hover:bg-pink-50 hover:text-pink-500"}`}
             >
                 {ParentIcon && <ParentIcon size={22} className="flex-shrink-0" />}
-                
-                {/* FIX: Texto controlado para no desbordar. Mismas clases de ocultamiento que SidebarItem */}
-                <motion.span 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+
+                <motion.span
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                     className="ml-3 font-medium text-sm flex-1 text-left whitespace-nowrap overflow-hidden"
                 >
                     {item.title}
                 </motion.span>
-                
+
                 <motion.div
-                    animate={{ rotate: isOpen ? 180 : 0 }}
+                    animate={{ rotate: isOpen ? 180 : 0 }} // 'isOpen' ahora viene de props
                     transition={{ type: "spring", stiffness: 200, damping: 20 }}
                 >
                     <ChevronDown size={16} />
@@ -135,7 +132,7 @@ const SidebarSubmenu = ({ item, isCollapsed }) => {
 
             <motion.ul
                 initial="hidden"
-                animate={isOpen ? "visible" : "hidden"}
+                animate={isOpen ? "visible" : "hidden"} // Controlado por props
                 variants={listVariants}
                 className="overflow-hidden pl-4 ml-4 border-l-2 border-gray-100 space-y-1 mt-1 mb-2"
             >
