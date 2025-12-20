@@ -10,7 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 const Sidebar = ({ logoUrl }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
-    
+
     const [isCollapsed, setIsCollapsed] = useState(() => {
         const savedState = localStorage.getItem('sidebar-collapsed');
         return savedState === 'true';
@@ -31,14 +31,14 @@ const Sidebar = ({ logoUrl }) => {
 
     const sidebarVariants = {
         expanded: { width: "18rem" },
-        collapsed: { width: "5rem" } 
+        collapsed: { width: "5rem" }
     };
 
     const userMenuVariants = {
         hidden: { opacity: 0, y: 20, scale: 0.8 },
-        visible: { 
+        visible: {
             opacity: 1, y: 0, scale: 1,
-            transition: { type: "spring", stiffness: 400, damping: 25 } 
+            transition: { type: "spring", stiffness: 400, damping: 25 }
         },
         exit: { opacity: 0, y: 10, scale: 0.9, transition: { duration: 0.15 } }
     };
@@ -55,7 +55,7 @@ const Sidebar = ({ logoUrl }) => {
                 if (!canViewItem) return acc;
                 if (item.submenu) {
                     const visibleChildren = filterItems(item.submenu);
-                    if (visibleChildren.length === 0) return acc; 
+                    if (visibleChildren.length === 0) return acc;
                     acc.push({ ...item, submenu: visibleChildren });
                 } else {
                     acc.push(item);
@@ -68,7 +68,7 @@ const Sidebar = ({ logoUrl }) => {
 
     return (
         <div className="relative h-full hidden md:flex z-50 flex-col">
-            
+
             <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
@@ -82,7 +82,7 @@ const Sidebar = ({ logoUrl }) => {
                 {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             </motion.button>
 
-            <motion.aside 
+            <motion.aside
                 initial={false}
                 animate={isCollapsed ? "collapsed" : "expanded"}
                 variants={sidebarVariants}
@@ -103,7 +103,7 @@ const Sidebar = ({ logoUrl }) => {
                             transition={{ duration: 0.5 }}
                         />
                     ) : (
-                        <motion.div 
+                        <motion.div
                             layout
                             // Fallback también con shadow fuerte
                             className={`bg-pink-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-pink-200 ${isCollapsed ? 'w-10 h-10' : 'w-12 h-12'}`}
@@ -145,12 +145,12 @@ const Sidebar = ({ logoUrl }) => {
                         )}
 
                         {!isCollapsed && (
-                             <motion.div 
-                                initial={{ opacity: 0 }} 
-                                animate={{ opacity: 1 }} 
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 className="ml-3 overflow-hidden whitespace-nowrap"
-                             >
+                            >
                                 <p className="text-sm font-bold text-gray-700 truncate max-w-[140px]">{displayName}</p>
                                 <p className="text-xs text-gray-500 truncate capitalize">{userRole}</p>
                             </motion.div>
@@ -163,7 +163,7 @@ const Sidebar = ({ logoUrl }) => {
 
                     <AnimatePresence>
                         {isUserMenuOpen && (
-                            <motion.div 
+                            <motion.div
                                 variants={userMenuVariants}
                                 initial="hidden"
                                 animate="visible"

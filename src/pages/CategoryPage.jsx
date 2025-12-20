@@ -3,7 +3,7 @@ import PageHeader from '../components/common/PageHeader';
 import DynamicTable from '../components/common/DynamicTable';
 import CategoryModal from '../components/categories/CategoryModal';
 import { categoryService } from '../services/categoryService';
-import { Search, Plus, Edit, Trash2, Tag } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Tag, Percent } from 'lucide-react';
 import toast from 'react-hot-toast'; // <--- IMPORTANTE
 
 function CategoryPage() {
@@ -58,26 +58,26 @@ function CategoryPage() {
                     <h3 className="font-bold text-gray-800 text-lg">¿Eliminar categoría?</h3>
                     <p className="text-sm text-gray-500 mt-1">Esta acción es permanente.</p>
                 </div>
-                
+
                 {/* Botones alineados a la derecha */}
                 <div className="flex gap-3 justify-end">
-                    <button 
-                        onClick={() => toast.dismiss(t.id)} 
+                    <button
+                        onClick={() => toast.dismiss(t.id)}
                         className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
                     >
                         Cancelar
                     </button>
-                    
+
                     {/* Botón ROSA (bg-pink-500) igual al de 'Guardar Categoría' */}
-                    <button 
-                        onClick={() => { toast.dismiss(t.id); performDelete(id); }} 
+                    <button
+                        onClick={() => { toast.dismiss(t.id); performDelete(id); }}
                         className="px-4 py-2 text-sm font-bold bg-pink-500 text-white rounded-xl hover:bg-pink-600 shadow-sm transition-colors flex items-center gap-2"
                     >
                         <span>Eliminar</span>
                     </button>
                 </div>
             </div>
-        ), { 
+        ), {
             duration: 6000, // Se queda abierto hasta que el usuario decida
             position: 'top-center', // Aparece arriba al centro
             style: {
@@ -117,6 +117,24 @@ function CategoryPage() {
                     <span className="font-bold text-gray-700">{row.description || row.Description}</span>
                 </div>
             )
+        },
+        {
+            header: "Descuento Base",
+            className: "text-center w-40",
+            render: (row) => {
+                const percentage = row.discountPercentage || row.DiscountPercentage || 0;
+
+                if (percentage > 0) {
+                    return (
+                        <div className="flex justify-center">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 border border-purple-200">
+                                <Percent size={12} /> -{Number(percentage)}%
+                            </span>
+                        </div>
+                    );
+                }
+                return <div className="text-center"><span className="text-xs text-gray-400 italic">Sin descuento</span></div>;
+            }
         },
         {
             header: "Estado",
@@ -169,17 +187,17 @@ function CategoryPage() {
             </PageHeader>
 
             <div className="w-full">
-                <DynamicTable 
-                columns={columns} 
-                data={currentData} 
-                loading={loading}
-                pagination={{ currentPage, totalPages }} 
-                onPageChange={setCurrentPage} 
-                itemsPerPage={itemsPerPage}
-                onItemsPerPageChange={(val) => {
-                    setItemsPerPage(val);
-                    setCurrentPage(1);
-                }}
+                <DynamicTable
+                    columns={columns}
+                    data={currentData}
+                    loading={loading}
+                    pagination={{ currentPage, totalPages }}
+                    onPageChange={setCurrentPage}
+                    itemsPerPage={itemsPerPage}
+                    onItemsPerPageChange={(val) => {
+                        setItemsPerPage(val);
+                        setCurrentPage(1);
+                    }}
                 />
             </div>
 

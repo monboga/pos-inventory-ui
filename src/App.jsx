@@ -18,6 +18,7 @@ import ProfilePage from './pages/ProfilePage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import BusinessPage from './pages/BusinessPage';
+import DiscountPage from './pages/DiscountPage';
 
 // --- IMPORTS DE COMPONENTES ---
 import Sidebar from './components/layout/Sidebar';
@@ -155,6 +156,7 @@ function AppContent() {
               <Route element={<ProtectedRoute requiredPermission={PERMISSIONS.PRODUCTS.VIEW} />}>
                 <Route path="inventory" element={<InventoryPage />} />
                 <Route path="categories" element={<CategoryPage />} />
+                <Route path="discounts" element={<DiscountPage />} />
               </Route>
               <Route element={<ProtectedRoute requiredPermission={PERMISSIONS.USERS.VIEW} />}>
                 <Route path="users" element={<UsersPage />} />

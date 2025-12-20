@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, RefreshCw, Box, Tag, Image as ImageIcon, ToggleLeft, ToggleRight, FileText, Percent, Package, DollarSign } from 'lucide-react';
 import { categoryService } from '../../services/categoryService';
 import { satService } from '../../services/satService';
-import { motion, AnimatePresence } from 'framer-motion'; 
+import { motion, AnimatePresence } from 'framer-motion';
 import AnimatedSelect from '../common/AnimatedSelect';
+import { discountService } from '../../services/discountService';
 import toast from 'react-hot-toast';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7031';
@@ -14,16 +15,17 @@ const DEFAULT_SAT_VALUES = {
 
 // --- ANIMACIONES (Estilo ALBA) ---
 const backdropVariants = { hidden: { opacity: 0 }, visible: { opacity: 1 }, exit: { opacity: 0 } };
-const modalVariants = { 
-    hidden: { scale: 0.95, y: 20, opacity: 0 }, 
-    visible: { scale: 1, y: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 25, mass: 0.5 } }, 
-    exit: { scale: 0.95, y: 20, opacity: 0, transition: { duration: 0.15 } } 
+const modalVariants = {
+    hidden: { scale: 0.95, y: 20, opacity: 0 },
+    visible: { scale: 1, y: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 25, mass: 0.5 } },
+    exit: { scale: 0.95, y: 20, opacity: 0, transition: { duration: 0.15 } }
 };
 
 function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
     const fileInputRef = useRef(null);
+    const [discounts, setDiscounts] = useState([]);
     const [error, setError] = useState(null);
-    
+
     // Datos
     const [categories, setCategories] = useState([]);
     const [impuestos, setImpuestos] = useState([]);
@@ -37,7 +39,8 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
         barcode: '', description: '', brand: '', stock: 0, price: 0, discount: 0,
         categoryId: '',
         catalogoImpuestoId: '', catalogoObjetoImpuestoId: '', claveProductoServicioId: '', medidaLocalId: '', medidaSatId: '',
-        isActive: true, image: ''
+        isActive: true, image: '',
+        discountId: ''
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -52,19 +55,30 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
             const loadAllData = async () => {
                 setLoadingData(true);
                 try {
-                    const [cats, imps, objs, prods, locals, sats] = await Promise.all([
+                    const [cats, imps, objs, prods, locals, sats, discs] = await Promise.all([
                         categoryService.getAll(),
                         satService.getImpuestos(),
                         satService.getObjetosImpuesto(),
                         satService.getClavesProdServ(),
                         satService.getMedidasLocales(),
-                        satService.getMedidasSat()
+                        satService.getMedidasSat(),
+                        discountService.getAll()
                     ]);
 
                     // Formatear Categorías para AnimatedSelect
                     const formattedCats = cats
                         .filter(c => c.isActive || c.IsActive)
                         .map(c => ({ id: c.id || c.Id, name: c.description || c.Description }));
+                    // Formatear Descuentos
+                    const formattedDiscounts = discs
+                        .filter(d => d.isActive)
+                        .map(d => ({
+                            id: d.id,
+                            name: `${d.reason} (${d.percentage}%)`
+                        }));
+                    // Opción nula explícita para la UI
+                    formattedDiscounts.unshift({ id: '', name: 'Sin descuento promocional' });
+                    setDiscounts(formattedDiscounts);
 
                     setCategories(formattedCats);
                     setImpuestos(imps);
@@ -72,8 +86,8 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                     setClavesProd(prods);
                     setMedidasLocales(locals);
                     setMedidasSat(sats);
-                } catch (e) { 
-                    console.error("Error catálogos", e); 
+                } catch (e) {
+                    console.error("Error catálogos", e);
                     toast.error("Error al cargar catálogos del sistema.");
                 }
                 finally { setLoadingData(false); }
@@ -112,7 +126,8 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                     medidaLocalId: productToEdit.medidaLocalId || productToEdit.MedidaLocalId || DEFAULT_SAT_VALUES.MEDIDA_LOCAL,
                     medidaSatId: productToEdit.medidaSatId || productToEdit.MedidaSatId || DEFAULT_SAT_VALUES.MEDIDA_SAT,
                     isActive: (productToEdit.isActive !== undefined) ? productToEdit.isActive : (!!productToEdit.IsActive),
-                    image: existingPhoto
+                    image: existingPhoto,
+                    discountId: productToEdit.discountId || productToEdit.DiscountId || ''
                 });
                 setPhotoPreview(existingPhoto);
             } else {
@@ -156,6 +171,8 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
         if (!safeData.claveProductoServicioId) safeData.claveProductoServicioId = DEFAULT_SAT_VALUES.CLAVE_PROD;
         if (!safeData.medidaLocalId) safeData.medidaLocalId = DEFAULT_SAT_VALUES.MEDIDA_LOCAL;
         if (!safeData.medidaSatId) safeData.medidaSatId = DEFAULT_SAT_VALUES.MEDIDA_SAT;
+        if (safeData.discountId === '') safeData.discountId = null;
+
 
         try {
             await onSubmit({ ...safeData, photoFile });
@@ -173,7 +190,7 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
     const mapSatOptions = (data, keyId, keyDesc, keyCode) => {
         return data.map(item => ({
             id: item[keyId] || item[keyId.charAt(0).toUpperCase() + keyId.slice(1)],
-            name: keyCode 
+            name: keyCode
                 ? `${item[keyCode] || item[keyCode.charAt(0).toUpperCase() + keyCode.slice(1)]} - ${item[keyDesc] || item[keyDesc.charAt(0).toUpperCase() + keyDesc.slice(1)]}`
                 : item[keyDesc] || item[keyDesc.charAt(0).toUpperCase() + keyDesc.slice(1)]
         }));
@@ -195,7 +212,7 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
 
                     {/* 2. MODAL (Contenedor Blanco Sólido) */}
                     <motion.div
-                        className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] relative z-10"
+                        className="bg-white rounded-2xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh] relative z-10"
                         variants={modalVariants}
                         initial="hidden"
                         animate="visible"
@@ -259,7 +276,7 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Descripción <span className="text-red-500">*</span></label>
                                         <div className="relative">
@@ -278,7 +295,7 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                             </div>
 
                             {/* DETALLES */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Marca</label>
                                     <div className="relative">
@@ -296,7 +313,7 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                                 {/* CATEGORÍA ANIMADA */}
                                 <div>
                                     <AnimatedSelect
-                                        label="Categoría"
+                                        label={<>Categoría <span className="text-red-500">*</span></>}
                                         options={categories}
                                         value={formData.categoryId}
                                         onChange={(val) => setFormData({ ...formData, categoryId: val })}
@@ -306,37 +323,32 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Precio <span className="text-red-500">*</span></label>
-                                        <div className="relative">
-                                            <DollarSign size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                required
-                                                onFocus={handleFocus}
-                                                className="w-full pl-8 pr-2 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-pink-500 transition-all"
-                                                value={formData.price}
-                                                onChange={e => setFormData({ ...formData, price: e.target.value })}
-                                            />
-                                        </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Precio <span className="text-red-500">*</span></label>
+                                    <div className="relative">
+                                        <DollarSign size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            required
+                                            onFocus={handleFocus}
+                                            className="w-full pl-8 pr-2 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-pink-500 transition-all"
+                                            value={formData.price}
+                                            onChange={e => setFormData({ ...formData, price: e.target.value })}
+                                        />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Desc. %</label>
-                                        <div className="relative">
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                required
-                                                onFocus={handleFocus}
-                                                className="w-full pl-3 pr-7 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-pink-500 transition-all"
-                                                value={formData.discount}
-                                                onChange={e => setFormData({ ...formData, discount: e.target.value })}
-                                            />
-                                            <Percent size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                        </div>
-                                    </div>
+                                </div>
+
+                                <div>
+                                    <AnimatedSelect
+                                        label="Descuento Promocional"
+                                        options={discounts}
+                                        value={formData.discountId}
+                                        onChange={(val) => setFormData({ ...formData, discountId: val })}
+                                        icon={Percent}
+                                        placeholder="Seleccionar descuento..."
+                                        disabled={loadingData}
+                                    />
                                 </div>
                             </div>
 
@@ -347,36 +359,36 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {/* Usamos mapSatOptions para convertir los datos al formato {id, name} */}
-                                    <AnimatedSelect 
-                                        label="Impuesto" 
+                                    <AnimatedSelect
+                                        label="Impuesto"
                                         options={mapSatOptions(impuestos, 'id', 'descripcion', 'claveImpuesto')}
                                         value={formData.catalogoImpuestoId}
-                                        onChange={(v) => setFormData({...formData, catalogoImpuestoId: v})}
+                                        onChange={(v) => setFormData({ ...formData, catalogoImpuestoId: v })}
                                     />
-                                    <AnimatedSelect 
-                                        label="Objeto Impuesto" 
+                                    <AnimatedSelect
+                                        label="Objeto Impuesto"
                                         options={mapSatOptions(objetosImp, 'id', 'descripcion', 'claveObjetoImp')}
                                         value={formData.catalogoObjetoImpuestoId}
-                                        onChange={(v) => setFormData({...formData, catalogoObjetoImpuestoId: v})}
+                                        onChange={(v) => setFormData({ ...formData, catalogoObjetoImpuestoId: v })}
                                     />
-                                    <AnimatedSelect 
-                                        label="Medida Local" 
+                                    <AnimatedSelect
+                                        label="Medida Local"
                                         options={mapSatOptions(medidasLocales, 'id', 'name', 'abbreviation')}
                                         value={formData.medidaLocalId}
-                                        onChange={(v) => setFormData({...formData, medidaLocalId: v})}
+                                        onChange={(v) => setFormData({ ...formData, medidaLocalId: v })}
                                     />
-                                    <AnimatedSelect 
-                                        label="Medida SAT" 
+                                    <AnimatedSelect
+                                        label="Medida SAT"
                                         options={mapSatOptions(medidasSat, 'id', 'nombre', 'claveUnidad')}
                                         value={formData.medidaSatId}
-                                        onChange={(v) => setFormData({...formData, medidaSatId: v})}
+                                        onChange={(v) => setFormData({ ...formData, medidaSatId: v })}
                                     />
                                     <div className="md:col-span-2">
-                                        <AnimatedSelect 
-                                            label="Clave Prod/Serv" 
+                                        <AnimatedSelect
+                                            label="Clave Prod/Serv"
                                             options={mapSatOptions(clavesProd, 'id', 'descripcion', 'claveProdServ')}
                                             value={formData.claveProductoServicioId}
-                                            onChange={(v) => setFormData({...formData, claveProductoServicioId: v})}
+                                            onChange={(v) => setFormData({ ...formData, claveProductoServicioId: v })}
                                         />
                                     </div>
                                 </div>

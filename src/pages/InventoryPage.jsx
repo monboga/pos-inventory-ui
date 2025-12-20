@@ -12,8 +12,8 @@ const API_BASE_URL = 'https://localhost:7031';
 function InventoryPage() {
     const [products, setProducts] = useState([]);
     // Estado para guardar el mapa de ID -> Nombre de categoría
-    const [categoriesMap, setCategoriesMap] = useState({}); 
-    
+    const [categoriesMap, setCategoriesMap] = useState({});
+
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -124,12 +124,12 @@ function InventoryPage() {
             }
         },
         // --- 3. CAMBIO: Columna Categoría en vez de Marca ---
-        { 
-            header: "Categoría", 
+        {
+            header: "Categoría",
             render: (row) => {
                 const catId = row.categoryId || row.CategoryId;
                 const catName = categoriesMap[catId] || "Sin Categoría";
-                
+
                 return (
                     <div className="flex items-center gap-2">
                         <Tag size={14} className="text-pink-400" />
@@ -160,6 +160,25 @@ function InventoryPage() {
                         </span>
                     </div>
                 );
+            }
+        },
+        {
+            header: "Descuento",
+            className: "text-center w-32", // Ancho fijo para alineación
+            render: (row) => {
+                // Obtenemos el porcentaje (Manejo de PascalCase o camelCase)
+                const percentage = row.discountPercentage || row.DiscountPercentage || 0;
+
+                if (percentage > 0) {
+                    return (
+                        <div className="flex justify-center">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-pink-100 text-pink-700 border border-pink-200">
+                                <Percent size={12} /> -{Number(percentage)}%
+                            </span>
+                        </div>
+                    );
+                }
+                return <div className="text-center"><span className="text-xs text-gray-400 italic">Sin descuento</span></div>;
             }
         },
         {
@@ -221,16 +240,16 @@ function InventoryPage() {
             </PageHeader>
 
             <div className="w-full">
-                <DynamicTable columns={columns} 
-                data={currentData} 
-                loading={loading} 
-                pagination={{ currentPage, totalPages }} 
-                onPageChange={setCurrentPage}
-                itemsPerPage={itemsPerPage}
-                onItemsPerPageChange={(val) => {
-                    setItemsPerPage(val);
-                    setCurrentPage(1);
-                }} 
+                <DynamicTable columns={columns}
+                    data={currentData}
+                    loading={loading}
+                    pagination={{ currentPage, totalPages }}
+                    onPageChange={setCurrentPage}
+                    itemsPerPage={itemsPerPage}
+                    onItemsPerPageChange={(val) => {
+                        setItemsPerPage(val);
+                        setCurrentPage(1);
+                    }}
                 />
             </div>
 
