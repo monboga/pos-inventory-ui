@@ -6,7 +6,7 @@ function ProfileSidebar({ user, activeTab, setActiveTab, onLogout, onPhotoChange
         <div className="w-full lg:w-80 flex-shrink-0">
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 flex flex-col items-center text-center h-full transition-all hover:shadow-md">
 
-                {/* Avatar con Hover Effect */}
+                {/* Avatar */}
                 <div className="relative mb-4 group">
                     <div className="w-32 h-32 rounded-full p-1.5 border-2 border-dashed border-pink-200 group-hover:border-pink-400 transition-colors">
                         {photoPreview ? (
@@ -49,7 +49,7 @@ function ProfileSidebar({ user, activeTab, setActiveTab, onLogout, onPhotoChange
                             }`}
                     >
                         <Key size={18} />
-                        Login & Password
+                        Inicio de Sesión y Contraseña
                     </button>
                 </div>
 
