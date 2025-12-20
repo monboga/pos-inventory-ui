@@ -13,7 +13,6 @@ import toast from 'react-hot-toast';
 const API_BASE_URL = 'https://localhost:7031';
 
 function UsersPage() {
-    console.log("DEBUG: Renderizando UsersPage...");
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
 
