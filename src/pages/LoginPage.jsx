@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Store, User, Lock, AlertCircle } from 'lucide-react';
-import PageTransition from '../components/common/PageTransition'; // <--- IMPORTANTE
+import PageTransition from '../components/common/PageTransition';
+import { getFriendlyErrorMessage } from '../utils/errorUtils';
 
 function LoginPage() {
     const [credentials, setCredentials] = useState({ email: '', password: '' });
@@ -24,8 +25,8 @@ function LoginPage() {
             navigate('/dashboard');
         } catch (err) {
             // Manejo de error limpio
-            const msg = err.message || "Error al iniciar sesión";
-            setError(msg);
+            const friendlyMsg = getFriendlyErrorMessage(err);
+            setError(friendlyMsg);
         } finally {
             setIsSubmitting(false);
         }

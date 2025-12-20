@@ -28,11 +28,11 @@ export const login = async (credentials) => {
     // Axios maneja JSON y Headers automáticos
     const response = await api.post('/api/auth/login', credentials);
     const data = response.data;
-    
+
     // Guardamos el token INMEDIATAMENTE para que la siguiente petición (/me) lo encuentre
     localStorage.setItem(TOKEN_KEY, data.token);
-    
-    return data; 
+
+    return data;
 };
 
 export const getCurrentUser = async () => {
@@ -50,4 +50,19 @@ export const forgotPassword = async (email) => {
 export const resetPassword = async (data) => {
     await api.post('/api/auth/reset-password', data);
     return true;
+};
+
+export const changePassword = async (newPassword) => {
+    try {
+        // Enviamos solo newPassword porque tu ChangePasswordCommand en el BE 
+        // solo tiene UserId (del token) y NewPassword.
+        const response = await api.post('/api/auth/change-password', {
+            newPassword: newPassword
+        });
+        return response.data;
+    } catch (error) {
+        // Extraemos el mensaje exacto que manda tu Backend (ej. "La contraseña debe tener...")
+        const errorMessage = error.response?.data?.message || "Error al cambiar la contraseña";
+        throw new Error(errorMessage);
+    }
 };

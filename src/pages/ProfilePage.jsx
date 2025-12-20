@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import PageHeader from '../components/common/PageHeader';
 import { User } from 'lucide-react';
 import { userService } from '../services/userService';
+// 1. IMPORTAMOS EL NUEVO SERVICIO
+import { changePassword } from '../services/authService';
 import toast from 'react-hot-toast';
 
 // Importamos los sub-componentes
@@ -16,11 +18,18 @@ function ProfilePage() {
 
     // Estados
     const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', role: '' });
-    const [passData, setPassData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+
+    // Estado para contraseñas
+    const [passData, setPassData] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    });
+
     const [photoPreview, setPhotoPreview] = useState(null);
     const [photoFile, setPhotoFile] = useState(null);
 
-    // Cargar datos
+    // Cargar datos iniciales
     useEffect(() => {
         if (user) {
             setFormData({
@@ -33,7 +42,7 @@ function ProfilePage() {
         }
     }, [user]);
 
-    // Handlers
+    // Handler Foto
     const handlePhotoChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -42,7 +51,9 @@ function ProfilePage() {
         }
     };
 
+    // Handler Actualizar Perfil (Info Personal)
     const handleUpdateProfile = async (e) => {
+        // ... (tu lógica existente de update profile se mantiene igual)
         e.preventDefault();
         setIsLoading(true);
         try {
@@ -64,25 +75,40 @@ function ProfilePage() {
         }
     };
 
+    // --- HANDLER CAMBIO DE CONTRASEÑA (NUEVO) ---
     const handleChangePassword = async (e) => {
         e.preventDefault();
+
+        // 1. Validaciones de UI previas
         if (passData.newPassword !== passData.confirmPassword) {
-            toast.error("Las contraseñas no coinciden");
+            toast.error("Las contraseñas nuevas no coinciden");
             return;
         }
-        if (passData.newPassword.length < 6) {
-            toast.error("La contraseña debe tener al menos 6 caracteres");
+
+        // 2. Nota: Aunque el backend valida complejidad, validamos longitud básica aquí
+        // para ahorrar una llamada si es muy obvio.
+        if (passData.newPassword.length < 12) {
+            toast.error("La contraseña debe tener al menos 12 caracteres (Regla del Sistema)");
             return;
         }
 
         setIsLoading(true);
         try {
-            // TODO: Integrar endpoint de cambio de contraseña
-            await new Promise(r => setTimeout(r, 1000));
+            // 3. Llamada al Backend
+            // Nota: Tu endpoint actual NO valida la 'currentPassword', solo la 'newPassword'.
+            // Enviamos solo la nueva.
+            await changePassword(passData.newPassword);
+
             toast.success("Contraseña actualizada con éxito");
+
+            // 4. Limpiamos el formulario
             setPassData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+
         } catch (error) {
-            toast.error(error.message || "Error al cambiar contraseña");
+            // 5. Manejo de errores del Backend (ej. "La contraseña debe tener mayúsculas")
+            console.error(error);
+            // El servicio ya nos devuelve el mensaje limpio en error.message
+            toast.error(error.message);
         } finally {
             setIsLoading(false);
         }
@@ -91,9 +117,6 @@ function ProfilePage() {
     if (!user) return null;
 
     return (
-        // --- FIX DE ESPACIADO ---
-        // 1. max-w-7xl mx-auto: Centra el contenido y evita que se estire demasiado.
-        // 2. p-6 lg:p-8: Agrega el "aire" (padding) arriba, abajo y a los lados. Esto soluciona lo marcado en rojo.
         <div className="max-w-7xl mx-auto w-full p-6 lg:p-8 animate-in fade-in duration-500">
 
             <PageHeader
@@ -102,7 +125,6 @@ function ProfilePage() {
                 icon={User}
             />
 
-            {/* Contenedor Flex: Sidebar + Contenido */}
             <div className="flex flex-col lg:flex-row gap-8 items-start">
 
                 <ProfileSidebar
@@ -116,12 +138,17 @@ function ProfilePage() {
 
                 <ProfileContent
                     activeTab={activeTab}
+
+                    // Props Info Personal
                     formData={formData}
                     setFormData={setFormData}
+                    onUpdateProfile={handleUpdateProfile}
+
+                    // Props Seguridad
                     passData={passData}
                     setPassData={setPassData}
-                    onUpdateProfile={handleUpdateProfile}
-                    onChangePassword={handleChangePassword}
+                    onChangePassword={handleChangePassword} // <--- Conectado aquí
+
                     isLoading={isLoading}
                 />
             </div>
