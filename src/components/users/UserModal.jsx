@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, User, RefreshCw, Mail, Lock, Shield, Camera, ToggleLeft, ToggleRight, AlertCircle } from 'lucide-react';
 import { roleService } from '../../services/roleService';
-import { motion, AnimatePresence } from 'framer-motion'; 
-import AnimatedSelect from '../common/AnimatedSelect'; 
+import { motion, AnimatePresence } from 'framer-motion';
+import AnimatedSelect from '../common/AnimatedSelect';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7031';
 
@@ -14,7 +14,7 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
     const [error, setError] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const fileInputRef = useRef(null);
-    
+
     const [availableRoles, setAvailableRoles] = useState([]);
     const [loadingRoles, setLoadingRoles] = useState(false);
 
@@ -32,7 +32,7 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
     const [photoFile, setPhotoFile] = useState(null);
 
     // ... (compressImageToFile se mantiene igual) ...
-    const compressImageToFile = (file) => { /* ... código compresión ... */ return file; }; 
+    const compressImageToFile = (file) => { /* ... código compresión ... */ return file; };
 
     useEffect(() => {
         const fetchRoles = async () => {
@@ -60,7 +60,7 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                 // Mapeo Edición
                 let fName = userToEdit.firstName || userToEdit.FirstName || "";
                 let lName = userToEdit.lastName || userToEdit.LastName || "";
-                
+
                 let existingPhoto = "";
                 const rawPhoto = userToEdit.photo || userToEdit.Photo;
                 if (rawPhoto) {
@@ -73,7 +73,12 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                     }
                 }
 
-                const userRoleName = (userToEdit.roles && userToEdit.roles.length > 0) ? userToEdit.roles[0] : "";
+                let userRoleName = "";
+                if (userToEdit.role) {
+                    userRoleName = userToEdit.role;
+                } else if (userToEdit.roles && userToEdit.roles.length > 0) {
+                    userRoleName = userToEdit.roles[0];
+                }
                 const matchingRoleObj = availableRoles.find(r => (r.name || r.Name) === userRoleName);
                 const roleIdToSelect = matchingRoleObj ? (matchingRoleObj.id || matchingRoleObj.Id) : "";
 
@@ -153,10 +158,10 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
 
                         {/* FORM */}
                         <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
-                            
+
                             {error && (
-                                <motion.div 
-                                    initial={{ opacity: 0, y: -10 }} 
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r flex items-start gap-3"
                                 >
