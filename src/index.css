@@ -1,1 +1,157 @@
 @import "tailwindcss";
+
+/* --- ALBA DATEPICKER FINAL THEME --- */
+
+/* 1. Contenedor y Reset */
+.react-datepicker {
+    font-family: inherit !important;
+    border: none !important;
+    background-color: transparent !important;
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center;
+}
+
+.react-datepicker__month-container {
+    width: 100% !important;
+    max-width: 320px;
+    /* Ancho fijo para evitar expansiones */
+}
+
+.react-datepicker__header {
+    background-color: white !important;
+    border-bottom: none !important;
+    padding-top: 0.5rem !important;
+}
+
+.react-datepicker__current-month {
+    color: #1f2937 !important;
+    /* gray-800 */
+    font-size: 1rem !important;
+    font-weight: 800 !important;
+    text-transform: capitalize;
+    margin-bottom: 1rem;
+}
+
+.react-datepicker__day-name {
+    color: #9ca3af !important;
+    /* gray-400 */
+    width: 2.5rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    font-size: 0.7rem !important;
+    margin: 0 !important;
+    display: inline-block;
+    /* Estabilidad */
+}
+
+/* 2. DÍAS (GRID ESTABLE) */
+.react-datepicker__day {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    line-height: 2.5rem !important;
+    margin: 0 !important;
+    /* Cero margenes para conectar rangos */
+    font-weight: 500 !important;
+    color: #374151 !important;
+    /* gray-700 */
+    border-radius: 0 !important;
+    /* Cuadrados para conectar */
+    position: relative;
+    z-index: 1;
+    display: inline-block;
+    /* Estabilidad */
+    vertical-align: middle;
+}
+
+/* Quitar outline azul */
+.react-datepicker__day:focus {
+    outline: none !important;
+}
+
+/* --- LÓGICA DE RANGO VISUAL --- */
+
+/* A. La Franja Conectora (Rosa Suave) */
+.react-datepicker__day--in-range,
+.react-datepicker__day--in-selecting-range {
+    background-color: #fce7f3 !important;
+    /* pink-100 */
+    color: #be185d !important;
+    /* pink-700 */
+}
+
+/* B. LOS CÍRCULOS FUERTES (Inicio, Fin, y HOVER) */
+/* Aplicamos el círculo rosa a: Inicio, Fin, y al día que está bajo el mouse (hover) */
+.react-datepicker__day--range-start,
+.react-datepicker__day--range-end,
+.react-datepicker__day--selecting-range-start,
+.react-datepicker__day:not(.react-datepicker__day--disabled):hover {
+    background-color: transparent !important;
+    /* El fondo lo da el pseudo-elemento */
+    color: white !important;
+    font-weight: bold !important;
+}
+
+/* Pseudo-elemento para dibujar el círculo PERFECTO detrás del número */
+.react-datepicker__day--range-start::before,
+.react-datepicker__day--range-end::before,
+.react-datepicker__day--selecting-range-start::before,
+.react-datepicker__day:not(.react-datepicker__day--disabled):hover::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    /* Margen pequeño para que el círculo respire */
+    background-color: #ec4899;
+    /* pink-500 */
+    border-radius: 50%;
+    z-index: -1;
+    /* Detrás del texto */
+    box-shadow: 0 2px 4px rgba(236, 72, 153, 0.3);
+    /* Sombra suave */
+}
+
+/* C. CONECTORES (Para eliminar gaps blancos visuales) */
+
+/* Conector hacia la DERECHA (Inicio o Start-Selecting) */
+.react-datepicker__day--range-start:not(.react-datepicker__day--range-end)::after,
+.react-datepicker__day--selecting-range-start:not(.react-datepicker__day--in-selecting-range-end)::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 50%;
+    background-color: #fce7f3;
+    /* pink-100 */
+    z-index: -2;
+}
+
+/* Conector hacia la IZQUIERDA (Fin o Hover mientras seleccionas) */
+/* El truco: Si estamos en rango y hacemos hover, conectamos hacia atrás */
+.react-datepicker__day--range-end:not(.react-datepicker__day--range-start)::after,
+.react-datepicker__day--in-selecting-range:hover::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 50%;
+    background-color: #fce7f3;
+    /* pink-100 */
+    z-index: -2;
+}
+
+/* Fix: Asegurar que el día seleccionado "Start" no pierda su estilo al hacer hover sobre él mismo */
+.react-datepicker__day--selecting-range-start:hover::before {
+    background-color: #ec4899 !important;
+}
+
+/* D. Días Deshabilitados/Fuera de mes */
+.react-datepicker__day--outside-month {
+    color: #d1d5db !important;
+    /* gray-300 */
+    visibility: visible !important;
+}
