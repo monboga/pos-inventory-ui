@@ -15,6 +15,14 @@ const Sidebar = ({ logoUrl }) => {
         const savedState = localStorage.getItem('sidebar-collapsed');
         return savedState === 'true';
     });
+    const [openSubmenuTitle, setOpenSubmenuTitle] = useState(null);
+    const handleSubmenuToggle = (title) => {
+        setOpenSubmenuTitle(prev => prev === title ? null : title);
+    };
+    // Cuando se colapsa el sidebar, cerramos los menús por estética
+    useEffect(() => {
+        if (isCollapsed) setOpenSubmenuTitle(null);
+    }, [isCollapsed]);
 
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -118,9 +126,22 @@ const Sidebar = ({ logoUrl }) => {
                 <nav className={`flex-grow py-4 space-y-1 ${isCollapsed ? 'overflow-visible' : 'overflow-y-auto custom-scrollbar overflow-x-hidden'}`}>
                     {filteredMenu.map((item, index) => {
                         if (item.submenu) {
-                            return <SidebarSubmenu key={index} item={item} isCollapsed={isCollapsed} />;
+                            return (
+                                <SidebarSubmenu
+                                    key={index}
+                                    item={item}
+                                    isCollapsed={isCollapsed}
+                                    isOpen={openSubmenuTitle === item.title}
+                                    onToggle={() => handleSubmenuToggle(item.title)}
+                                />
+                            );
+
                         }
-                        return <SidebarItem key={index} item={item} isCollapsed={isCollapsed} />;
+                        return (
+                            <div key={index} onClick={() => setOpenSubmenuTitle(null)}>
+                                <SidebarItem item={item} isCollapsed={isCollapsed} />
+                            </div>
+                        );
                     })}
                 </nav>
 
