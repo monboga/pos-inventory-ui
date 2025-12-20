@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader, FileText, Mail, User } from 'lucide-react'; 
-import { motion, AnimatePresence } from 'framer-motion'; 
+import { Search, Loader, FileText, Mail, User } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '../components/pos/ProductCard';
-import OrderSummary from '../components/pos/OrderSumary';
-import AnimatedSelect from '../components/common/AnimatedSelect'; 
+import OrderSummary from '../components/pos/OrderSumary'; // Asegúrate que el nombre del archivo sea correcto (OrderSummary vs OrderSumary)
+import AnimatedSelect from '../components/common/AnimatedSelect';
 import CategoryFilter from '../components/pos/CategoryFilter';
 import toast from 'react-hot-toast';
 import { productService } from '../services/productService';
@@ -16,14 +16,11 @@ import { useAuth } from '../context/AuthContext';
 const DOC_TYPE_TICKET = 1;
 const DOC_TYPE_FACTURA = 2;
 
-// Variantes de animación (Sin cambios)
 const gridContainerVariants = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
-        transition: {
-            staggerChildren: 0.05 
-        }
+        transition: { staggerChildren: 0.05 }
     }
 };
 
@@ -40,24 +37,20 @@ const gridItemVariants = {
 function PointOfSalePage() {
     const { user } = useAuth();
 
-    // Estados Datos
     const [allProducts, setAllProducts] = useState([]);
     const [displayedProducts, setDisplayedProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [clients, setClients] = useState([]);
 
-    // Estados Selección Cliente
-    const [selectedClientId, setSelectedClientId] = useState(""); 
+    const [selectedClientId, setSelectedClientId] = useState("");
     const [clientInfo, setClientInfo] = useState(null);
 
-    // Estados UI
     const [loading, setLoading] = useState(true);
     const [isProcessingSale, setIsProcessingSale] = useState(false);
     const [activeCategory, setActiveCategory] = useState('Todos');
     const [searchTerm, setSearchTerm] = useState('');
     const [cart, setCart] = useState([]);
 
-    // 1. CARGA INICIAL
     const loadData = async () => {
         try {
             setLoading(true);
@@ -84,7 +77,6 @@ function PointOfSalePage() {
 
     useEffect(() => { loadData(); }, []);
 
-    // 2. Filtros
     useEffect(() => {
         let filtered = allProducts;
         if (activeCategory !== 'Todos') {
@@ -100,17 +92,31 @@ function PointOfSalePage() {
         setDisplayedProducts(filtered);
     }, [activeCategory, searchTerm, allProducts]);
 
-    // 3. Lógica Carrito
+    // --- 3. LÓGICA CARRITO (CORREGIDA) ---
     const handleAddToCart = (product) => {
         const cartItem = {
+            // FIX: Copiamos TODAS las propiedades originales primero.
+            // Esto asegura que 'DiscountPercentage', 'DiscountId', etc., pasen al carrito.
+            ...product,
+
+            // Luego normalizamos las propiedades básicas para uso interno
             id: product.id || product.Id,
             name: product.description || product.Description,
             price: Number(product.price || product.Price || 0),
             image: product.image || product.Image,
-            stock: product.stock ?? product.Stock ?? 0
+            stock: product.stock ?? product.Stock ?? 0,
+
+            // Opcional: Si quieres asegurar que la propiedad tenga un nombre específico en minúscula
+            discountPercentage: product.discountPercentage || product.DiscountPercentage || 0
         };
+
         const existing = cart.find(item => item.id === cartItem.id);
-        if (existing && existing.quantity >= cartItem.stock) return;
+
+        // Validación de Stock
+        if (existing && existing.quantity >= cartItem.stock) {
+            toast.error("Stock máximo alcanzado");
+            return;
+        }
 
         if (existing) {
             setCart(cart.map(item => item.id === cartItem.id ? { ...item, quantity: item.quantity + 1 } : item));
@@ -123,7 +129,10 @@ function PointOfSalePage() {
         setCart(cart.map(item => {
             if (item.id === productId) {
                 const newQuantity = item.quantity + amount;
-                if (amount > 0 && newQuantity > item.stock) return item;
+                if (amount > 0 && newQuantity > item.stock) {
+                    toast.error("Stock insuficiente");
+                    return item;
+                }
                 return { ...item, quantity: Math.max(1, newQuantity) };
             }
             return item;
@@ -132,11 +141,10 @@ function PointOfSalePage() {
 
     const handleRemoveFromCart = (productId) => setCart(cart.filter(item => item.id !== productId));
 
-    // 4. Lógica Cliente
     const handleClientChange = (val) => {
         const id = Number(val);
         setSelectedClientId(id);
-        
+
         if (!id) {
             setClientInfo(null);
         } else {
@@ -149,7 +157,6 @@ function PointOfSalePage() {
         name: c.fullName || c.FullName || `${c.firstName} ${c.lastName}`
     }));
 
-    // 5. Lógica de procesar Venta
     const handleProcessSale = async (docTypeString, totalAmount) => {
         if (!selectedClientId || selectedClientId === 0) {
             toast.error("Selecciona un Cliente para cerrar la venta.");
@@ -201,31 +208,23 @@ function PointOfSalePage() {
                             <input type="text" placeholder="Buscar producto..." className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all shadow-sm text-gray-700" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                         </div>
                     </div>
-                    {/* Filtros de Categoría */}
-                    <CategoryFilter 
+                    <CategoryFilter
                         categories={categories}
                         activeCategory={activeCategory}
                         onSelectCategory={setActiveCategory}
                     />
                 </div>
 
-                {/* --- ÁREA DE PRODUCTOS (GRILLA RESPONSIVA) --- */}
                 <div className="flex-1 overflow-y-auto p-4 md:p-6 pt-0 custom-scrollbar">
                     {displayedProducts.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-64 text-gray-400"><Search size={48} className="mb-4 opacity-20" /><p>No se encontraron productos.</p></div>
                     ) : (
-                        <motion.div 
-                            // --- FIX AQUÍ ---
-                            // En lugar de 'grid-cols-4', usamos una fórmula dinámica:
-                            // repeat(auto-fill, minmax(220px, 1fr))
-                            // Esto significa: "Crea tantas columnas como quepan, asegurando que cada una mida al menos 220px".
-                            // Si alejas el zoom, cabrán más de 220px, así que creará más columnas automáticamente.
+                        <motion.div
                             className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 md:gap-6 pb-20 lg:pb-0"
-                            
                             variants={gridContainerVariants}
                             initial="hidden"
                             animate="visible"
-                            key={activeCategory + searchTerm} 
+                            key={activeCategory + searchTerm}
                         >
                             {displayedProducts.map(product => {
                                 const itemInCart = cart.find(c => c.id === (product.id || product.Id));
@@ -260,7 +259,7 @@ function PointOfSalePage() {
 
                     <AnimatePresence mode="wait">
                         {clientInfo && (
-                            <motion.div 
+                            <motion.div
                                 key={clientInfo.id || clientInfo.Id}
                                 initial={{ opacity: 0, y: -10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
