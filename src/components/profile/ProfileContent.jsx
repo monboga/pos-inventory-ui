@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, Key, Save, Shield, Eye, EyeOff, Check, X as XIcon } from 'lucide-react';
+import { Mail, Lock, Key, Save, Shield, Eye, EyeOff, Check, X as XIcon, Edit2, XCircle } from 'lucide-react';
 
-// --- COMPONENTE INTERNO DE INPUT (Con Toggle Password) ---
+// --- COMPONENTE INPUT (Con soporte visual de disabled) ---
 const ProfileInput = ({ label, value, onChange, type = "text", disabled = false, icon: Icon, placeholder, isPassword = false }) => {
     const [showPassword, setShowPassword] = useState(false);
     const inputType = isPassword ? (showPassword ? "text" : "password") : type;
@@ -18,11 +18,13 @@ const ProfileInput = ({ label, value, onChange, type = "text", disabled = false,
                     onChange={onChange}
                     disabled={disabled}
                     placeholder={placeholder}
-                    className={`w-full ${Icon ? 'pl-10' : 'px-4'} ${isPassword ? 'pr-10' : 'pr-4'} py-2.5 border border-gray-200 rounded-xl outline-none transition-all 
-                    ${disabled ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 bg-white placeholder:text-gray-300 hover:border-gray-300'}`}
+                    className={`w-full ${Icon ? 'pl-10' : 'px-4'} ${isPassword ? 'pr-10' : 'pr-4'} py-2.5 border rounded-xl outline-none transition-all 
+                    ${disabled
+                            ? 'bg-gray-50 text-gray-500 border-gray-100 cursor-default' // Estilo Bloqueado (Limpio)
+                            : 'bg-white border-gray-200 focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500' // Estilo Edición
+                        }`}
                 />
 
-                {/* Botón de Ojo para Contraseñas */}
                 {isPassword && (
                     <button
                         type="button"
@@ -37,7 +39,7 @@ const ProfileInput = ({ label, value, onChange, type = "text", disabled = false,
     );
 };
 
-// --- COMPONENTE DE REQUISITOS DE CONTRASEÑA ---
+// --- COMPONENTE REQUISITOS PASSWORD ---
 const PasswordRequirements = ({ password }) => {
     const requirements = [
         { id: 1, text: "Mínimo 12 caracteres", valid: password.length >= 12 },
@@ -47,7 +49,7 @@ const PasswordRequirements = ({ password }) => {
     ];
 
     return (
-        <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+        <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-100 animate-in fade-in slide-in-from-top-2">
             <p className="text-xs font-bold text-gray-500 uppercase mb-3 tracking-wider">Requisitos de seguridad</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {requirements.map((req) => (
@@ -68,35 +70,79 @@ const PasswordRequirements = ({ password }) => {
 
 function ProfileContent({ activeTab, formData, setFormData, passData, setPassData, onUpdateProfile, onChangePassword, isLoading }) {
 
-    // Validar si la contraseña cumple todos los requisitos antes de habilitar el botón
+    // Estados locales para controlar el Modo Edición
+    const [isEditing, setIsEditing] = useState(false);
+    const [snapshotData, setSnapshotData] = useState({}); // Para guardar backup y comparar cambios
+
+    // Detectamos cambios comparando el estado actual con el snapshot
+    const hasChanges = JSON.stringify(formData) !== JSON.stringify(snapshotData);
+
+    // Al montar o cambiar de pestaña, aseguramos que no estamos editando
+    useEffect(() => {
+        setIsEditing(false);
+    }, [activeTab]);
+
+    // HANDLERS DEL MODO EDICIÓN
+    const handleStartEditing = () => {
+        setSnapshotData({ ...formData }); // Guardamos copia de seguridad
+        setIsEditing(true);
+    };
+
+    const handleCancelEditing = () => {
+        setFormData(snapshotData); // Revertimos cambios
+        setIsEditing(false);
+    };
+
+    const handleSaveWrapper = async (e) => {
+        await onUpdateProfile(e);
+        // Si todo salió bien (y el padre no lanzó error), salimos del modo edición
+        // Nota: Idealmente onUpdateProfile debería devolver true/false, pero asumimos éxito si no hay catch global aquí
+        setIsEditing(false);
+    };
+
+    // Validación de Password
     const isPasswordValid = () => {
         const pwd = passData.newPassword;
-        return pwd.length >= 12 &&
-            /[A-Z]/.test(pwd) &&
-            /[0-9]/.test(pwd) &&
-            /[!@#$%^&*(),.?":{}|<>]/.test(pwd);
+        return pwd.length >= 12 && /[A-Z]/.test(pwd) && /[0-9]/.test(pwd) && /[!@#$%^&*(),.?":{}|<>]/.test(pwd);
     };
 
     return (
-        <div className="flex-1 bg-white rounded-3xl shadow-sm border border-gray-100 p-8 min-h-[500px] w-full transition-all hover:shadow-md">
+        <div className="flex-1 bg-white rounded-3xl shadow-sm border border-gray-100 p-8 min-h-[500px] w-full transition-all hover:shadow-md relative">
 
             {/* --- TAB: INFORMACIÓN PERSONAL --- */}
             {activeTab === 'personal' && (
-                <form onSubmit={onUpdateProfile} className="space-y-8 animate-in slide-in-from-right-4 duration-300">
-                    <div>
-                        <h3 className="text-xl font-bold text-gray-800">Información Personal</h3>
-                        <p className="text-sm text-gray-400 mt-1">Actualiza tus datos básicos y de contacto.</p>
+                <form onSubmit={handleSaveWrapper} className="space-y-8 animate-in slide-in-from-right-4 duration-300">
+
+                    {/* Encabezado con Botón de Editar */}
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-800">Información Personal</h3>
+                            <p className="text-sm text-gray-400 mt-1">Actualiza tus datos básicos y de contacto.</p>
+                        </div>
+
+                        {!isEditing && (
+                            <button
+                                type="button"
+                                onClick={handleStartEditing}
+                                className="flex items-center gap-2 px-4 py-2 bg-pink-50 text-pink-600 rounded-lg hover:bg-pink-100 transition-colors font-medium text-sm active:scale-95"
+                            >
+                                <Edit2 size={16} />
+                                Editar
+                            </button>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <ProfileInput
                             label="Nombre"
                             value={formData.firstName}
+                            disabled={!isEditing} // Protegido
                             onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                         />
                         <ProfileInput
                             label="Apellido"
                             value={formData.lastName}
+                            disabled={!isEditing} // Protegido
                             onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                         />
                     </div>
@@ -105,10 +151,12 @@ function ProfileContent({ activeTab, formData, setFormData, passData, setPassDat
                         label="Correo Electrónico"
                         type="email"
                         value={formData.email}
+                        disabled={!isEditing} // Protegido
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         icon={Mail}
                     />
 
+                    {/* Banner Informativo (Visible siempre) */}
                     <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-start gap-3">
                         <Shield className="text-blue-500 shrink-0 mt-0.5" size={20} />
                         <div>
@@ -119,19 +167,32 @@ function ProfileContent({ activeTab, formData, setFormData, passData, setPassDat
                         </div>
                     </div>
 
-                    <div className="pt-4 flex justify-end">
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="flex items-center gap-2 px-8 py-2.5 bg-pink-500 hover:bg-pink-600 text-white rounded-xl font-bold shadow-md shadow-pink-200 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                            {isLoading ? 'Guardando...' : <><Save size={18} /> Guardar Cambios</>}
-                        </button>
-                    </div>
+                    {/* Footer de Acciones (Solo visible en Edición) */}
+                    {isEditing && (
+                        <div className="pt-4 flex justify-end gap-3 border-t border-gray-50 animate-in fade-in slide-in-from-bottom-2">
+                            <button
+                                type="button"
+                                onClick={handleCancelEditing}
+                                disabled={isLoading}
+                                className="flex items-center gap-2 px-6 py-2.5 text-gray-500 hover:bg-gray-100 rounded-xl font-medium transition-colors"
+                            >
+                                <XCircle size={18} />
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                // Bloqueado si cargando O si NO hay cambios
+                                disabled={isLoading || !hasChanges}
+                                className="flex items-center gap-2 px-8 py-2.5 bg-pink-500 hover:bg-pink-600 text-white rounded-xl font-bold shadow-md shadow-pink-200 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
+                            >
+                                {isLoading ? 'Guardando...' : <><Save size={18} /> Guardar Cambios</>}
+                            </button>
+                        </div>
+                    )}
                 </form>
             )}
 
-            {/* --- TAB: SEGURIDAD --- */}
+            {/* --- TAB: SEGURIDAD (Sin cambios mayores, solo visuales) --- */}
             {activeTab === 'security' && (
                 <form onSubmit={onChangePassword} className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                     <div>
@@ -139,9 +200,7 @@ function ProfileContent({ activeTab, formData, setFormData, passData, setPassDat
                         <p className="text-sm text-gray-400 mt-1">Gestiona tu contraseña para mantener tu cuenta segura.</p>
                     </div>
 
-                    {/* FIX LAYOUT: Quitamos 'max-w-xl' para que use todo el ancho */}
                     <div className="space-y-6">
-
                         <ProfileInput
                             label="Contraseña Actual"
                             isPassword={true}
@@ -162,7 +221,6 @@ function ProfileContent({ activeTab, formData, setFormData, passData, setPassDat
                                 onChange={(e) => setPassData({ ...passData, newPassword: e.target.value })}
                                 icon={Key}
                             />
-
                             <ProfileInput
                                 label="Confirmar Nueva"
                                 isPassword={true}
@@ -173,14 +231,12 @@ function ProfileContent({ activeTab, formData, setFormData, passData, setPassDat
                             />
                         </div>
 
-                        {/* Visualizador de Requisitos en Tiempo Real */}
                         <PasswordRequirements password={passData.newPassword} />
                     </div>
 
                     <div className="pt-4 flex justify-end">
                         <button
                             type="submit"
-                            // Deshabilitamos si está cargando O si no cumple los requisitos de seguridad
                             disabled={isLoading || !isPasswordValid()}
                             className="flex items-center gap-2 px-8 py-2.5 bg-pink-500 hover:bg-pink-600 text-white rounded-xl font-bold shadow-md shadow-pink-200 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
                         >
