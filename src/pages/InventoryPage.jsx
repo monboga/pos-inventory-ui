@@ -4,7 +4,7 @@ import DynamicTable from '../components/common/DynamicTable';
 import ProductModal from '../components/inventory/ProductModal';
 import { productService } from '../services/productService';
 import { categoryService } from '../services/categoryService'; // <--- 1. IMPORTAR CATEGORY SERVICE
-import { Search, Plus, Edit, Trash2, Box, Package, AlertOctagon, Tag } from 'lucide-react'; // Agregamos Tag icon
+import { Search, Plus, Edit, Trash2, Box, Package, AlertOctagon, Tag, Percent } from 'lucide-react'; // Agregamos Tag icon
 import toast from 'react-hot-toast';
 
 const API_BASE_URL = 'https://localhost:7031';
