@@ -165,7 +165,7 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
         }
 
         const safeData = { ...formData };
-        // Defaults SAT
+        // Defaults SAT (Si el usuario no toca nada, se mandan estos defaults)
         if (!safeData.catalogoImpuestoId) safeData.catalogoImpuestoId = DEFAULT_SAT_VALUES.IMPUESTO;
         if (!safeData.catalogoObjetoImpuestoId) safeData.catalogoObjetoImpuestoId = DEFAULT_SAT_VALUES.OBJETO_IMP;
         if (!safeData.claveProductoServicioId) safeData.claveProductoServicioId = DEFAULT_SAT_VALUES.CLAVE_PROD;
@@ -186,7 +186,6 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
     };
 
     // --- HELPERS PARA MAPEO SAT ---
-    // Convierte los objetos complejos del SAT a {id, name} para AnimatedSelect
     const mapSatOptions = (data, keyId, keyDesc, keyCode) => {
         return data.map(item => ({
             id: item[keyId] || item[keyId.charAt(0).toUpperCase() + keyId.slice(1)],
@@ -200,7 +199,7 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    {/* 1. BACKDROP (Fondo Oscuro) */}
+                    {/* BACKDROP */}
                     <motion.div
                         className="fixed inset-0 bg-black/50 backdrop-blur-sm"
                         variants={backdropVariants}
@@ -210,7 +209,7 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                         onClick={onClose}
                     />
 
-                    {/* 2. MODAL (Contenedor Blanco Sólido) */}
+                    {/* MODAL */}
                     <motion.div
                         className="bg-white rounded-2xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh] relative z-10"
                         variants={modalVariants}
@@ -249,7 +248,8 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                                 <div className="flex-1 space-y-4">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Código Barras <span className="text-gray-400 text-xs">(Opcional)</span></label>
+                                            {/* UI FIX: Opcional */}
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Código Barras <span className="text-gray-400 text-xs font-normal">(Opcional)</span></label>
                                             <div className="relative">
                                                 <Box size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                                 <input
@@ -297,7 +297,8 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                             {/* DETALLES */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Marca</label>
+                                    {/* UI FIX: Opcional */}
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Marca <span className="text-gray-400 text-xs font-normal">(Opcional)</span></label>
                                     <div className="relative">
                                         <Tag size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                         <input
@@ -310,7 +311,6 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                                     </div>
                                 </div>
 
-                                {/* CATEGORÍA ANIMADA */}
                                 <div>
                                     <AnimatedSelect
                                         label={<>Categoría <span className="text-red-500">*</span></>}
@@ -340,25 +340,25 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
                                 </div>
 
                                 <div>
+                                    {/* UI FIX: Opcional */}
                                     <AnimatedSelect
-                                        label="Descuento Promocional"
+                                        label={<>Descuento Promocional <span className="text-gray-400 text-xs font-normal">(Opcional)</span></>}
                                         options={discounts}
                                         value={formData.discountId}
                                         onChange={(val) => setFormData({ ...formData, discountId: val })}
                                         icon={Percent}
-                                        placeholder="Seleccionar descuento..."
+                                        placeholder="Seleccionar..."
                                         disabled={loadingData}
                                     />
                                 </div>
                             </div>
 
-                            {/* SAT (5 Animated Selects) */}
+                            {/* SAT (Sección Opcional Visualmente - Valores por defecto) */}
                             <div className="pt-4 border-t border-gray-100">
                                 <h3 className="text-sm font-bold text-gray-900 pb-3 flex items-center gap-2">
-                                    <FileText size={16} className="text-pink-500" /> Información Fiscal (SAT)
+                                    <FileText size={16} className="text-pink-500" /> Información Fiscal (SAT) <span className="text-gray-400 text-xs font-normal">(Opcional)</span>
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {/* Usamos mapSatOptions para convertir los datos al formato {id, name} */}
                                     <AnimatedSelect
                                         label="Impuesto"
                                         options={mapSatOptions(impuestos, 'id', 'descripcion', 'claveImpuesto')}
