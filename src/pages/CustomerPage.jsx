@@ -4,7 +4,8 @@ import DynamicTable from '../components/common/DynamicTable';
 import CustomerModal from '../components/customers/CustomerModal';
 import toast from 'react-hot-toast';
 import { clientService } from '../services/clientService';
-import { Search, Plus, Edit, Trash2, Mail, FileText, ShoppingBag } from 'lucide-react';
+// 1. Importamos el icono Phone
+import { Search, Plus, Edit, Trash2, Mail, FileText, ShoppingBag, Phone } from 'lucide-react';
 
 function CustomerPage() {
     const [clients, setClients] = useState([]);
@@ -19,7 +20,7 @@ function CustomerPage() {
     const loadClients = async () => {
         try {
             setLoading(true);
-            const data = await clientService.getAll();
+            const data = await clientService.getAll(); //
             setClients(data);
         } catch (error) {
             console.error(error);
@@ -80,21 +81,16 @@ function CustomerPage() {
         {
             header: "Cliente",
             render: (row) => {
-                // --- FIX: Mapeo correcto de FirstName y LastName separados ---
                 const fName = row.firstName || row.FirstName || "";
                 const lName = row.lastName || row.LastName || "";
-                
-                // Construimos nombre completo. Si ambos faltan, fallback a "Cliente"
                 const fullName = (fName || lName) ? `${fName} ${lName}`.trim() : "Cliente Sin Nombre";
-
-                // Iniciales: Primera letra del nombre + Primera letra del apellido
+                
                 const initial1 = fName ? fName.charAt(0) : "";
                 const initial2 = lName ? lName.charAt(0) : "";
                 const initials = (initial1 + initial2).toUpperCase() || "C";
 
                 return (
                     <div className="flex items-center gap-3">
-                        {/* Avatar */}
                         <div className="w-10 h-10 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-sm flex-shrink-0 border-2 border-white shadow-sm">
                             {initials}
                         </div>
@@ -106,42 +102,61 @@ function CustomerPage() {
                 );
             }
         },
+        // 2. Columna Contacto Actualizada (Teléfono + Email)
         {
             header: "Contacto",
             render: (row) => (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Mail size={16} className="text-pink-400" />
-                    <span>{row.email || row.Email || "Sin correo"}</span>
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2 text-sm text-gray-700 font-bold">
+                        <Phone size={14} className="text-pink-500" />
+                        <span>{row.phoneNumber || row.PhoneNumber || "---"}</span>
+                    </div>
+                    {(row.email || row.Email) && (
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <Mail size={12} className="text-gray-400" />
+                            <span>{row.email || row.Email}</span>
+                        </div>
+                    )}
                 </div>
             )
         },
         {
             header: "Datos Fiscales",
             render: (row) => {
-                const regimenName = row.regimenFiscalDescripion || row.regimenFiscalDescripcion || row.RegimenFiscalDescripion || "Sin Régimen";
+                const regimenName = row.regimenFiscalDescripcion || row.RegimenFiscalDescripcion || "Sin Régimen";
                 return (
                     <div className="flex flex-col">
                         <div className="flex items-center gap-1 text-sm font-bold text-gray-700">
                             <FileText size={14} className="text-gray-400" />
                             {row.rfc || row.Rfc || "---"}
                         </div>
-                        <span className="text-xs text-gray-500 ml-5 truncate max-w-[200px]" title={regimenName}>
+                        <span className="text-xs text-gray-500 ml-5 truncate max-w-[150px]" title={regimenName}>
                             {regimenName}
                         </span>
                     </div>
                 );
             }
         },
+        // 3. Columna Compras Dinámica
         {
             header: "Compras",
             className: "text-center",
-            render: () => (
-                <div className="flex justify-center">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold">
-                        <ShoppingBag size={12} /> 0
-                    </span>
-                </div>
-            )
+            render: (row) => {
+                // Leemos la propiedad calculada desde el Backend
+                const count = row.salesCount !== undefined ? row.salesCount : (row.SalesCount || 0);
+                
+                return (
+                    <div className="flex justify-center">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold ${
+                            count > 0 
+                                ? 'bg-blue-50 text-blue-600 border border-blue-100' 
+                                : 'bg-gray-50 text-gray-400 border border-gray-100'
+                        }`}>
+                            <ShoppingBag size={12} /> {count}
+                        </span>
+                    </div>
+                );
+            }
         },
         {
             header: "Acciones",
@@ -155,18 +170,19 @@ function CustomerPage() {
         }
     ], []);
 
-    // --- FIX: Filtro actualizado para buscar en nombre y apellido por separado ---
     const filtered = clients.filter(c => {
         const term = searchTerm.toLowerCase();
         
         const fName = (c.firstName || c.FirstName || "").toLowerCase();
         const lName = (c.lastName || c.LastName || "").toLowerCase();
-        const fullName = `${fName} ${lName}`; // Concatenamos para búsqueda flexible
+        const fullName = `${fName} ${lName}`;
         
         const email = (c.email || c.Email || "").toLowerCase();
         const rfc = (c.rfc || c.Rfc || "").toLowerCase();
+        // 4. Agregar búsqueda por teléfono
+        const phone = (c.phoneNumber || c.PhoneNumber || "").toLowerCase();
         
-        return fullName.includes(term) || email.includes(term) || rfc.includes(term);
+        return fullName.includes(term) || email.includes(term) || rfc.includes(term) || phone.includes(term);
     });
 
     const indexOfLast = currentPage * itemsPerPage;
@@ -182,7 +198,7 @@ function CustomerPage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <input
                             type="text"
-                            placeholder="Buscar por nombre, correo, RFC..."
+                            placeholder="Buscar por nombre, tel, RFC..."
                             className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm transition-all"
                             value={searchTerm}
                             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}

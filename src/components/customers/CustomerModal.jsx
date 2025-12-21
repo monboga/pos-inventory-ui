@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Mail, FileText, Briefcase, RefreshCw, AlertCircle } from 'lucide-react';
+import { X, Save, User, Mail, FileText, Briefcase, RefreshCw, AlertCircle, Phone } from 'lucide-react'; // Agregamos Phone
 import { satService } from '../../services/satService'; 
 import { motion, AnimatePresence } from 'framer-motion'; 
 import AnimatedSelect from '../common/AnimatedSelect';
@@ -21,6 +21,7 @@ function CustomerModal({ isOpen, onClose, onSubmit, clientToEdit }) {
         firstName: '',
         lastName: '',
         email: '',
+        phoneNumber: '', // Nuevo campo
         rfc: '',
         regimenFiscalId: ''
     };
@@ -34,7 +35,6 @@ function CustomerModal({ isOpen, onClose, onSubmit, clientToEdit }) {
             const loadSatData = async () => {
                 try {
                     const data = await satService.getRegimenesFiscales(); 
-                    // Mapeamos para AnimatedSelect: {id, name}
                     const formattedRegimenes = data.map(r => ({
                         id: r.id || r.Id,
                         name: `${r.code || r.Code} - ${r.description || r.Description}`
@@ -60,9 +60,10 @@ function CustomerModal({ isOpen, onClose, onSubmit, clientToEdit }) {
                 const lName = parts.slice(1).join(' ') || "";
 
                 setFormData({
-                    firstName: clientToEdit.firstName || fName,
-                    lastName: clientToEdit.lastName || lName,
+                    firstName: clientToEdit.firstName || clientToEdit.FirstName || fName,
+                    lastName: clientToEdit.lastName || clientToEdit.LastName || lName,
                     email: clientToEdit.email || clientToEdit.Email || '',
+                    phoneNumber: clientToEdit.phoneNumber || clientToEdit.PhoneNumber || '', // Cargar teléfono
                     rfc: clientToEdit.rfc || clientToEdit.Rfc || '',
                     regimenFiscalId: clientToEdit.regimenFiscalId || clientToEdit.RegimenFiscalId || ''
                 });
@@ -76,10 +77,16 @@ function CustomerModal({ isOpen, onClose, onSubmit, clientToEdit }) {
         e.preventDefault();
         setError(null);
 
+        // Validaciones manuales
+        if (!formData.phoneNumber) {
+            const msg = "⚠️ El número de teléfono es obligatorio";
+            toast.error(msg);
+            return;
+        }
+
         if (!formData.regimenFiscalId) {
             const msg = "⚠️ Debes seleccionar un Régimen Fiscal";
             toast.error(msg);
-            setError(msg);
             return;
         }
 
@@ -101,7 +108,7 @@ function CustomerModal({ isOpen, onClose, onSubmit, clientToEdit }) {
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    {/* 1. BACKDROP */}
+                    {/* BACKDROP */}
                     <motion.div
                         className="fixed inset-0 bg-black/50 backdrop-blur-sm"
                         variants={backdropVariants}
@@ -111,7 +118,7 @@ function CustomerModal({ isOpen, onClose, onSubmit, clientToEdit }) {
                         onClick={onClose}
                     />
 
-                    {/* 2. MODAL */}
+                    {/* MODAL */}
                     <motion.div
                         className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative z-10 flex flex-col max-h-[90vh]"
                         variants={modalVariants}
@@ -131,16 +138,16 @@ function CustomerModal({ isOpen, onClose, onSubmit, clientToEdit }) {
 
                         <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
                             
-                            {/* Error Message */}
                             {error && (
                                 <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm flex items-center gap-2 border border-red-100">
                                     <AlertCircle size={16} /> {error}
                                 </div>
                             )}
 
+                            {/* Nombres y Apellidos */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre(s)</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre(s) <span className="text-red-500">*</span></label>
                                     <div className="relative">
                                         <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                         <input 
@@ -153,7 +160,7 @@ function CustomerModal({ isOpen, onClose, onSubmit, clientToEdit }) {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Apellido(s)</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Apellido(s) <span className="text-red-500">*</span></label>
                                     <div className="relative">
                                         <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                         <input 
@@ -167,20 +174,37 @@ function CustomerModal({ isOpen, onClose, onSubmit, clientToEdit }) {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                    <input 
-                                        type="email" required 
-                                        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none transition-all placeholder:text-gray-300" 
-                                        placeholder="cliente@empresa.com"
-                                        value={formData.email} 
-                                        onChange={e => setFormData({...formData, email: e.target.value})} 
-                                    />
+                            {/* Contacto: Teléfono (Obligatorio) y Email (Opcional) */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono <span className="text-red-500">*</span></label>
+                                    <div className="relative">
+                                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                        <input 
+                                            type="tel" required 
+                                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none transition-all placeholder:text-gray-300" 
+                                            placeholder="55 1234 5678"
+                                            value={formData.phoneNumber} 
+                                            onChange={e => setFormData({...formData, phoneNumber: e.target.value})} 
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Correo <span className="text-gray-400 text-xs font-normal">(Opcional)</span></label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                        <input 
+                                            type="email" 
+                                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none transition-all placeholder:text-gray-300" 
+                                            placeholder="cliente@empresa.com"
+                                            value={formData.email} 
+                                            onChange={e => setFormData({...formData, email: e.target.value})} 
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
+                            {/* Datos Fiscales */}
                             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
                                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2"><FileText size={16} className="text-pink-500"/> Datos Fiscales</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
