@@ -6,6 +6,7 @@ import OrderSummary from '../components/pos/OrderSummary'; // Asegúrate que el 
 import AnimatedSelect from '../components/common/AnimatedSelect';
 import CategoryFilter from '../components/pos/CategoryFilter';
 import SaleSuccessModal from '../components/sales/SaleSuccessModal';
+import cashSoundAsset from '../assets/sounds/cash_register.mp3';
 import toast from 'react-hot-toast';
 import { productService } from '../services/productService';
 import { categoryService } from '../services/categoryService';
@@ -199,7 +200,10 @@ function PointOfSalePage() {
                 : response;
             if (!saleId) throw new Error("ID de venta inválido recibido del servidor.");
             const fullSaleDetails = await saleService.getById(saleId);
+            
             toast.dismiss(toastId);
+
+            playSuccessSound();
             setSuccessModalData(fullSaleDetails);
 
             setCart([]);
@@ -216,13 +220,39 @@ function PointOfSalePage() {
     };
 
     // manejo de impresion de ticket de venta
-    const handlePrintTicket = (saleId) => {
-        toast.loading("Generando ticket PDF...");
+    const handlePrintTicket = async (saleId) => {
+        const toastId = toast.loading("Generando ticket PDF...");
+        try {
+            // 1. Obtener el BLOB del backend
+            const blob = await saleService.getTicketPdf(saleId);
+            
+            // 2. Crear una URL local para el archivo
+            const url = window.URL.createObjectURL(blob);
+            
+            // 3. Abrir en una nueva ventana para imprimir
+            // Nota: Para tickets, suele ser mejor abrir en iframe oculto o nueva ventana
+            window.open(url, '_blank');
+            
+            toast.success("Ticket generado", { id: toastId });
+        } catch (error) {
+            console.error("Error impresión:", error);
+            toast.error("Error al generar ticket", { id: toastId });
+        }
     };
 
     const handleCloseSuccess = () => {
         setSuccessModalData(null);
     };
+
+    const playSuccessSound = () => {
+        try {
+            const audio = new Audio(cashSoundAsset);
+            audio.volume = 0.6;
+            audio.play();
+        } catch (error) {
+            console.warn("No se pudo reproducir el sonido de caja:", error);
+        }
+    }
 
     if (loading) return <div className="flex h-full items-center justify-center text-pink-500"><Loader className="animate-spin" size={40} /></div>;
 
