@@ -3,15 +3,15 @@ import PageHeader from '../components/common/PageHeader';
 import DynamicTable from '../components/common/DynamicTable';
 import ProductModal from '../components/inventory/ProductModal';
 import { productService } from '../services/productService';
-import { categoryService } from '../services/categoryService'; // <--- 1. IMPORTAR CATEGORY SERVICE
-import { Search, Plus, Edit, Trash2, Box, Package, AlertOctagon, Tag, Percent } from 'lucide-react'; // Agregamos Tag icon
+import { categoryService } from '../services/categoryService';
+// 1. IMPORTANTE: Agregamos 'Layers' a los imports
+import { Search, Plus, Edit, Trash2, Box, Package, AlertOctagon, Tag, Percent, Layers } from 'lucide-react'; 
 import toast from 'react-hot-toast';
 
 const API_BASE_URL = 'https://localhost:7031';
 
 function InventoryPage() {
     const [products, setProducts] = useState([]);
-    // Estado para guardar el mapa de ID -> Nombre de categoría
     const [categoriesMap, setCategoriesMap] = useState({});
 
     const [loading, setLoading] = useState(true);
@@ -21,11 +21,9 @@ function InventoryPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentProduct, setCurrentProduct] = useState(null);
 
-    // --- 2. CARGA DE DATOS (Productos + Categorías) ---
     const loadData = async () => {
         try {
             setLoading(true);
-            // Ejecutamos ambas peticiones en paralelo para eficiencia
             const [productsData, categoriesData] = await Promise.all([
                 productService.getAll(),
                 categoryService.getAll()
@@ -33,7 +31,6 @@ function InventoryPage() {
 
             setProducts(productsData);
 
-            // Creamos un diccionario rápido para buscar nombres: { "1": "Bebidas", "2": "Snacks" }
             const catMap = {};
             categoriesData.forEach(cat => {
                 catMap[cat.id || cat.Id] = cat.description || cat.Description;
@@ -61,7 +58,7 @@ function InventoryPage() {
                 toast.success("Producto creado correctamente", { id: toastId });
             }
             setIsModalOpen(false);
-            loadData(); // Recargamos todo
+            loadData(); 
         } catch (error) {
             toast.error(error.message, { id: toastId });
         }
@@ -123,7 +120,6 @@ function InventoryPage() {
                 );
             }
         },
-        // --- 3. CAMBIO: Columna Categoría en vez de Marca ---
         {
             header: "Categoría",
             render: (row) => {
@@ -162,19 +158,33 @@ function InventoryPage() {
                 );
             }
         },
-        {
+        // --- COLUMNA DE DESCUENTOS CORREGIDA ---
+       {
             header: "Descuento",
-            className: "text-center w-32", // Ancho fijo para alineación
+            className: "text-center w-40",
             render: (row) => {
-                // Obtenemos el porcentaje (Manejo de PascalCase o camelCase)
-                const percentage = row.discountPercentage || row.DiscountPercentage || 0;
+                const discount = row.discount || row.Discount;
+                const percentage = row.discountPercentage || row.DiscountPercentage || discount?.percentage || discount?.Percentage || 0;
+                
+                // Validamos MinQuantity. Si es nulo o 0, es 1.
+                const minQty = discount?.minQuantity || discount?.MinQuantity || 1;
+                const isBulk = minQty > 1;
 
                 if (percentage > 0) {
                     return (
                         <div className="flex justify-center">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-pink-100 text-pink-700 border border-pink-200">
-                                <Percent size={12} /> -{Number(percentage)}%
-                            </span>
+                            {isBulk ? (
+                                // ESTILO AZUL (Mayoreo)
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200" title={`Aplica a partir de ${minQty} piezas`}>
+                                    <Layers size={12} /> 
+                                    <span>{minQty}+ : -{Number(percentage)}%</span>
+                                </span>
+                            ) : (
+                                // ESTILO ROSA (Directo)
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-pink-100 text-pink-700 border border-pink-200">
+                                    <Percent size={12} /> -{Number(percentage)}%
+                                </span>
+                            )}
                         </div>
                     );
                 }
@@ -209,13 +219,12 @@ function InventoryPage() {
                 </div>
             )
         }
-    ], [categoriesMap]); // Agregamos categoriesMap a las dependencias para que refresque cuando carguen
+    ], [categoriesMap]); 
 
     const filtered = products.filter(p => {
         const term = searchTerm.toLowerCase();
         const desc = (p.description || p.Description || "").toLowerCase();
         const code = (p.barcode || p.Barcode || "").toLowerCase();
-        // Opcional: También filtrar por nombre de categoría
         const catId = p.categoryId || p.CategoryId;
         const catName = (categoriesMap[catId] || "").toLowerCase();
 
