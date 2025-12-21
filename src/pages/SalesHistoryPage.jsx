@@ -324,7 +324,13 @@ function SalesHistoryPage() {
             </div>
 
             <SaleDetailModal isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} sale={selectedSale} />
-            <DateRangeModal isOpen={isDateModalOpen} onClose={() => setIsDateModalOpen(false)} onApply={handleDateFilter} />
+            <DateRangeModal 
+                isOpen={isDateModalOpen} 
+                onClose={() => setIsDateModalOpen(false)} 
+                onApply={handleDateFilter} 
+                initialStartDate={dateRange.start}
+                initialEndDate={dateRange.end}
+            />
         </div>
     );
 }
