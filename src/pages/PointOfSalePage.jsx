@@ -107,11 +107,13 @@ function PointOfSalePage() {
         setDisplayedProducts(filtered);
     }, [activeCategory, searchTerm, allProducts]);
 
-    // --- 3. LÓGICA CARRITO (CORREGIDA) ---
+    // --- 3. LÓGICA CARRITO ---
     const handleAddToCart = (product) => {
+        const rawDiscount = product.discount || product.Discount;
+        const minQuantity = rawDiscount?.minQuantity || rawDiscount?.MinQuantity || product.minQuantity || product.MinQuantity || 1;
+
+        const discountPercentage = Number(product.discountPercentage || product.DiscountPercentage || rawDiscount?.percentage || rawDiscount?.Percentage || 0)
         const cartItem = {
-            // FIX: Copiamos TODAS las propiedades originales primero.
-            // Esto asegura que 'DiscountPercentage', 'DiscountId', etc., pasen al carrito.
             ...product,
 
             // Luego normalizamos las propiedades básicas para uso interno
@@ -121,8 +123,9 @@ function PointOfSalePage() {
             image: product.image || product.Image,
             stock: product.stock ?? product.Stock ?? 0,
 
-            // Opcional: Si quieres asegurar que la propiedad tenga un nombre específico en minúscula
-            discountPercentage: product.discountPercentage || product.DiscountPercentage || 0
+            discountPercentage: discountPercentage,
+            minQuantity: minQuantity,
+            discountId: rawDiscount?.id || rawDiscount?.Id
         };
 
         const existing = cart.find(item => item.id === cartItem.id);
