@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Check, Trash2, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DatePicker, { registerLocale } from 'react-datepicker';
@@ -17,27 +17,31 @@ const modalVariants = {
     exit: { scale: 0.95, opacity: 0, y: 10, transition: { duration: 0.15 } }
 };
 
-function DateRangeModal({ isOpen, onClose, onApply }) {
+// FIX: Recibimos initialStartDate e initialEndDate
+function DateRangeModal({ isOpen, onClose, onApply, initialStartDate, initialEndDate }) {
     const [dateRange, setDateRange] = useState([null, null]);
     const [startDate, endDate] = dateRange;
 
-    // Helper visual
+    // FIX: Sincronizar estado cuando se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            setDateRange([initialStartDate || null, initialEndDate || null]);
+        }
+    }, [isOpen, initialStartDate, initialEndDate]);
+
     const formatDateDisplay = (date) => {
         if (!date) return "--/--/----";
         return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
 
-    // Helper Texto Footer Minimalista
     const getRangeLabel = () => {
+        if (!startDate && !endDate) return "Selecciona un rango"; // Texto por defecto
         if (!startDate) return "Selecciona fecha de inicio";
         const options = { day: 'numeric', month: 'long', year: 'numeric' };
 
         if (!endDate) {
-            // Solo inicio seleccionado
             return `Desde: ${startDate.toLocaleDateString('es-MX', options)}`;
         }
-
-        // Rango completo
         return `${startDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('es-MX', options)}`;
     };
 
@@ -46,9 +50,17 @@ function DateRangeModal({ isOpen, onClose, onApply }) {
         onClose();
     };
 
+    // FIX: "Limpiar" ahora elimina el filtro y cierra
     const handleClear = () => {
         setDateRange([null, null]);
+        onApply(null, null); // Enviamos nulls para resetear la tabla
+        onClose();
     };
+
+    // FIX: Validar botón aplicar.
+    // Habilitado si: (Están ambos seleccionados) O (Están ambos vacíos -> sirve para confirmar limpieza)
+    // Deshabilitado si: (Solo hay uno seleccionado -> rango incompleto)
+    const isApplyDisabled = (startDate && !endDate);
 
     return (
         <AnimatePresence>
@@ -86,11 +98,9 @@ function DateRangeModal({ isOpen, onClose, onApply }) {
                                         inline
                                         locale="es"
                                         calendarClassName="!shadow-none !border-none"
-                                    // Las clases del mes y día se manejan en index.css
                                     />
                                 </div>
 
-                                {/* TEXTO RANGO MINIMALISTA (Estilo ALBA) */}
                                 <div className="mt-6 w-full text-center">
                                     <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide uppercase transition-all duration-300 ${startDate
                                             ? 'bg-pink-50 text-pink-600 border border-pink-100'
@@ -102,12 +112,11 @@ function DateRangeModal({ isOpen, onClose, onApply }) {
                                 </div>
                             </div>
 
-                            {/* DERECHA: CONFIRMACIÓN E INPUTS */}
+                            {/* DERECHA: CONFIRMACIÓN */}
                             <div className="p-6 flex flex-col justify-center gap-6 flex-1 bg-gray-50/50">
                                 <div>
                                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 ml-1">Confirmación</h4>
 
-                                    {/* Inputs Visuales (Solo lectura) */}
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
                                             <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Inicio</p>
@@ -132,13 +141,14 @@ function DateRangeModal({ isOpen, onClose, onApply }) {
                                     <button
                                         onClick={handleClear}
                                         className="px-4 py-3 text-sm text-gray-500 hover:text-red-500 hover:bg-white hover:shadow-sm rounded-xl font-bold transition-all flex items-center gap-2"
+                                        title="Borrar selección y ver todo"
                                     >
                                         <Trash2 size={18} />
-                                        Limpiar
+                                        Quitar Filtro
                                     </button>
                                     <button
                                         onClick={handleApply}
-                                        disabled={!startDate || !endDate}
+                                        disabled={isApplyDisabled}
                                         className="flex-1 py-3 bg-pink-500 text-white rounded-xl text-sm font-bold hover:bg-pink-600 shadow-lg shadow-pink-200 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                                     >
                                         <Check size={18} strokeWidth={3} />
