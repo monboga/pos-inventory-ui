@@ -22,7 +22,7 @@ function DiscountModal({ isOpen, onClose, onSave, discountToEdit }) {
     const [formData, setFormData] = useState({
         reason: '',
         percentage: '',
-        minQuantity: '1', // 1 = Descuento directo estándar
+        minQuantity: '1', 
         isActive: true
     });
 
@@ -57,6 +57,9 @@ function DiscountModal({ isOpen, onClose, onSave, discountToEdit }) {
         onSave(payload);
     };
 
+    // Helper para auto-seleccionar texto al hacer clic (UX FIX)
+    const handleFocus = (e) => e.target.select();
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -70,7 +73,7 @@ function DiscountModal({ isOpen, onClose, onSave, discountToEdit }) {
                         className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative z-10"
                         variants={modalVariants} initial="hidden" animate="visible" exit="exit"
                     >
-                        {/* Header Minimalista */}
+                        {/* Header */}
                         <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white">
                             <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                                 <span className={`p-2 rounded-xl ${formData.minQuantity > 1 ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-600'}`}>
@@ -95,6 +98,7 @@ function DiscountModal({ isOpen, onClose, onSave, discountToEdit }) {
                                         placeholder="Ej: Mayoristas, Buen Fin..."
                                         value={formData.reason}
                                         onChange={(e) => setFormData({...formData, reason: e.target.value})}
+                                        onFocus={handleFocus} // También útil para el nombre al editar
                                         autoFocus
                                     />
                                 </div>
@@ -113,11 +117,12 @@ function DiscountModal({ isOpen, onClose, onSave, discountToEdit }) {
                                             min="1" max="100"
                                             value={formData.percentage}
                                             onChange={(e) => setFormData({...formData, percentage: e.target.value})}
+                                            onFocus={handleFocus} // <--- UX FIX AQUI
                                         />
                                     </div>
                                 </div>
 
-                                {/* Input: Cantidad Mínima (HIGHLIGHT) */}
+                                {/* Input: Cantidad Mínima */}
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1 flex items-center gap-1">
                                         Min. Piezas
@@ -137,6 +142,7 @@ function DiscountModal({ isOpen, onClose, onSave, discountToEdit }) {
                                             min="1"
                                             value={formData.minQuantity}
                                             onChange={(e) => setFormData({...formData, minQuantity: e.target.value})}
+                                            onFocus={handleFocus} // <--- UX FIX AQUI
                                         />
                                     </div>
                                 </div>
