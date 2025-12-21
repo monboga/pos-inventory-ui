@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, RefreshCw, Box, Tag, Image as ImageIcon, ToggleLeft, ToggleRight, FileText, Percent, Package, DollarSign } from 'lucide-react';
+import { X, Save, RefreshCw, Box, Tag, Image as ImageIcon, FileText, Percent, Package, DollarSign } from 'lucide-react';
 import { categoryService } from '../../services/categoryService';
 import { satService } from '../../services/satService';
 import { motion, AnimatePresence } from 'framer-motion';
 import AnimatedSelect from '../common/AnimatedSelect';
+import StatusToggle from '../common/StatusToggle.jsx';
 import { discountService } from '../../services/discountService';
 import toast from 'react-hot-toast';
 
@@ -396,19 +397,12 @@ function ProductModal({ isOpen, onClose, onSubmit, productToEdit }) {
 
                             {/* ESTADO */}
                             {productToEdit && (
-                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                    <span className="text-sm font-medium text-gray-700">Estado del producto</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
-                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold transition-all active:scale-95 ${formData.isActive
-                                            ? 'bg-green-100 text-green-700 border border-green-200'
-                                            : 'bg-red-100 text-red-700 border border-red-200'
-                                            }`}
-                                    >
-                                        {formData.isActive ? <><ToggleRight size={18} /> Activo</> : <><ToggleLeft size={18} /> Inactivo</>}
-                                    </button>
-                                </div>
+                                <StatusToggle 
+                                    isActive={formData.isActive}
+                                    onToggle={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
+                                    label="Estado del producto"
+                                    description="Controlar visibilidad en inventario"
+                                />
                             )}
 
                             {/* FOOTER */}

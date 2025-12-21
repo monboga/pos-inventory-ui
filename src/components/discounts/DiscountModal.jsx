@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Percent, Type, Layers, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import StatusToggle from '../common/StatusToggle.jsx';
 import toast from 'react-hot-toast';
 
 const backdropVariants = {
@@ -149,15 +150,12 @@ function DiscountModal({ isOpen, onClose, onSave, discountToEdit }) {
                             </div>
 
                             {/* Switch Activo */}
-                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}>
-                                <div className="flex flex-col">
-                                    <span className="text-sm font-bold text-gray-700">Estado Activo</span>
-                                    <span className="text-[10px] text-gray-400">Habilitar o deshabilitar regla</span>
-                                </div>
-                                <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300'}`}>
-                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${formData.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
-                                </div>
-                            </div>
+                            <StatusToggle 
+                                isActive={formData.isActive}
+                                onToggle={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
+                                label="Estado Activo"
+                                description="Habilitar o deshabilitar regla"
+                            />
 
                             {/* Footer Buttons */}
                             <div className="pt-2 flex gap-3">

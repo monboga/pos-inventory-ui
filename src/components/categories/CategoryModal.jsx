@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, RefreshCw, Save, Tag, ToggleLeft, ToggleRight, AlertCircle, Percent } from 'lucide-react';
+import { X, RefreshCw, Save, Tag, AlertCircle, Percent } from 'lucide-react'; // Quitamos ToggleLeft/Right
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { discountService } from '../../services/discountService';
 import AnimatedSelect from '../common/AnimatedSelect';
+import StatusToggle from '../common/StatusToggle'; // <--- IMPORTAR
 
 // --- VARIANTES DE ANIMACIÓN ---
 const backdropVariants = { hidden: { opacity: 0 }, visible: { opacity: 1 }, exit: { opacity: 0 } };
@@ -52,14 +53,12 @@ function CategoryModal({ isOpen, onClose, onSubmit, categoryToEdit }) {
         if (isOpen) {
             setError(null);
             if (categoryToEdit) {
-                // Modo Edición
                 setFormData({
                     description: categoryToEdit.description || categoryToEdit.Description || '',
                     isActive: categoryToEdit.isActive !== undefined ? categoryToEdit.isActive : categoryToEdit.IsActive,
                     discountId: categoryToEdit.discountId || categoryToEdit.DiscountId || ''
                 });
             } else {
-                // Modo Crear
                 setFormData({ ...initialFormState });
             }
         }
@@ -71,7 +70,6 @@ function CategoryModal({ isOpen, onClose, onSubmit, categoryToEdit }) {
         setIsSubmitting(true);
 
         const dataToSend = { ...formData };
-        // LÓGICA NULL: Convertir '' a null para el backend
         if (dataToSend.discountId === '') {
             dataToSend.discountId = null;
         }
@@ -93,7 +91,6 @@ function CategoryModal({ isOpen, onClose, onSubmit, categoryToEdit }) {
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    {/* 1. BACKDROP (Fondo Oscuro) */}
                     <motion.div
                         className="fixed inset-0 bg-black/50 backdrop-blur-sm"
                         variants={backdropVariants}
@@ -103,7 +100,6 @@ function CategoryModal({ isOpen, onClose, onSubmit, categoryToEdit }) {
                         onClick={onClose}
                     />
 
-                    {/* 2. MODAL (Contenedor Blanco Sólido) */}
                     <motion.div
                         className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative z-10 flex flex-col"
                         variants={modalVariants}
@@ -123,14 +119,12 @@ function CategoryModal({ isOpen, onClose, onSubmit, categoryToEdit }) {
 
                         <form onSubmit={handleSubmit} className="p-6 space-y-6">
 
-                            {/* Error Message */}
                             {error && (
                                 <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2">
                                     <AlertCircle size={16} /> {error}
                                 </div>
                             )}
 
-                            {/* Campo Descripción */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
                                 <div className="relative">
@@ -155,29 +149,16 @@ function CategoryModal({ isOpen, onClose, onSubmit, categoryToEdit }) {
                                     icon={Percent}
                                     placeholder={loadingData ? "Cargando..." : "Selecciona un descuento"}
                                 />
-                                {console.log("Selected discountId:", formData.discountId)}
                             </div>
 
-                            {/* Toggle Estado */}
-                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                <span className="text-sm font-medium text-gray-700">Estado</span>
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold transition-all active:scale-95 ${formData.isActive
-                                        ? 'bg-green-100 text-green-700 border border-green-200'
-                                        : 'bg-red-100 text-red-700 border border-red-200'
-                                        }`}
-                                >
-                                    {formData.isActive ? (
-                                        <> <ToggleRight size={18} /> Activo </>
-                                    ) : (
-                                        <> <ToggleLeft size={18} /> Inactivo </>
-                                    )}
-                                </button>
-                            </div>
+                            {/* REFACTOR: USO DE COMPONENTE REUTILIZABLE */}
+                            <StatusToggle 
+                                isActive={formData.isActive}
+                                onToggle={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
+                                label="Estado de Categoría"
+                                description="Visible en el sistema"
+                            />
 
-                            {/* Footer Botones */}
                             <div className="pt-2 flex gap-3 justify-end border-t border-gray-50">
                                 <button
                                     type="button"
