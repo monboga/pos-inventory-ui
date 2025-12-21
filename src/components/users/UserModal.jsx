@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, User, RefreshCw, Mail, Lock, Shield, Camera, ToggleLeft, ToggleRight, AlertCircle } from 'lucide-react';
+import { X, Save, User, RefreshCw, Mail, Lock, Shield, Camera, AlertCircle } from 'lucide-react'; // Eliminamos ToggleLeft/Right
 import { roleService } from '../../services/roleService';
 import { motion, AnimatePresence } from 'framer-motion';
 import AnimatedSelect from '../common/AnimatedSelect';
+import StatusToggle from '../common/StatusToggle'; // <--- IMPORTAR
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7031';
 
-// ... (Variants de animación se mantienen igual) ...
 const backdropVariants = { hidden: { opacity: 0 }, visible: { opacity: 1 }, exit: { opacity: 0 } };
 const modalVariants = { hidden: { scale: 0.8, y: 50, opacity: 0 }, visible: { scale: 1, y: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 25, mass: 0.5 } }, exit: { scale: 0.9, y: 20, opacity: 0, transition: { duration: 0.15 } } };
 
@@ -31,9 +31,6 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
     const [photoPreview, setPhotoPreview] = useState(null);
     const [photoFile, setPhotoFile] = useState(null);
 
-    // ... (compressImageToFile se mantiene igual) ...
-    const compressImageToFile = (file) => { /* ... código compresión ... */ return file; };
-
     useEffect(() => {
         const fetchRoles = async () => {
             if (isOpen) {
@@ -57,7 +54,6 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
             setPhotoFile(null);
 
             if (userToEdit) {
-                // Mapeo Edición
                 let fName = userToEdit.firstName || userToEdit.FirstName || "";
                 let lName = userToEdit.lastName || userToEdit.LastName || "";
 
@@ -86,14 +82,13 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                     firstName: fName,
                     lastName: lName,
                     email: userToEdit.email || userToEdit.Email || "",
-                    password: '', // Vacío, no se usa en edit
+                    password: '', 
                     role: roleIdToSelect,
                     isActive: userToEdit.isActive !== undefined ? userToEdit.isActive : true
                 });
                 setPhotoPreview(existingPhoto);
 
             } else {
-                // Nuevo Usuario
                 let defaultRole = availableRoles.length > 0 ? (availableRoles[0].id || availableRoles[0].Id) : "";
                 setFormData({ ...initialFormState, role: defaultRole });
                 setPhotoPreview(null);
@@ -105,7 +100,7 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
         const file = e.target.files[0];
         if (file) {
             setPhotoPreview(URL.createObjectURL(file));
-            setPhotoFile(file); // Simplificado sin compresión obligatoria para prueba
+            setPhotoFile(file);
         }
     };
 
@@ -115,10 +110,7 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
         setIsSubmitting(true);
 
         try {
-            await onSubmit({
-                ...formData,
-                photoFile: photoFile
-            });
+            await onSubmit({ ...formData, photoFile: photoFile });
         } catch (err) {
             setError(err.message);
         } finally {
@@ -130,41 +122,19 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <motion.div
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-                        variants={backdropVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                        onClick={onClose}
-                    />
+                    <motion.div className="fixed inset-0 bg-black/50 backdrop-blur-sm" variants={backdropVariants} initial="hidden" animate="visible" exit="exit" onClick={onClose} />
 
-                    <motion.div
-                        className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden relative z-10 flex flex-col max-h-[90vh]"
-                        variants={modalVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                    >
+                    <motion.div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden relative z-10 flex flex-col max-h-[90vh]" variants={modalVariants} initial="hidden" animate="visible" exit="exit">
                         {/* HEADER */}
                         <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-pink-50/30">
-                            <h2 className="text-xl font-bold text-gray-800">
-                                {userToEdit ? 'Editar Usuario' : 'Nuevo Usuario'}
-                            </h2>
-                            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-full transition-colors">
-                                <X size={20} />
-                            </button>
+                            <h2 className="text-xl font-bold text-gray-800">{userToEdit ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
+                            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-full transition-colors"><X size={20} /></button>
                         </div>
 
                         {/* FORM */}
                         <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
-
                             {error && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r flex items-start gap-3"
-                                >
+                                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r flex items-start gap-3">
                                     <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={18} />
                                     <div className="text-sm text-red-700">
                                         <p className="font-bold">Error al guardar</p>
@@ -179,26 +149,16 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                                     {photoPreview ? (
                                         <img src={photoPreview} alt="Preview" className="w-24 h-24 rounded-full object-cover border-4 border-pink-100 shadow-sm bg-white" />
                                     ) : (
-                                        <div className="w-24 h-24 rounded-full bg-gray-50 flex items-center justify-center border-4 border-white shadow-sm text-gray-400">
-                                            <User size={40} />
-                                        </div>
+                                        <div className="w-24 h-24 rounded-full bg-gray-50 flex items-center justify-center border-4 border-white shadow-sm text-gray-400"><User size={40} /></div>
                                     )}
-                                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Camera className="text-white" size={24} />
-                                    </div>
+                                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Camera className="text-white" size={24} /></div>
                                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre</label>
-                                    <input type="text" required className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all placeholder:text-gray-300" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Apellido</label>
-                                    <input type="text" required className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
-                                </div>
+                                <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre</label><input type="text" required className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all placeholder:text-gray-300" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} /></div>
+                                <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Apellido</label><input type="text" required className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} /></div>
                             </div>
 
                             <div>
@@ -209,47 +169,28 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }) {
                                 </div>
                             </div>
 
-                            {/* --- FIX: CONTRASEÑA SOLO EN CREAR --- */}
                             {!userToEdit && (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Contraseña</label>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                        <input
-                                            type="password"
-                                            required
-                                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all placeholder:text-gray-300"
-                                            placeholder="******"
-                                            value={formData.password}
-                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                        />
+                                        <input type="password" required className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all placeholder:text-gray-300" placeholder="******" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
                                     </div>
                                 </div>
                             )}
 
                             <div>
-                                <AnimatedSelect
-                                    label="Rol"
-                                    options={availableRoles}
-                                    value={formData.role}
-                                    onChange={(newVal) => setFormData({ ...formData, role: newVal })}
-                                    icon={Shield}
-                                    placeholder={loadingRoles ? "Cargando roles..." : "Selecciona un rol"}
-                                    disabled={loadingRoles}
-                                />
+                                <AnimatedSelect label="Rol" options={availableRoles} value={formData.role} onChange={(newVal) => setFormData({ ...formData, role: newVal })} icon={Shield} placeholder={loadingRoles ? "Cargando roles..." : "Selecciona un rol"} disabled={loadingRoles} />
                             </div>
 
+                            {/* REFACTOR: USO DE COMPONENTE REUTILIZABLE */}
                             {userToEdit && (
-                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                    <span className="text-sm font-medium text-gray-700">Estado de la cuenta</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
-                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold transition-all active:scale-95 ${formData.isActive ? 'bg-green-100 text-green-700 border border-green-200 shadow-sm' : 'bg-red-100 text-red-700 border border-red-200 shadow-sm'}`}
-                                    >
-                                        {formData.isActive ? <><ToggleRight size={18} /> Activo</> : <><ToggleLeft size={18} /> Inactivo</>}
-                                    </button>
-                                </div>
+                                <StatusToggle 
+                                    isActive={formData.isActive}
+                                    onToggle={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
+                                    label="Estado de la cuenta"
+                                    description="Permitir o bloquear acceso al sistema"
+                                />
                             )}
 
                             <div className="pt-4 flex gap-3 justify-end border-t border-gray-50">
