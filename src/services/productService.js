@@ -8,6 +8,12 @@ export const productService = {
         return response.data;
     },
 
+    // Obtener uno por ID (Útil para edición)
+    getById: async (id) => {
+        const response = await api.get(`${BASE_ENDPOINT}/${id}`);
+        return response.data;
+    },
+
     create: async (productData) => {
         const formData = new FormData();
 
@@ -19,8 +25,7 @@ export const productService = {
         formData.append('CategoryId', productData.categoryId);
         formData.append('IsActive', true);
 
-        // FIX: Agregar DiscountId
-        // Nota: Para FormData y .NET, enviamos cadena vacía si es null
+        // Relación con Descuento (Correcto: enviamos vacío si es null)
         formData.append('DiscountId', productData.discountId || '');
 
         // Campos SAT
@@ -57,7 +62,7 @@ export const productService = {
         formData.append('CategoryId', productData.categoryId);
         formData.append('IsActive', productData.isActive);
 
-        // FIX: Agregar DiscountId en Update también
+        // Relación con Descuento
         formData.append('DiscountId', productData.discountId || '');
 
         // SAT
@@ -82,6 +87,14 @@ export const productService = {
             if (errorData.errors) msg += `: ${JSON.stringify(errorData.errors)}`;
             throw new Error(msg);
         }
+    },
+
+    // --- NUEVO: Actualización rápida de stock (Patch) ---
+    // Útil si quieres añadir un botón "+10 stock" en el inventario sin abrir el formulario completo
+    updateStock: async (id, quantity) => {
+        // Asegúrate de tener un endpoint PATCH en el backend: [HttpPatch("{id}/stock")]
+        const response = await api.patch(`${BASE_ENDPOINT}/${id}/stock`, { quantity });
+        return response.data;
     },
 
     delete: async (id) => {
