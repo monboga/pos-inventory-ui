@@ -44,5 +44,12 @@ export const saleService = {
             { responseType: 'blob' }
         );
         return response.data;
+    },
+    getTicketPdf: async (id) => {
+        // Asegúrate que tu controller tenga la ruta /api/sales/{id}/ticket
+        const response = await api.get(`${BASE_ENDPOINT}/${id}/ticket`, {
+            responseType: 'blob'
+        });
+        return response.data;
     }
 };
