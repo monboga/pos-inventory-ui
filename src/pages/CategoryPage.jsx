@@ -122,14 +122,34 @@ function CategoryPage() {
             header: "Descuento Base",
             className: "text-center w-40",
             render: (row) => {
-                const percentage = row.discountPercentage || row.DiscountPercentage || 0;
+                // A. Intentamos leer el objeto completo primero
+                const discountObj = row.discount || row.Discount;
+                
+                // B. Leemos porcentaje (del objeto o plano como fallback)
+                const percentage = Number(
+                    discountObj?.percentage || discountObj?.Percentage || 
+                    row.discountPercentage || row.DiscountPercentage || 0
+                );
+
+                // C. Validamos MinQuantity
+                const minQty = discountObj?.minQuantity || discountObj?.MinQuantity || 1;
+                const isBulk = minQty > 1;
 
                 if (percentage > 0) {
                     return (
                         <div className="flex justify-center">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 border border-purple-200">
-                                <Percent size={12} /> -{Number(percentage)}%
-                            </span>
+                            {isBulk ? (
+                                // ESTILO AZUL (Mayoreo)
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200" title={`Aplica a partir de ${minQty} piezas`}>
+                                    <Layers size={12} /> 
+                                    <span>{minQty}+ : -{percentage}%</span>
+                                </span>
+                            ) : (
+                                // ESTILO ROSA (Directo)
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-pink-100 text-pink-700 border border-pink-200">
+                                    <Percent size={12} /> -{percentage}%
+                                </span>
+                            )}
                         </div>
                     );
                 }

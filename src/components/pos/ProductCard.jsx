@@ -1,7 +1,6 @@
 import React from 'react';
-import { Box, Plus, Ban, Percent } from 'lucide-react'; // Agregamos Percent icon
+import { Box, Plus, Ban, Percent, Layers } from 'lucide-react';
 
-// 1. FIX: Obtener URL desde variable de entorno o fallback seguro
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7031';
 
 function ProductCard({ product, onAddToCart, currentQty = 0 }) {
@@ -22,19 +21,34 @@ function ProductCard({ product, onAddToCart, currentQty = 0 }) {
     const name = product.description || product.Description || "Sin nombre";
     const categoryName = product.categoryName || product.CategoryName || "General";
 
-    // Precios y Descuentos
-    const originalPrice = Number(product.price || product.Price || 0);
-    const discountPercent = Number(product.discountPercentage || product.DiscountPercentage || 0);
+    // 1. Extracción robusta del descuento
+    const discountObj = product.discount || product.Discount || product.category?.discount || product.Category?.Discount;
+    
+    // 2. Porcentaje
+    const discountPercent = Number(
+        product.discountPercentage || product.DiscountPercentage || 
+        discountObj?.percentage || discountObj?.Percentage || 0
+    );
 
-    // Cálculo del precio final
+    // 3. MinQuantity (Clave para distinguir Mayoreo)
+    let minQty = 1;
+    if (discountObj) {
+        const mq = discountObj.minQuantity !== undefined ? discountObj.minQuantity : discountObj.MinQuantity;
+        if (mq && mq > 0) minQty = mq;
+    }
+
     const hasDiscount = discountPercent > 0;
-    const finalPrice = hasDiscount
+    const isBulkDiscount = hasDiscount && minQty > 1; // ¿Es mayoreo?
+
+    // 4. Precio Visual
+    // Si es mayoreo, mostramos el precio regular (porque al llevar 1 no hay descuento).
+    // Si es directo, mostramos el precio ya rebajado.
+    const originalPrice = Number(product.price || product.Price || 0);
+    const displayPrice = (!isBulkDiscount && hasDiscount)
         ? originalPrice * (1 - discountPercent / 100)
         : originalPrice;
 
     const stock = product.stock ?? product.Stock ?? 0;
-
-    // Estados
     const isOutOfStock = stock === 0;
     const isMaxedOut = !isOutOfStock && currentQty >= stock;
 
@@ -43,6 +57,7 @@ function ProductCard({ product, onAddToCart, currentQty = 0 }) {
             className={`
                 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col transition-all group h-full relative overflow-hidden
                 ${isOutOfStock ? 'opacity-70 cursor-not-allowed grayscale' : 'hover:shadow-md hover:-translate-y-1 cursor-pointer'}
+                ${isBulkDiscount ? 'hover:border-blue-300' : 'hover:border-pink-300'} 
             `}
             onClick={() => {
                 if (!isOutOfStock && !isMaxedOut) onAddToCart(product);
@@ -73,10 +88,22 @@ function ProductCard({ product, onAddToCart, currentQty = 0 }) {
                         {stock > 0 ? `${stock} pzs` : '0 pzs'}
                     </div>
 
-                    {/* BADGE DESCUENTO (Nuevo) */}
+                    {/* BADGE DESCUENTO (CONSISTENTE CON INVENTARIO) */}
                     {hasDiscount && !isOutOfStock && (
-                        <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold shadow-sm bg-pink-500 text-white flex items-center gap-0.5 animate-pulse-slow">
-                            <Percent size={10} strokeWidth={3} /> {discountPercent}% OFF
+                        <div className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold shadow-sm flex items-center gap-1 ${
+                            isBulkDiscount ? 'bg-blue-500 text-white' : 'bg-pink-500 text-white animate-pulse-slow'
+                        }`}>
+                            {isBulkDiscount ? (
+                                <>
+                                    <Layers size={10} strokeWidth={3} /> 
+                                    <span>{minQty}+ pzs: -{discountPercent}%</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Percent size={10} strokeWidth={3} /> 
+                                    <span>{discountPercent}% OFF</span>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
@@ -95,15 +122,22 @@ function ProductCard({ product, onAddToCart, currentQty = 0 }) {
 
                 <div className="flex items-end justify-between mt-3 pt-3 border-t border-gray-50">
                     <div className="flex flex-col">
-                        {/* Precio Tachado (Si hay descuento) */}
-                        {hasDiscount && (
+                        {/* Precio Tachado (Si hay descuento directo) */}
+                        {!isBulkDiscount && hasDiscount && (
                             <span className="text-xs text-gray-400 line-through font-medium mb-[-2px]">
                                 ${originalPrice.toFixed(2)}
                             </span>
                         )}
-                        {/* Precio Final Destacado */}
-                        <span className={`text-lg font-extrabold ${hasDiscount ? 'text-pink-600' : 'text-gray-900'}`}>
-                            ${finalPrice.toFixed(2)}
+                        {/* Etiqueta "Precio Base" si es Mayoreo */}
+                        {isBulkDiscount && (
+                            <span className="text-[9px] text-blue-600 font-extrabold uppercase tracking-wider mb-0.5">
+                                Precio Unitario
+                            </span>
+                        )}
+                        
+                        {/* Precio Principal */}
+                        <span className={`text-lg font-extrabold ${hasDiscount && !isBulkDiscount ? 'text-pink-600' : 'text-gray-900'}`}>
+                            ${displayPrice.toFixed(2)}
                         </span>
                     </div>
 
@@ -114,7 +148,9 @@ function ProductCard({ product, onAddToCart, currentQty = 0 }) {
                             w-8 h-8 flex items-center justify-center rounded-lg transition-colors
                             ${isMaxedOut
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-pink-50 text-pink-500 hover:bg-pink-500 hover:text-white'
+                                : isBulkDiscount 
+                                    ? 'bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white' 
+                                    : 'bg-pink-50 text-pink-500 hover:bg-pink-500 hover:text-white'
                             }
                         `}
                     >
