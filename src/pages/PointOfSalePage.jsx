@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader, FileText, Mail, User } from 'lucide-react';
+import { Search, Loader, FileText, Mail, User, Filter, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '../components/pos/ProductCard';
 import OrderSummary from '../components/pos/OrderSumary'; // Asegúrate que el nombre del archivo sea correcto (OrderSummary vs OrderSumary)
@@ -20,7 +20,14 @@ const gridContainerVariants = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
-        transition: { staggerChildren: 0.05 }
+        transition: { 
+            staggerChildren: 0.03,
+            when: "beforeChildren" 
+        },
+        exit: {
+            opacity: 0,
+            transition: { duration: 0.1 }
+        }
     }
 };
 
@@ -31,6 +38,11 @@ const gridItemVariants = {
         opacity: 1,
         scale: 1,
         transition: { type: "spring", stiffness: 300, damping: 25 }
+    },
+    exit: {
+        opacity: 0,
+        scale: 0.9,
+        transition: { duration: 0.1 }
     }
 };
 
@@ -208,6 +220,16 @@ function PointOfSalePage() {
                             <input type="text" placeholder="Buscar producto..." className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all shadow-sm text-gray-700" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                         </div>
                     </div>
+
+                    <div className="mb-2 flex items-center gap-2">
+                        <div className="bg-pink-50 p-1.5 rounded-lg text-pink-500">
+                            <Filter size={14} />
+                        </div>
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                            Filtrar por Categoría
+                        </span>
+                    </div>
+
                     <CategoryFilter
                         categories={categories}
                         activeCategory={activeCategory}
@@ -216,30 +238,48 @@ function PointOfSalePage() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 md:p-6 pt-0 custom-scrollbar">
+                    <AnimatePresence mode='wait'>
+
                     {displayedProducts.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-64 text-gray-400"><Search size={48} className="mb-4 opacity-20" /><p>No se encontraron productos.</p></div>
-                    ) : (
-                        <motion.div
-                            className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 md:gap-6 pb-20 lg:pb-0"
-                            variants={gridContainerVariants}
-                            initial="hidden"
-                            animate="visible"
-                            key={activeCategory + searchTerm}
-                        >
-                            {displayedProducts.map(product => {
-                                const itemInCart = cart.find(c => c.id === (product.id || product.Id));
-                                return (
-                                    <motion.div key={product.id || product.Id} variants={gridItemVariants}>
-                                        <ProductCard
-                                            product={product}
-                                            currentQty={itemInCart ? itemInCart.quantity : 0}
-                                            onAddToCart={handleAddToCart}
-                                        />
-                                    </motion.div>
-                                );
-                            })}
-                        </motion.div>
-                    )}
+                        <motion.div 
+                                key="empty"
+                                initial={{ opacity: 0 }} 
+                                animate={{ opacity: 1 }} 
+                                exit={{ opacity: 0 }}
+                                className="flex flex-col items-center justify-center h-64 text-gray-400"
+                            >
+                                <Search size={48} className="mb-4 opacity-20" />
+                                <p>No se encontraron productos.</p>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                // KEY IMPORTANTE: Al cambiar la categoría, React desmonta y monta el Grid nuevo
+                                key={activeCategory + searchTerm} 
+                                className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 md:gap-6 pb-20 lg:pb-0"
+                                variants={gridContainerVariants}
+                                initial="hidden"
+                                animate="visible"
+                                exit="exit" // Activamos la salida
+                            >
+                                {displayedProducts.map(product => {
+                                    const itemInCart = cart.find(c => c.id === (product.id || product.Id));
+                                    return (
+                                        <motion.div 
+                                            key={product.id || product.Id} 
+                                            variants={gridItemVariants}
+                                            layout // Layout animation opcional, ayuda a suavizar si se reordenan
+                                        >
+                                            <ProductCard
+                                                product={product}
+                                                currentQty={itemInCart ? itemInCart.quantity : 0}
+                                                onAddToCart={handleAddToCart}
+                                            />
+                                        </motion.div>
+                                    );
+                                })}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
 
