@@ -40,14 +40,12 @@ const AnimatedSelect = ({
     const [isOpen, setIsOpen] = useState(false);
     const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
 
-    // Refs independientes para el botón (trigger) y la lista (dropdown)
     const containerRef = useRef(null);
     const dropdownRef = useRef(null);
 
-    // Encontrar la opción seleccionada (manejo robusto de ID vs Id)
     const selectedOption = options.find(opt => {
         const optId = opt.id !== undefined ? opt.id : opt.Id;
-        return String(optId) === String(value); // Comparación como string para seguridad
+        return String(optId) === String(value);
     });
 
     const updateCoords = () => {
@@ -61,48 +59,30 @@ const AnimatedSelect = ({
         }
     };
 
-    // --- FIX SCROLL & RESIZE ---
     useEffect(() => {
         const handleScroll = (e) => {
-            // FIX: Si el evento de scroll viene de dentro del dropdown, NO cerrar
-            if (dropdownRef.current && dropdownRef.current.contains(e.target)) {
-                return;
-            }
-            // Si el scroll es de la ventana o contenedor padre, cerrar para que no se desacople
+            if (dropdownRef.current && dropdownRef.current.contains(e.target)) return;
             if (isOpen) setIsOpen(false);
         };
-
         const handleResize = () => setIsOpen(false);
 
         if (isOpen) {
             updateCoords();
-            // 'true' en useCapture para detectar scroll en cualquier elemento padre
             window.addEventListener("scroll", handleScroll, true);
             window.addEventListener("resize", handleResize);
         }
-
         return () => {
             window.removeEventListener("scroll", handleScroll, true);
             window.removeEventListener("resize", handleResize);
         };
     }, [isOpen]);
 
-    // --- FIX CLIC FUERA (Manejo de Portal) ---
     useEffect(() => {
         const handleClickOutside = (event) => {
-            // Si el clic fue en el botón TRIGGER, no hacer nada (ya lo maneja su onClick)
-            if (containerRef.current && containerRef.current.contains(event.target)) {
-                return;
-            }
-            // Si el clic fue DENTRO del menú flotante, no cerrar (lo maneja handleSelect)
-            if (dropdownRef.current && dropdownRef.current.contains(event.target)) {
-                return;
-            }
-
-            // Si fue afuera de ambos, cerrar
+            if (containerRef.current && containerRef.current.contains(event.target)) return;
+            if (dropdownRef.current && dropdownRef.current.contains(event.target)) return;
             setIsOpen(false);
         };
-
         if (isOpen) document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [isOpen]);
@@ -144,7 +124,7 @@ const AnimatedSelect = ({
                     />
                 )}
 
-                {/* FIX TEXTO LARGO: 'truncate' y 'max-w' para evitar desbordes */}
+                {/* El seleccionado se mantiene en una línea (truncate) para no romper el form visualmente */}
                 <span className={`block truncate mr-2 ${!selectedOption ? 'text-gray-400' : 'text-gray-700 font-medium'}`}>
                     {selectedOption ? (selectedOption.name || selectedOption.Name) : placeholder}
                 </span>
@@ -175,7 +155,7 @@ const AnimatedSelect = ({
                             }}
                         >
                             <ul
-                                ref={dropdownRef} // FIX: Referencia al UL para detectar clics/scroll dentro
+                                ref={dropdownRef}
                                 className="
                                     bg-white shadow-2xl rounded-xl py-1 text-base 
                                     border border-gray-100 max-h-60 overflow-auto focus:outline-none custom-scrollbar
@@ -193,9 +173,8 @@ const AnimatedSelect = ({
                                         return (
                                             <li
                                                 key={optId}
-                                                // FIX: Usamos onMouseDown para asegurar que se dispare antes del blur/click-outside
                                                 onMouseDown={(e) => {
-                                                    e.preventDefault(); // Evita que el botón pierda foco
+                                                    e.preventDefault();
                                                     handleSelect(optId);
                                                 }}
                                                 className={`
@@ -208,8 +187,9 @@ const AnimatedSelect = ({
                                                         <Check className="h-4 w-4" />
                                                     </span>
                                                 )}
-                                                {/* FIX TEXTO LARGO EN OPCIONES */}
-                                                <span className="block truncate">
+                                                
+                                                {/* --- FIX AQUI: Cambio de 'truncate' a 'whitespace-normal' --- */}
+                                                <span className="block whitespace-normal break-words leading-snug">
                                                     {option.name || option.Name}
                                                 </span>
                                             </li>
