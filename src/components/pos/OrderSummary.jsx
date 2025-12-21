@@ -207,7 +207,7 @@ function OrderSummary({ cartItems, onUpdateQuantity, onRemoveItem, onProcessSale
                     {isProcessing ? (
                         <><Loader2 className="animate-spin" /> Procesando...</>
                     ) : (
-                        <>Cerrar Venta {total > 0 && <span>${total.toFixed(2)}</span>}</>
+                        <>Procesar Venta</>
                     )}
                 </button>
             </div>
