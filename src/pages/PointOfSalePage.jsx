@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Search, Loader, FileText, Mail, User, Filter, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '../components/pos/ProductCard';
-import OrderSummary from '../components/pos/OrderSumary'; // Asegúrate que el nombre del archivo sea correcto (OrderSummary vs OrderSumary)
+import OrderSummary from '../components/pos/OrderSummary'; // Asegúrate que el nombre del archivo sea correcto (OrderSummary vs OrderSumary)
 import AnimatedSelect from '../components/common/AnimatedSelect';
 import CategoryFilter from '../components/pos/CategoryFilter';
+import SaleSuccessModal from '../components/sales/SaleSuccessModal';
 import toast from 'react-hot-toast';
 import { productService } from '../services/productService';
 import { categoryService } from '../services/categoryService';
@@ -20,9 +21,9 @@ const gridContainerVariants = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
-        transition: { 
+        transition: {
             staggerChildren: 0.03,
-            when: "beforeChildren" 
+            when: "beforeChildren"
         },
         exit: {
             opacity: 0,
@@ -62,6 +63,7 @@ function PointOfSalePage() {
     const [activeCategory, setActiveCategory] = useState('Todos');
     const [searchTerm, setSearchTerm] = useState('');
     const [cart, setCart] = useState([]);
+    const [successModalData, setSuccessModalData] = useState(null);
 
     const loadData = async () => {
         try {
@@ -189,8 +191,16 @@ function PointOfSalePage() {
                 }))
             };
 
-            await saleService.create(payload);
-            toast.success(`Venta (${docTypeString}) registrada con éxito`, { id: toastId });
+            const response = await saleService.create(payload);
+
+            const saleId = (typeof response === 'object' && response !== null)
+                ? (response.id || response.Id || response.saleId)
+            
+                : response;
+            if (!saleId) throw new Error("ID de venta inválido recibido del servidor.");
+            const fullSaleDetails = await saleService.getById(saleId);
+            toast.dismiss(toastId);
+            setSuccessModalData(fullSaleDetails);
 
             setCart([]);
             setSelectedClientId("");
@@ -199,10 +209,19 @@ function PointOfSalePage() {
 
         } catch (error) {
             console.error("Error venta:", error);
-            toast.error("Error al procesar: " + error.message, { id: toastId });
+            toast.error("Error al procesar: " + error.message);
         } finally {
             setIsProcessingSale(false);
         }
+    };
+
+    // manejo de impresion de ticket de venta
+    const handlePrintTicket = (saleId) => {
+        toast.loading("Generando ticket PDF...");
+    };
+
+    const handleCloseSuccess = () => {
+        setSuccessModalData(null);
     };
 
     if (loading) return <div className="flex h-full items-center justify-center text-pink-500"><Loader className="animate-spin" size={40} /></div>;
@@ -240,11 +259,11 @@ function PointOfSalePage() {
                 <div className="flex-1 overflow-y-auto p-4 md:p-6 pt-0 custom-scrollbar">
                     <AnimatePresence mode='wait'>
 
-                    {displayedProducts.length === 0 ? (
-                        <motion.div 
+                        {displayedProducts.length === 0 ? (
+                            <motion.div
                                 key="empty"
-                                initial={{ opacity: 0 }} 
-                                animate={{ opacity: 1 }} 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 className="flex flex-col items-center justify-center h-64 text-gray-400"
                             >
@@ -254,7 +273,7 @@ function PointOfSalePage() {
                         ) : (
                             <motion.div
                                 // KEY IMPORTANTE: Al cambiar la categoría, React desmonta y monta el Grid nuevo
-                                key={activeCategory + searchTerm} 
+                                key={activeCategory + searchTerm}
                                 className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 md:gap-6 pb-20 lg:pb-0"
                                 variants={gridContainerVariants}
                                 initial="hidden"
@@ -264,8 +283,8 @@ function PointOfSalePage() {
                                 {displayedProducts.map(product => {
                                     const itemInCart = cart.find(c => c.id === (product.id || product.Id));
                                     return (
-                                        <motion.div 
-                                            key={product.id || product.Id} 
+                                        <motion.div
+                                            key={product.id || product.Id}
                                             variants={gridItemVariants}
                                             layout // Layout animation opcional, ayuda a suavizar si se reordenan
                                         >
@@ -335,6 +354,12 @@ function PointOfSalePage() {
                     />
                 </div>
             </div>
+            <SaleSuccessModal
+                isOpen={!!successModalData}
+                onClose={handleCloseSuccess}
+                saleData={successModalData}
+                onPrint={handlePrintTicket}
+            />
         </div>
     );
 }
