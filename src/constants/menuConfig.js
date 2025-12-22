@@ -36,56 +36,62 @@ export const MENU_ITEMS = [
                 path: "/sales-history",
                 icon: History,
                 permission: PERMISSIONS.SALES.VIEW
+            },
+            {
+                title: "Pedidos",
+                path: "/orders",
+                icon: ShoppingCart,
+                permission: PERMISSIONS.SALES.VIEW
             }
-        ]
+]
     },
-    {
-        title: "Administración",
+{
+    title: "Administración",
         icon: Settings,
-        permission: null,
-        submenu: [
-            {
-                title: "Negocio",
-                path: "/business",
-                icon: Briefcase,
-                permission: PERMISSIONS.USERS.VIEW
-            },
-            {
-                title: "Usuarios",
-                path: "/users",
-                icon: Users,
-                permission: PERMISSIONS.USERS.VIEW
-            },
-            {
-                title: "Clientes",
-                path: "/customers",
-                icon: Users,
-                permission: PERMISSIONS.CLIENTS.VIEW
-            }
-        ]
-    },
-    {
-        title: "Inventario",
+            permission: null,
+                submenu: [
+                    {
+                        title: "Negocio",
+                        path: "/business",
+                        icon: Briefcase,
+                        permission: PERMISSIONS.USERS.VIEW
+                    },
+                    {
+                        title: "Usuarios",
+                        path: "/users",
+                        icon: Users,
+                        permission: PERMISSIONS.USERS.VIEW
+                    },
+                    {
+                        title: "Clientes",
+                        path: "/customers",
+                        icon: Users,
+                        permission: PERMISSIONS.CLIENTS.VIEW
+                    }
+                ]
+},
+{
+    title: "Inventario",
         icon: Package,
-        permission: null,
-        submenu: [
-            {
-                title: "Productos",
-                path: "/inventory",
-                icon: Package,
-                permission: PERMISSIONS.PRODUCTS.VIEW
-            },
-            {
-                title: "Categorías",
-                path: "/categories",
-                icon: Tags,
-                permission: PERMISSIONS.PRODUCTS.VIEW
-            },
-            {
-                title: 'Descuentos',
-                path: '/discounts',
-                icon: Percent
-            }
-        ]
-    }
+            permission: null,
+                submenu: [
+                    {
+                        title: "Productos",
+                        path: "/inventory",
+                        icon: Package,
+                        permission: PERMISSIONS.PRODUCTS.VIEW
+                    },
+                    {
+                        title: "Categorías",
+                        path: "/categories",
+                        icon: Tags,
+                        permission: PERMISSIONS.PRODUCTS.VIEW
+                    },
+                    {
+                        title: 'Descuentos',
+                        path: '/discounts',
+                        icon: Percent
+                    }
+                ]
+}
 ];
