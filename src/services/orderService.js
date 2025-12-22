@@ -89,7 +89,7 @@ export const orderService = {
      */
     cancel: async (id) => {
         try {
-            await api.delete(`${BASE_ENDPOINT}/${id}`);
+            await api.post(`${BASE_ENDPOINT}/${id}/cancel`);
             return true;
         } catch (error) {
             throw new Error('No se pudo cancelar la orden.');
