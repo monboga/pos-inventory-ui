@@ -18,6 +18,9 @@ import ProfilePage from './pages/ProfilePage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import BusinessPage from './pages/BusinessPage';
+import OrdersManagerPage from './pages/OrdersManagerPage';
+import PublicStorePage from './pages/PublicStorePage';
+import PublicTrackingPage from './pages/PublicTrackingPage';
 import DiscountPage from './pages/DiscountPage';
 
 // --- IMPORTS DE COMPONENTES ---
@@ -136,6 +139,8 @@ function AppContent() {
         {/* APLICAMOS EL ROUTE KEY CALCULADO ARRIBA */}
         <Routes location={location} key={routeKey}>
 
+          <Route path="/store" element={<PublicStorePage />} />
+          <Route path="/track" element={<PublicTrackingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -152,6 +157,7 @@ function AppContent() {
               </Route>
               <Route element={<ProtectedRoute requiredPermission={PERMISSIONS.SALES.VIEW} />}>
                 <Route path="sales-history" element={<SalesHistoryPage />} />
+                <Route path="orders" element={<OrdersManagerPage />} />
               </Route>
               <Route element={<ProtectedRoute requiredPermission={PERMISSIONS.PRODUCTS.VIEW} />}>
                 <Route path="inventory" element={<InventoryPage />} />
