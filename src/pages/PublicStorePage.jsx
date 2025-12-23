@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import toast, {Toaster}  from 'react-hot-toast';
+import React, { useState, useEffect, useMemo } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Servicios
 import { productService } from '../services/productService';
@@ -34,21 +35,24 @@ function PublicStorePage() {
     const [contact, setContact] = useState({ name: '', phone: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const cartIconRef = useRef(null);
     const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const [p, c] = await Promise.all([productService.getAll(), categoryService.getAll()]);
+                // Filtrar solo productos activos y con stock
                 setProducts(p.filter(item => (item.isActive ?? item.IsActive) && Number(item.stock ?? item.Stock ?? 0) > 0));
                 setCategories(c);
-            } finally { setLoading(false); }
+            } finally { 
+                // Un pequeño delay para asegurar que el DOM esté listo antes de quitar el skeleton
+                setTimeout(() => setLoading(false), 100); 
+            }
         };
         fetchData();
     }, []);
 
-    // --- FILTRADO ---
+    // --- Lógica de Filtrado ---
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
             const desc = (p.description || p.Description || "").toLowerCase();
@@ -58,7 +62,6 @@ function PublicStorePage() {
         });
     }, [products, searchTerm, activeCategory]);
 
-    // resumen para el checkout
     const orderSummary = useMemo(() => {
         return cart.reduce((acc, item) => {
             const fin = getItemFinancials(item);
@@ -68,7 +71,6 @@ function PublicStorePage() {
         }, { total: 0, savings: 0 });
     }, [cart]);
 
-    // carrito y animacines
     const addToCart = (product, event) => {
         const id = product.id || product.Id;
         const currentQty = cart.find(i => i.id === id)?.quantity || 0;
@@ -109,50 +111,38 @@ function PublicStorePage() {
         finally { setIsSubmitting(false); }
     };
 
-    // Funciones auxiliares del carrito
-    const removeFromCart = (id) => setCart(prev => prev.filter(item => item.id !== id));
-    const updateQuantity = (id, delta) => {
-        setCart(prev => prev.map(item => {
-            if (item.id === id) {
-                const newQty = item.quantity + delta;
-                const stock = Number(item.stock ?? item.Stock ?? 0);
-                if (newQty > stock) return item;
-                return { ...item, quantity: Math.max(1, newQty) };
+    // --- Variantes de Animación Optimizadas ---
+    const gridVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.04, // Más veloz para evitar freeze
+                delayChildren: 0.05
             }
-            return item;
-        }));
+        }
     };
 
-    const calculateOrderData = () => {
-        return cart.map(item => {
-            // Usar la misma lógica de financials del componente PublicCart
-            const price = Number(item.price || item.Price || 0);
-            const qty = Number(item.quantity || 0);
-            const discountObj = item.discount || item.Discount;
-            const discountPct = Number(discountObj?.percentage || item.discountPercentage || 0);
-            const minQty = Number(discountObj?.minQuantity || item.minQuantity || 1);
-
-            const isDiscountActive = discountPct > 0 && qty >= minQty;
-            const unitPrice = isDiscountActive ? price * (1 - discountPct / 100) : price;
-
-            return {
-                productId: item.id,
-                quantity: qty,
-                unitPrice: unitPrice, // Precio pactado con descuento
-                discountPerUnit: isDiscountActive ? (price - unitPrice) : 0,
-                total: unitPrice * qty
-            };
-        });
+    const itemVariants = {
+        hidden: { y: 20, opacity: 0, scale: 0.95 },
+        visible: {
+            y: 0,
+            opacity: 1,
+            scale: 1,
+            transition: {
+                type: "spring",
+                stiffness: 400, // Más rígido para respuesta inmediata
+                damping: 25
+            }
+        }
     };
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20 font-sans relative overflow-x-hidden">
             <Toaster position="top-right" />
-
-            {/* ELEMENTOS VOLADORES (Capa superior) */}
+            
             <FlyingAnimation items={flyingItems} />
 
-            {/* HEADER */}
             <StoreHeader
                 logo={logoImg}
                 cartCount={cartCount}
@@ -163,41 +153,63 @@ function PublicStorePage() {
                 }}
             />
 
-            <main className="max-w-5xl mx-auto p-4 md:p-8 space-y-6">
-                {/* BUSCADOR */}
-                <StoreSearchConfig 
-                    searchTerm={searchTerm} 
+            <main className="max-w-5xl mx-auto p-4 md:p-8 space-y-8">
+                <StoreSearchConfig
+                    searchTerm={searchTerm}
                     setSearchTerm={setSearchTerm}
                     categories={categories}
                     activeCategory={activeCategory}
                     onSelectCategory={setActiveCategory}
                 />
 
-                {/* FILTROS DE CATEGORÍA (CORREGIDO: SIEMPRE VISIBLE) */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {/* FIX: Se añade key dinámico para forzar la animación en cada cambio de estado */}
+                <motion.div
+                    key={`${activeCategory}-${searchTerm}-${loading}`}
+                    variants={gridVariants}
+                    initial="hidden"
+                    animate={loading ? "hidden" : "visible"}
+                    className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+                >
                     {loading ? (
-                        Array(8).fill(0).map((_, i) => <div key={i} className="h-64 bg-white animate-pulse rounded-3xl" />)
-                    ) : filteredProducts.map(product => (
-                        <ProductCard 
-                            key={product.id || product.Id} 
-                            product={product} 
-                            onAddToCart={(p, e) => addToCart(p, e)} 
-                            currentQty={cart.find(i => i.id === (product.id || product.Id))?.quantity || 0}
-                        />
-                    ))}
-                </div>
+                        Array(8).fill(0).map((_, i) => (
+                            <div key={i} className="h-64 bg-white animate-pulse rounded-[2rem] border border-gray-50 shadow-sm" />
+                        ))
+                    ) : (
+                        filteredProducts.map(product => (
+                            <motion.div
+                                key={product.id || product.Id}
+                                variants={itemVariants}
+                                whileHover={{ y: -6, transition: { duration: 0.2 } }}
+                                className="h-full"
+                            >
+                                <ProductCard
+                                    product={product}
+                                    onAddToCart={(p, e) => addToCart(p, e)}
+                                    currentQty={cart.find(i => i.id === (product.id || product.Id))?.quantity || 0}
+                                />
+                            </motion.div>
+                        ))
+                    )}
+                </motion.div>
             </main>
 
-            <PublicCart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} cart={cart} 
+            <PublicCart 
+                isOpen={isCartOpen} 
+                onClose={() => setIsCartOpen(false)} 
+                cart={cart} 
                 onUpdateQuantity={(id, d) => setCart(p => p.map(i => i.id === id ? { ...i, quantity: Math.max(1, i.quantity + d) } : i))}
                 onRemove={id => setCart(p => p.filter(i => i.id !== id))}
                 onCheckout={() => { setIsCartOpen(false); setIsCheckoutModalOpen(true); }}
             />
 
-            <StoreCheckoutModal 
-                isOpen={isCheckoutModalOpen} onClose={() => setIsCheckoutModalOpen(false)}
-                contact={contact} setContact={setContact} onConfirm={handleConfirmOrder}
-                isSubmitting={isSubmitting} orderSummary={orderSummary}
+            <StoreCheckoutModal
+                isOpen={isCheckoutModalOpen} 
+                onClose={() => setIsCheckoutModalOpen(false)}
+                contact={contact} 
+                setContact={setContact} 
+                onConfirm={handleConfirmOrder}
+                isSubmitting={isSubmitting} 
+                orderSummary={orderSummary}
             />
         </div>
     );
