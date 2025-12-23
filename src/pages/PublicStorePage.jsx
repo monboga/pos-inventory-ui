@@ -11,7 +11,6 @@ import { orderService } from '../services/orderService';
 import StoreHeader from '../components/store/StoreHeader';
 import StoreSearchConfig from '../components/store/StoreSearchConfig';
 import StoreCheckoutModal from '../components/store/StoreCheckoutModal';
-import FlyingAnimation from '../components/store/FlyingAnimation';
 import PublicCart from '../components/orders/PublicCart';
 import ProductCard from '../components/pos/ProductCard';
 
