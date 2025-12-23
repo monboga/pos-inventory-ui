@@ -17,6 +17,9 @@ import ProductCard from '../components/pos/ProductCard';
 // Utilidades
 import { getItemFinancials } from '../utils/financials';
 
+// assets
+import logoImg from '../assets/logo.png';
+
 function PublicStorePage() {
     // estados principales
     const [products, setProducts] = useState([]);
@@ -151,6 +154,7 @@ function PublicStorePage() {
 
             {/* HEADER */}
             <StoreHeader
+                logo={logoImg}
                 cartCount={cartCount}
                 onOpenCart={() => setIsCartOpen(true)}
                 onReturn={() => {
