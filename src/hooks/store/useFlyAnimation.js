@@ -1,12 +1,12 @@
 import { useState, useRef } from 'react';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7031';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export function useFlyAnimation() {
     const [flyingItems, setFlyingItems] = useState([]);
     const cartBtnRef = useRef(null);
 
-    // Helper interno para limpiar URL
+    // Helper para limpiar URL de imagen
     const getProductImageUrl = (product) => {
         const rawImg = product.image || product.Image;
         if (!rawImg) return null;
@@ -19,6 +19,7 @@ export function useFlyAnimation() {
     };
 
     const triggerFly = (product, e) => {
+        // Si no hay evento (ej. carga automática), no animamos
         if (!e) return;
 
         const target = e.currentTarget;
@@ -27,11 +28,9 @@ export function useFlyAnimation() {
 
         if (!cartRect) return;
 
-        const processedImg = getProductImageUrl(product);
-
         const newItem = {
             id: Date.now(),
-            img: processedImg,
+            img: getProductImageUrl(product),
             start: {
                 x: rect.left + (rect.width / 2) - 24,
                 y: rect.top + (rect.height / 2) - 24,
@@ -44,6 +43,7 @@ export function useFlyAnimation() {
 
         setFlyingItems(prev => [...prev, newItem]);
 
+        // Autolimpieza
         setTimeout(() => {
             setFlyingItems(prev => prev.filter(item => item.id !== newItem.id));
         }, 800);
