@@ -45,20 +45,8 @@ Mi teléfono de contacto es: ${contact.phone}`;
         e.preventDefault();
         if(!isValid) return;
 
-        // Inyectamos el link de WhatsApp en el evento o callback
-        // Para que el componente padre (que tiene la lógica de API) decida cuándo abrirlo
         const waLink = generateWhatsAppLink();
-        
-        // Pasamos el evento, pero también podríamos pasar el waLink como argumento extra
-        // Por ahora mantenemos la firma original onConfirm(e) pero
-        // preparamos el terreno añadiendo una propiedad custom al evento si fuera necesario
-        // o asumiendo que el padre manejará el waLink después.
-        
-        // TRUCO: Pasamos el waLink dentro del objeto de contacto temporalmente o como argumento extra
-        // Si tu función onConfirm espera solo (e), podemos adjuntar datos al target (hacky) 
-        // o mejor, ejecutamos onConfirm pasando los datos limpios.
-        
-        // Por consistencia con tu código actual:
+ 
         onConfirm(e, waLink); 
     };
 
@@ -184,7 +172,7 @@ Mi teléfono de contacto es: ${contact.phone}`;
                                     className={`
                                         w-full py-4 rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all
                                         ${isValid 
-                                            ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-gray-200' 
+                                            ? 'bg-pink-500 text-white hover:bg-pink-600 shadow-pink-200' 
                                             : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'}
                                     `}
                                 >
