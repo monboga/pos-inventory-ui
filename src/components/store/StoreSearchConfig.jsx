@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { delay, motion } from 'framer-motion';
 import { Search, LayoutGrid, Tag, Sparkles } from 'lucide-react';
 
 const StoreSearchConfig = ({ 
@@ -21,7 +21,9 @@ const StoreSearchConfig = ({
         visible: {
             opacity: 1,
             transition: {
-                staggerChildren: 0.1 // Aparecen una tras otra
+                staggerChildren: 0.03, 
+                delayChildren: 0.05,
+                useNextTick: true
             }
         }
     };
@@ -59,20 +61,23 @@ const StoreSearchConfig = ({
 
             {/* FILTROS DE CATEGORÍA CON DISEÑO ROSA ALBA */}
             <motion.div 
+                layout // Permite que Framer Motion gestione los cambios de posición suavemente
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
+                key={activeCategories.length} 
                 className="flex gap-3 overflow-x-auto pb-4 pt-1 custom-scrollbar -mx-2 px-2"
+                style={{ willChange: "transform, opacity" }} // Indica al navegador que optimice estas capas
             >
-                {/* Botón de "Todas" ahora en tonos Rosa */}
                 <motion.button
+                    layout
                     variants={itemVariants}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => onSelectCategory("Todos")}
                     className={`
                         flex items-center gap-2 px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border
                         ${activeCategory === "Todos"
-                            ? "bg-pink-500 text-white border-pink-500 shadow-lg shadow-pink-200 scale-105"
+                            ? "bg-pink-500 text-white border-pink-500 shadow-lg shadow-pink-200"
                             : "bg-white text-pink-400 border-pink-100 hover:bg-pink-50"}
                     `}
                 >
@@ -80,8 +85,9 @@ const StoreSearchConfig = ({
                     Todas
                 </motion.button>
                 
-                {activeCategories.map(cat => (
+                {activeCategories.map((cat) => (
                     <motion.button
+                        layout
                         key={cat.id || cat.Id}
                         variants={itemVariants}
                         whileTap={{ scale: 0.95 }}
@@ -89,12 +95,11 @@ const StoreSearchConfig = ({
                         className={`
                             flex items-center gap-2 px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border
                             ${activeCategory === String(cat.id || cat.Id)
-                                ? "bg-pink-500 text-white border-pink-500 shadow-lg shadow-pink-200 scale-105"
+                                ? "bg-pink-500 text-white border-pink-500 shadow-lg shadow-pink-200"
                                 : "bg-white text-pink-400 border-pink-100 hover:bg-pink-50"}
                         `}
                     >
-                        {/* Icono dinámico según el nombre o genérico */}
-                        {(cat.description || cat.Description).toLowerCase().includes('oferta') 
+                        {(cat.description || cat.Description || "").toLowerCase().includes('oferta') 
                             ? <Sparkles size={14} strokeWidth={3} /> 
                             : <Tag size={14} strokeWidth={3} />
                         }
