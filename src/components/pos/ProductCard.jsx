@@ -59,8 +59,8 @@ function ProductCard({ product, onAddToCart, currentQty = 0 }) {
                 ${isOutOfStock ? 'opacity-70 cursor-not-allowed grayscale' : 'hover:shadow-md hover:-translate-y-1 cursor-pointer'}
                 ${isBulkDiscount ? 'hover:border-blue-300' : 'hover:border-pink-300'} 
             `}
-            onClick={() => {
-                if (!isOutOfStock && !isMaxedOut) onAddToCart(product);
+            onClick={(e) => {
+                if (!isOutOfStock && !isMaxedOut) onAddToCart(product, e);
             }}
         >
             {/* OVERLAY AGOTADO */}

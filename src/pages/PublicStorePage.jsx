@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import {Package } from 'lucide-react';
 
 // Servicios
 import { productService } from '../services/productService';
@@ -20,6 +21,8 @@ import { getItemFinancials } from '../utils/financials';
 // assets
 import logoImg from '../assets/logo.png';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7031';
+
 function PublicStorePage() {
     // estados principales
     const [products, setProducts] = useState([]);
@@ -35,6 +38,19 @@ function PublicStorePage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0);
+    const cartBtnRef = useRef(null);
+
+    const getProductImageUrl = (product) => {
+        const rawImg = product.image || product.Image;
+        if (!rawImg) return null;
+
+        if (rawImg.includes("Uploads")) {
+            const cleanPath = rawImg.replace(/\\/g, '/');
+            const prefix = cleanPath.startsWith('/') ? '' : '/';
+            return `${API_BASE_URL}${prefix}${cleanPath}`;
+        }
+        return rawImg;
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -83,6 +99,46 @@ function PublicStorePage() {
                 ? prev.map(i => i.id === id ? { ...i, quantity: i.quantity + 1 } : i)
                 : [...prev, { ...product, id, quantity: 1 }];
         });
+    };
+
+    const handleAddToCartWithFly = (product, e) => {
+        // Ejecutar lógica de negocio original
+        addToCart(product);
+
+        // Lógica visual (Si no hay evento, por ejemplo si se llama programáticamente, no animamos)
+        if (!e) return;
+
+        // Obtener posición de origen (donde se hizo clic o la imagen del producto)
+        // Intentamos buscar la imagen dentro del target, si no, usamos el botón
+        const target = e.currentTarget;
+        const rect = target.getBoundingClientRect();
+
+        // Obtener posición de destino (Icono del carrito)
+        const cartRect = cartBtnRef.current?.getBoundingClientRect();
+
+        if (!cartRect) return;
+
+        const processedImg = getProductImageUrl(product);
+
+        const newItem = {
+            id: Date.now(), // ID único para la animación
+            img: processedImg, // Asumiendo que tu producto tiene propiedad de imagen
+            start: {
+                x: rect.left + (rect.width / 2) - 24, // Centrar relativo al clic
+                y: rect.top + (rect.height / 2) - 24,
+            },
+            end: {
+                x: cartRect.left + (cartRect.width / 2) - 12, // Ir al centro del icono carrito
+                y: cartRect.top + (cartRect.height / 2) - 12,
+            }
+        };
+
+        setFlyingItems(prev => [...prev, newItem]);
+
+        // Limpieza automática después de la animación (0.8s)
+        setTimeout(() => {
+            setFlyingItems(prev => prev.filter(item => item.id !== newItem.id));
+        }, 800);
     };
 
     const handleConfirmOrder = async (e) => {
@@ -139,6 +195,7 @@ function PublicStorePage() {
             <Toaster position="top-right" />
 
             <StoreHeader
+                ref={cartBtnRef}
                 logo={logoImg}
                 cartCount={cartCount}
                 onOpenCart={() => setIsCartOpen(true)}
@@ -179,7 +236,7 @@ function PublicStorePage() {
                             >
                                 <ProductCard
                                     product={product}
-                                    onAddToCart={(p) => addToCart(p)}
+                                    onAddToCart={(p, e) => handleAddToCartWithFly(p, e)}
                                     currentQty={cart.find(i => i.id === (product.id || product.Id))?.quantity || 0}
                                 />
                             </motion.div>
@@ -187,6 +244,53 @@ function PublicStorePage() {
                     )}
                 </motion.div>
             </main>
+
+            {flyingItems.map(item => (
+                <motion.div
+                    key={item.id}
+                    initial={{ 
+                        opacity: 1, 
+                        scale: 1, 
+                        x: item.start.x, 
+                        y: item.start.y,
+                        rotate: 0 
+                    }}
+                    animate={{ 
+                        opacity: 0.5, 
+                        scale: 0.2, // Se hace pequeñito al entrar al carrito
+                        x: item.end.x, 
+                        y: item.end.y,
+                        rotate: 15
+                    }}
+                    transition={{ 
+                        duration: 0.8, 
+                        ease: [0.2, 0.8, 0.2, 1] 
+                    }}
+                    // Añadimos borde blanco y sombra para que destaque sobre el fondo
+                    className="fixed top-0 left-0 z-50 pointer-events-none shadow-2xl rounded-full overflow-hidden border-2 border-white bg-white"
+                    style={{ width: '48px', height: '48px' }}
+                >
+                    {item.img ? (
+                        <img 
+                            src={item.img} 
+                            alt="" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                                // Fallback de seguridad por si la imagen falla al cargar
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                            }} 
+                        />
+                    ) : null}
+                    
+                    {/* Fallback Icon (Se muestra si no hay img o si falla la carga) */}
+                    <div 
+                        className={`w-full h-full bg-pink-500 flex items-center justify-center text-white ${item.img ? 'hidden' : 'flex'}`}
+                    >
+                        <Package size={24} strokeWidth={2.5} />
+                    </div>
+                </motion.div>
+            ))}
 
             <PublicCart
                 isOpen={isCartOpen}

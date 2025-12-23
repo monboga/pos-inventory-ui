@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { forwardRef } from 'react'; // 1. Importar forwardRef
 import { ShoppingCart, Package, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const StoreHeader = ({ cartCount, onOpenCart, onReturn, logo }) => (
+// 2. Envolver el componente en forwardRef
+const StoreHeader = forwardRef(({ cartCount, onOpenCart, onReturn, logo }, ref) => (
     <header className="bg-white shadow-sm sticky top-0 z-30 px-4 py-4 flex justify-between items-center">
         <button
             onClick={onReturn}
@@ -32,6 +33,7 @@ const StoreHeader = ({ cartCount, onOpenCart, onReturn, logo }) => (
         </div>
 
         <button
+            ref={ref} // 3. Asignar la referencia al botón del carrito
             onClick={onOpenCart}
             className="relative p-2.5 text-gray-600 hover:bg-gray-50 rounded-2xl transition-all"
         >
@@ -48,6 +50,6 @@ const StoreHeader = ({ cartCount, onOpenCart, onReturn, logo }) => (
             </AnimatePresence>
         </button>
     </header>
-);
+));
 
 export default StoreHeader;
