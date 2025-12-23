@@ -44,9 +44,9 @@ function PublicStorePage() {
                 // Filtrar solo productos activos y con stock
                 setProducts(p.filter(item => (item.isActive ?? item.IsActive) && Number(item.stock ?? item.Stock ?? 0) > 0));
                 setCategories(c);
-            } finally { 
+            } finally {
                 // Un pequeño delay para asegurar que el DOM esté listo antes de quitar el skeleton
-                setTimeout(() => setLoading(false), 100); 
+                setTimeout(() => setLoading(false), 100);
             }
         };
         fetchData();
@@ -71,20 +71,18 @@ function PublicStorePage() {
         }, { total: 0, savings: 0 });
     }, [cart]);
 
-    const addToCart = (product, event) => {
+    const addToCart = (product) => {
         const id = product.id || product.Id;
         const currentQty = cart.find(i => i.id === id)?.quantity || 0;
-        if (currentQty >= Number(product.stock ?? product.Stock ?? 0)) return;
 
-        if (event) {
-            const rect = event.currentTarget.getBoundingClientRect();
-            setFlyingItems(prev => [...prev, { id: Date.now(), x: rect.left, y: rect.top, img: product.image || product.Image }]);
-            setTimeout(() => setFlyingItems(p => p.slice(1)), 800);
-        }
+        // Verificación de stock
+        if (currentQty >= Number(product.stock ?? product.Stock ?? 0)) return;
 
         setCart(prev => {
             const exist = prev.find(i => i.id === id);
-            return exist ? prev.map(i => i.id === id ? { ...i, quantity: i.quantity + 1 } : i) : [...prev, { ...product, id, quantity: 1 }];
+            return exist
+                ? prev.map(i => i.id === id ? { ...i, quantity: i.quantity + 1 } : i)
+                : [...prev, { ...product, id, quantity: 1 }];
         });
     };
 
@@ -140,8 +138,6 @@ function PublicStorePage() {
     return (
         <div className="min-h-screen bg-gray-50 pb-20 font-sans relative overflow-x-hidden">
             <Toaster position="top-right" />
-            
-            <FlyingAnimation items={flyingItems} />
 
             <StoreHeader
                 logo={logoImg}
@@ -184,7 +180,7 @@ function PublicStorePage() {
                             >
                                 <ProductCard
                                     product={product}
-                                    onAddToCart={(p, e) => addToCart(p, e)}
+                                    onAddToCart={(p) => addToCart(p)}
                                     currentQty={cart.find(i => i.id === (product.id || product.Id))?.quantity || 0}
                                 />
                             </motion.div>
@@ -193,22 +189,22 @@ function PublicStorePage() {
                 </motion.div>
             </main>
 
-            <PublicCart 
-                isOpen={isCartOpen} 
-                onClose={() => setIsCartOpen(false)} 
-                cart={cart} 
+            <PublicCart
+                isOpen={isCartOpen}
+                onClose={() => setIsCartOpen(false)}
+                cart={cart}
                 onUpdateQuantity={(id, d) => setCart(p => p.map(i => i.id === id ? { ...i, quantity: Math.max(1, i.quantity + d) } : i))}
                 onRemove={id => setCart(p => p.filter(i => i.id !== id))}
                 onCheckout={() => { setIsCartOpen(false); setIsCheckoutModalOpen(true); }}
             />
 
             <StoreCheckoutModal
-                isOpen={isCheckoutModalOpen} 
+                isOpen={isCheckoutModalOpen}
                 onClose={() => setIsCheckoutModalOpen(false)}
-                contact={contact} 
-                setContact={setContact} 
+                contact={contact}
+                setContact={setContact}
                 onConfirm={handleConfirmOrder}
-                isSubmitting={isSubmitting} 
+                isSubmitting={isSubmitting}
                 orderSummary={orderSummary}
             />
         </div>
