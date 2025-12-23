@@ -12,7 +12,7 @@ import StoreSearchConfig from '../components/store/StoreSearchConfig';
 import StoreCheckoutModal from '../components/store/StoreCheckoutModal';
 import ProductGrid from '../components/store/ProductGrid';
 import FlyingOverlay from '../components/store/FlyingOverlay';
-import PublicCart from '../components/orders/PublicCart';
+import PublicCart from '../components/store/PublicCart';
 
 // Assets
 import logoImg from '../assets/logo.png';
@@ -100,6 +100,7 @@ function PublicStorePage() {
                 onConfirm={storeCart.handleConfirmOrder}
                 isSubmitting={storeCart.isSubmitting}
                 orderSummary={storeCart.orderSummary}
+                cart={storeCart.cart} // <--- AGREGAR ESTA LÍNEA
             />
         </div>
     );
