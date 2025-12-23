@@ -13,6 +13,7 @@ import StoreCheckoutModal from '../components/store/StoreCheckoutModal';
 import ProductGrid from '../components/store/ProductGrid';
 import FlyingOverlay from '../components/store/FlyingOverlay';
 import PublicCart from '../components/store/PublicCart'; // Ya movido a components/store
+import OrderSuccessModal from '../components/store/OrderSuccessModal';
 
 // --- Assets ---
 import logoImg from '../assets/logo.png';
@@ -72,7 +73,7 @@ function PublicStorePage() {
                 {/* Grid de Productos */}
                 {/* Usamos key para forzar re-render limpio al cambiar filtros si es necesario */}
                 <div key={`${activeCategory}-${loading}`}>
-                    <ProductGrid 
+                    <ProductGrid
                         loading={loading}
                         products={filteredProducts}
                         cart={storeCart.cart}
@@ -82,7 +83,7 @@ function PublicStorePage() {
             </main>
 
             {/* --- Capas Flotantes (Overlays) --- */}
-            
+
             {/* Animación de vuelo */}
             <FlyingOverlay items={flyingItems} />
 
@@ -93,9 +94,9 @@ function PublicStorePage() {
                 cart={storeCart.cart}
                 onUpdateQuantity={storeCart.updateQuantity}
                 onRemove={storeCart.removeFromCart}
-                onCheckout={() => { 
-                    storeCart.setIsCartOpen(false); 
-                    storeCart.setIsCheckoutModalOpen(true); 
+                onCheckout={() => {
+                    storeCart.setIsCartOpen(false);
+                    storeCart.setIsCheckoutModalOpen(true);
                 }}
             />
 
@@ -109,6 +110,17 @@ function PublicStorePage() {
                 isSubmitting={storeCart.isSubmitting}
                 orderSummary={storeCart.orderSummary}
                 cart={storeCart.cart}
+            />
+            
+            {/* modal de exito de pedido */}
+            <OrderSuccessModal
+                isOpen={storeCart.isSuccessModalOpen}
+                orderData={storeCart.lastOrder}
+                onNewOrder={storeCart.startNewOrder}
+                onTrackOrder={() => {
+                    // Redirección al tracking
+                    window.location.href = '/track';
+                }}
             />
         </div>
     );
