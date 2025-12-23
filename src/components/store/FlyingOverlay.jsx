@@ -13,7 +13,7 @@ const FlyingOverlay = ({ items }) => {
                     initial={{ opacity: 1, scale: 1, x: item.start.x, y: item.start.y, rotate: 0 }}
                     animate={{ opacity: 0.5, scale: 0.2, x: item.end.x, y: item.end.y, rotate: 15 }}
                     transition={{ duration: 0.8, ease: [0.2, 0.8, 0.2, 1] }}
-                    className="fixed top-0 left-0 z-50 pointer-events-none shadow-2xl rounded-full overflow-hidden border-2 border-white bg-white"
+                    className="fixed top-0 left-0 z-[100] pointer-events-none shadow-2xl rounded-full overflow-hidden border-2 border-white bg-white"
                     style={{ width: '48px', height: '48px' }}
                 >
                     {item.img ? (
