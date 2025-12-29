@@ -94,6 +94,8 @@ function PublicStorePage() {
                 cart={storeCart.cart}
                 onUpdateQuantity={storeCart.updateQuantity}
                 onRemove={storeCart.removeFromCart}
+                contact={storeCart.contact}
+                setContact={storeCart.setContact}
                 onCheckout={() => {
                     storeCart.setIsCartOpen(false);
                     storeCart.setIsCheckoutModalOpen(true);

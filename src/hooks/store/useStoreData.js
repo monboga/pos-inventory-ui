@@ -1,34 +1,49 @@
 import { useState, useEffect } from 'react';
-import { productService } from '../../services/productService'; // Ajusta la ruta a tus servicios
-import { categoryService } from '../../services/categoryService';
+import { storeService } from '../../services/storeService';
 
-export function useStoreData() {
+export const useStoreData = () => {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [p, c] = await Promise.all([productService.getAll(), categoryService.getAll()]);
-                
-                // Filtrar solo activos y con stock positivo
-                const activeProducts = p.filter(item => 
-                    (item.isActive ?? item.IsActive) && 
-                    Number(item.stock ?? item.Stock ?? 0) > 0
-                );
-                
-                setProducts(activeProducts);
-                setCategories(c);
-            } catch (error) {
-                console.error("Error cargando datos:", error);
-            } finally {
-                // Pequeño delay artificial para suavizar la carga de esqueletos
-                setTimeout(() => setLoading(false), 200);
-            }
-        };
-        fetchData();
+        loadCatalog();
     }, []);
 
-    return { products, categories, loading };
-}
+    const loadCatalog = async () => {
+        setLoading(true);
+        try {
+            const data = await storeService.getCatalog();
+            
+            // 1. Mapear Categorías (Asegurar estructura {id, description/name})
+            const mappedCategories = (data.categories || []).map(cat => ({
+                id: cat.id,
+                description: cat.name, // Adaptador para tu UI
+                isActive: true
+            }));
+
+            // 2. Mapear Productos (Adaptador API -> UI Component)
+            const mappedProducts = (data.products || []).map(prod => ({
+                id: prod.id,
+                description: prod.name,       // UI espera 'description'
+                price: prod.finalPrice,       // UI espera 'price' (usamos el final)
+                originalPrice: prod.originalPrice,
+                image: prod.imageUrl,         // UI espera 'image'
+                stock: prod.stock,
+                categoryId: prod.categoryId,
+                hasDiscount: prod.hasDiscount,
+                isActive: true
+            }));
+
+            setCategories(mappedCategories);
+            setProducts(mappedProducts);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return { products, categories, loading, error, refresh: loadCatalog };
+};
