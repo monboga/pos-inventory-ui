@@ -20,7 +20,6 @@ function ProductCard({ product, onAddToCart, currentQty = 0 }) {
     // --- LÓGICA DE DATOS ---
     const name = product.description || product.Description || "Sin nombre";
     const categoryName = product.categoryName || product.CategoryName || "General";
-
     // 1. Extracción robusta del descuento
     const discountObj = product.discount || product.Discount || product.category?.discount || product.Category?.Discount;
     
