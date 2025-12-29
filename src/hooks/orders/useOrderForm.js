@@ -45,7 +45,6 @@ export const useOrderForm = (onSuccessMain, onCloseMain) => {
             if (item.id !== productId) return item;
             const newQty = item.quantity + delta;
             if (newQty < 1) return item;
-            // if (newQty > item.stock) return item; // Validar stock si tienes el dato
             return { ...item, quantity: newQty };
         }));
     };
