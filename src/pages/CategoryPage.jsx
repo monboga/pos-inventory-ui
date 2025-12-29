@@ -3,7 +3,7 @@ import PageHeader from '../components/common/PageHeader';
 import DynamicTable from '../components/common/DynamicTable';
 import CategoryModal from '../components/categories/CategoryModal';
 import { categoryService } from '../services/categoryService';
-import { Search, Plus, Edit, Trash2, Tag, Percent } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Tag, Percent, Layers } from 'lucide-react';
 import toast from 'react-hot-toast'; // <--- IMPORTANTE
 
 function CategoryPage() {
