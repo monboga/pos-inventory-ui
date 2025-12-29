@@ -32,6 +32,7 @@ export const useStoreData = () => {
                 image: prod.imageUrl,         // UI espera 'image'
                 stock: prod.stock,
                 categoryId: prod.categoryId,
+                categoryName: prod.categoryName,
                 hasDiscount: prod.hasDiscount,
                 isActive: true
             }));
