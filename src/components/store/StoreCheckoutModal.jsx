@@ -1,23 +1,23 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle2, Receipt, User, Phone, AlertCircle } from 'lucide-react';
+import { X, CheckCircle2, Receipt, User, Phone, Store, Truck, MapPin } from 'lucide-react';
 
-const StoreCheckoutModal = ({ 
-    isOpen, 
-    onClose, 
-    contact, 
-    setContact, 
-    onConfirm, 
+const StoreCheckoutModal = ({
+    isOpen,
+    onClose,
+    contact,
+    setContact,
+    onConfirm,
     isSubmitting,
     orderSummary,
-    cart = [] 
+    cart = []
 }) => {
-    
-    // --- VALIDACIONES ---
-    const phoneRegex = /^\d{10}$/; // Exactamente 10 dígitos
-    const isNameValid = contact.name?.trim().length > 0;
-    const isPhoneValid = phoneRegex.test(contact.phone?.trim() || '');
-    const isValid = isNameValid && isPhoneValid;
+
+    // // --- VALIDACIONES ---
+    // const phoneRegex = /^\d{10}$/; // Exactamente 10 dígitos
+    // const isNameValid = contact.name?.trim().length > 0;
+    // const isPhoneValid = phoneRegex.test(contact.phone?.trim() || '');
+    // const isValid = isNameValid && isPhoneValid;
 
     // --- GENERADOR DE MENSAJE WHATSAPP (Lista para usar en el refactor) ---
     const generateWhatsAppLink = () => {
@@ -43,11 +43,11 @@ Mi teléfono de contacto es: ${contact.phone}`;
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if(!isValid) return;
+        if (!isValid) return;
 
         const waLink = generateWhatsAppLink();
- 
-        onConfirm(e, waLink); 
+
+        onConfirm(e, waLink);
     };
 
     return (
@@ -55,12 +55,12 @@ Mi teléfono de contacto es: ${contact.phone}`;
             {isOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     {/* Backdrop */}
-                    <motion.div 
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
-                        className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" 
-                        onClick={onClose} 
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"
+                        onClick={onClose}
                     />
-                    
+
                     {/* Ticket Container */}
                     <motion.div
                         initial={{ scale: 0.9, y: 50, opacity: 0 }}
@@ -92,7 +92,7 @@ Mi teléfono de contacto es: ${contact.phone}`;
                                 {cart.map(item => (
                                     <div key={item.id} className="flex justify-between text-xs text-gray-600">
                                         <span className="truncate w-3/4">
-                                            <span className="font-bold mr-1">{item.quantity}x</span> 
+                                            <span className="font-bold mr-1">{item.quantity}x</span>
                                             {item.name || item.description}
                                         </span>
                                         <span className="font-mono">
@@ -118,71 +118,60 @@ Mi teléfono de contacto es: ${contact.phone}`;
                             </div>
                         </div>
 
-                        {/* Formulario */}
+                        {/* Seccion de solo lectura */}
                         <div className="bg-gray-50 p-6 border-t-2 border-dashed border-gray-300 relative">
                             <div className="absolute -left-2 top-[-10px] w-5 h-5 bg-gray-900/60 rounded-full" />
                             <div className="absolute -right-2 top-[-10px] w-5 h-5 bg-gray-900/60 rounded-full" />
+                            <div className="flex gap-4 items-start border-b border-dashed border-gray-100 pb-4">
+                                {/* Icono Dinámico */}
+                                <div className={`p-3 rounded-2xl flex-shrink-0 ${contact.isDelivery ? 'bg-purple-50 text-purple-600' : 'bg-orange-50 text-orange-600'}`}>
+                                    {contact.isDelivery ? <Truck size={24} /> : <Store size={24} />}
+                                </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-                                <div>
-                                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-1 mb-1 block">Datos de Contacto *</label>
-                                    <div className="space-y-3">
-                                        {/* Nombre */}
-                                        <div className="relative">
-                                            <User className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${isNameValid ? 'text-pink-500' : 'text-gray-400'}`} size={16} />
-                                            <input
-                                                required
-                                                placeholder="Nombre completo"
-                                                className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all"
-                                                value={contact.name}
-                                                onChange={e => setContact({ ...contact, name: e.target.value })}
-                                            />
-                                        </div>
+                                <div className="space-y-1 overflow-hidden">
+                                    {/* Etiqueta */}
+                                    <p className={`text-[10px] font-black uppercase tracking-widest ${contact.isDelivery ? 'text-purple-500' : 'text-orange-500'}`}>
+                                        {contact.isDelivery ? 'Envío a Domicilio' : 'Recoger en Tienda'}
+                                    </p>
 
-                                        {/* Teléfono */}
-                                        <div className="relative">
-                                            <Phone className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${isPhoneValid ? 'text-pink-500' : 'text-gray-400'}`} size={16} />
-                                            <input
-                                                required
-                                                type="tel"
-                                                maxLength={10}
-                                                placeholder="WhatsApp (10 dígitos)"
-                                                className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl text-sm font-medium focus:ring-2 focus:ring-pink-500 outline-none transition-all ${
-                                                    contact.phone && !isPhoneValid ? 'border-red-300 text-red-600' : 'border-gray-200'
-                                                }`}
-                                                value={contact.phone}
-                                                onChange={(e) => {
-                                                    // Solo permitir números
-                                                    const val = e.target.value.replace(/\D/g, '');
-                                                    setContact({ ...contact, phone: val });
-                                                }}
-                                            />
-                                        </div>
-                                        {contact.phone && !isPhoneValid && (
-                                            <p className="text-[10px] text-red-500 font-bold ml-2 flex items-center gap-1 animate-pulse">
-                                                <AlertCircle size={10} /> Faltan {10 - contact.phone.length} dígitos
-                                            </p>
+                                    {/* Nombre (Solo lectura) */}
+                                    <h3 className="font-bold text-gray-800 text-sm flex items-center gap-1 line-clamp-1">
+                                        <User size={12} className="text-gray-400" /> {contact.name || 'Sin Nombre'}
+                                    </h3>
+
+                                    {/* Teléfono (Solo lectura) */}
+                                    <p className="text-xs text-gray-500 flex items-center gap-1 font-mono">
+                                        <Phone size={12} /> {contact.phone || '---'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* 2. Dirección (SECCIÓN CONDICIONAL: Solo si es Delivery) */}
+                            {contact.isDelivery && (
+                                <div className="bg-gray-50 rounded-xl p-3 flex gap-3 items-start border border-gray-100">
+                                    <MapPin size={16} className="text-purple-500 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                        <p className="text-xs font-bold text-gray-700 leading-tight">
+                                            {contact.street} #{contact.externalNumber}
+                                        </p>
+                                        {contact.neighborhood && (
+                                            <p className="text-[10px] text-gray-400 mt-0.5">Col. {contact.neighborhood}</p>
                                         )}
                                     </div>
                                 </div>
+                            )}
 
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting || !isValid}
-                                    className={`
-                                        w-full py-4 rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all
-                                        ${isValid 
-                                            ? 'bg-pink-500 text-white hover:bg-pink-600 shadow-pink-200' 
-                                            : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'}
-                                    `}
-                                >
-                                    {isSubmitting ? (
-                                        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
-                                    ) : (
-                                        <>Enviar Pedido <CheckCircle2 size={18} /></>
-                                    )}
-                                </button>
-                            </form>
+                            <button
+                                onClick={onConfirm} // Cambiamos type="submit" por onClick directo
+                                disabled={isSubmitting} // Quitamos !isValid
+                                className="w-full py-4 rounded-xl bg-pink-600 text-white font-bold text-sm uppercase tracking-widest shadow-xl shadow-pink-200 hover:bg-pink-700 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                            >
+                                {isSubmitting ? (
+                                    <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
+                                ) : (
+                                    <>Enviar Pedido <CheckCircle2 size={18} /></>
+                                )}
+                            </button>
                         </div>
                     </motion.div>
                 </div>
