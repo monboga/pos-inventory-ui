@@ -5,36 +5,47 @@ import { getItemFinancials } from '../../utils/financials';
 
 export const useOrderForm = (onSuccessMain, onCloseMain) => {
     const [cart, setCart] = useState([]);
-    const [contact, setContact] = useState({ name: '', phone: '' });
+    
+    // Estado inicial de contacto, incluyendo campos de dirección
+    const [contact, setContact] = useState({ 
+        name: '', 
+        phone: '',
+        isDelivery: false,
+        street: '',
+        externalNumber: '',
+        neighborhood: ''
+    });
+    
     const [loading, setLoading] = useState(false);
-
-    // Estados para Modales Internos (Flujo de Confirmación)
+    
+    // Modales internos
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [isSuccessOpen, setIsSuccessOpen] = useState(false);
     const [lastOrder, setLastOrder] = useState(null);
 
-    // --- Acciones del Carrito ---
+    // --- Acciones Carrito ---
     const addToCart = (product) => {
         setCart(prev => {
             const exists = prev.find(p => p.id === product.id);
-            const currentQty = exists ? exists.quantity : 0;
-            if (currentQty >= product.stock) {
-                toast.error("Stock insuficiente");
-                return prev;
-            }
             if (exists) {
+                // Validación stock simple
+                if (exists.quantity >= (product.stock || 999)) {
+                    toast.error("Stock insuficiente");
+                    return prev;
+                }
                 return prev.map(p => p.id === product.id ? {...p, quantity: p.quantity + 1} : p);
             }
             return [...prev, { ...product, quantity: 1 }];
         });
+        toast.success("Producto agregado", { position: 'bottom-center' });
     };
 
     const updateQuantity = (productId, delta) => {
         setCart(prev => prev.map(item => {
             if (item.id !== productId) return item;
             const newQty = item.quantity + delta;
-            if (newQty > item.stock) return item;
-            if (newQty < 1) return item; 
+            if (newQty < 1) return item;
+            // if (newQty > item.stock) return item; // Validar stock si tienes el dato
             return { ...item, quantity: newQty };
         }));
     };
@@ -52,101 +63,68 @@ export const useOrderForm = (onSuccessMain, onCloseMain) => {
         }, { total: 0, savings: 0, count: 0 });
     }, [cart]);
 
-    // --- Validaciones ---
-    const handlePhoneChange = (val) => {
-        const numericVal = val.replace(/\D/g, ''); 
-        if (numericVal.length <= 10) setContact(prev => ({ ...prev, phone: numericVal }));
-    };
-
-    const isValidPhone = contact.phone.length === 0 || contact.phone.length === 10;
-    const isValidName = contact.name.trim().length > 0;
-    const canSubmit = isValidName && isValidPhone && cart.length > 0;
-
-    // --- PASO 1: Solicitar Checkout (Abre Modal Ticket) ---
-    const requestCheckout = () => {
-        if (canSubmit) {
-            setIsCheckoutOpen(true);
-        }
-    };
-
-    // --- PASO 2: Confirmar Orden (Llamada API) ---
+    // --- Confirmar Orden ---
     const confirmOrder = async () => {
+        if (cart.length === 0) return;
+        
         setLoading(true);
         try {
+            // 1. Payload para CREAR (Lo que enviamos)
             const payload = {
-                source: 1, // POS/Admin
+                source: 1, 
                 contactName: contact.name,
                 contactPhone: contact.phone,
-                items: cart.map(i => {
-                    const fin = getItemFinancials(i);
-                    return { 
-                        productId: i.id, 
-                        quantity: i.quantity,
-                        unitPrice: fin.unitPrice 
-                    };
-                }),
-                total: orderSummary.total
+                contactStreet: contact.isDelivery ? contact.street : null,
+                contactExternalNumber: contact.isDelivery ? contact.externalNumber : null,
+                contactNeighborhood: contact.isDelivery ? contact.neighborhood : null,
+                items: cart.map(i => ({ productId: i.id, quantity: i.quantity }))
             };
 
-            // 1. Crear Orden
-            const createResponse = await orderService.create(payload);
-            const generatedId = createResponse?.id || createResponse?.Id || createResponse;
-
-            // 2. Obtener Detalle Oficial para el Modal de Éxito
-            const officialOrderData = await orderService.getById(generatedId);
-
-            // 3. Mapeo para OrderSuccessModal (Igual que en Store)
-            const mappedOrderData = {
-                orderNumber: officialOrderData.orderNumber || generatedId,
-                total: officialOrderData.total,
-                items: (officialOrderData.items || []).map(apiItem => {
-                    const localItem = cart.find(c => c.id === apiItem.productId) || {};
-                    
-                    const quantity = apiItem.quantity;
-                    const originalTotal = apiItem.unitPrice * quantity;
-                    const discountVal = apiItem.discountTotal || 0;
-                    
-                    const discountPct = originalTotal > 0 
-                        ? Math.round((discountVal / originalTotal) * 100) 
-                        : 0;
-
-                    const discountObj = localItem.discount || localItem.Discount || {};
-                    const minQty = Number(discountObj.minQuantity || localItem.minQuantity || 1);
-                    const isBulkType = minQty > 1;
-
-                    return {
-                        name: apiItem.productName,
-                        quantity: quantity,
-                        unitPrice: apiItem.unitPrice,
-                        lineTotal: apiItem.total,
-                        discount: discountVal,
-                        discountPercentage: discountPct,
-                        hasDiscount: discountVal > 0,
-                        isBulkType: isBulkType
-                    };
-                })
-            };
-
-            setLastOrder(mappedOrderData);
+            // 2. CREAR EL PEDIDO
+            const response = await orderService.create(payload);
             
-            // 4. Transiciones UI
+            // Aseguramos obtener el ID (ya sea que el back devuelva un int directo o un objeto)
+            const createdId = response?.id || response; 
+
+            // 3. OBTENER EL DETALLE OFICIAL (GET BY ID)
+            // Esto es vital para obtener el "Folio 89" y los items procesados
+            const officialOrder = await orderService.getById(createdId);
+
+            // 4. Preparar datos para el Modal de Éxito
+            const successData = {
+                id: officialOrder.id,
+                orderNumber: officialOrder.orderNumber, // Aquí viene la secuencia (Ej. "00089")
+                total: officialOrder.total,
+                // Mapeamos los items para asegurar que el modal los entienda
+                items: (officialOrder.items || []).map(item => ({
+                    productName: item.productName || item.name, // Ajuste de seguridad por si cambia el nombre del campo
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice,
+                    total: item.total || (item.unitPrice * item.quantity),
+                    discountTotal: item.discountTotal || 0
+                }))
+            };
+
+            setLastOrder(successData);
+            
+            // Transiciones UI
             setIsCheckoutOpen(false);
             setIsSuccessOpen(true);
             setCart([]);
-            setContact({ name: '', phone: '' });
+            setContact({ name: '', phone: '', isDelivery: false, street: '', externalNumber: '', neighborhood: '' });
             
-            // Notificar al padre (para recargar tabla órdenes si aplica)
             if (onSuccessMain) onSuccessMain();
 
         } catch (error) {
             console.error(error);
-            toast.error("Error al procesar el pedido");
+            toast.error(error.message || "Error al crear pedido");
         } finally {
             setLoading(false);
         }
     };
 
-    // Reiniciar para otro pedido sin cerrar el modal principal
+    // Funciones auxiliares
+    const requestCheckout = () => setIsCheckoutOpen(true);
     const startNewOrder = () => {
         setIsSuccessOpen(false);
         setLastOrder(null);
@@ -161,18 +139,15 @@ export const useOrderForm = (onSuccessMain, onCloseMain) => {
         addToCart,
         updateQuantity,
         removeFromCart,
-        handlePhoneChange,
-        isValidName,
-        isValidPhone,
-        canSubmit,
         
-        // Modal States & Handlers
+        // Modal State
         isCheckoutOpen,
         setIsCheckoutOpen,
         isSuccessOpen,
         lastOrder,
-        requestCheckout, // Abre el primer modal
-        confirmOrder,    // Hace el POST y abre el segundo modal
+        
+        requestCheckout,
+        confirmOrder,
         startNewOrder
     };
 };

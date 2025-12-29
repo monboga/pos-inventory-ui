@@ -43,56 +43,72 @@ export const orderService = {
     // 🔒 MÉTODOS PRIVADOS (Gestión Interna / POS)
     // ==========================================
 
-    /**
-     * Obtiene el listado de todas las órdenes (para el Dashboard).
-     */
-    getAll: async () => {
+    getAll: async (page = 1, pageSize = 10, searchTerm = '', status = 'All') => {
         try {
-            const response = await api.get(BASE_ENDPOINT);
+            // Enviamos los params correctamente query string
+            const response = await api.get(BASE_ENDPOINT, {
+                params: { 
+                    pageNumber: page, 
+                    pageSize, 
+                    searchTerm, 
+                    status: status === 'All' ? null : status 
+                }
+            });
+            // Retorna { items: [], totalCount: 0, totalPages: 0 ... }
             return response.data;
         } catch (error) {
             console.error(error);
-            return [];
+            return { items: [], totalCount: 0, totalPages: 0 };
         }
     },
 
-    /**
-     * Obtiene el detalle completo de una orden por ID interno.
-     */
     getById: async (id) => {
+        const response = await api.get(`${BASE_ENDPOINT}/${id}`);
+        return response.data;
+    },
+
+    // 1. Confirmar (Pendiente -> Confirmado)
+    confirmOrder: async (id, payload = null) => {
+        // Payload por defecto para cumplir con el DTO del Backend
+        const defaultPayload = {
+            orderTypeId: 1, // 1: Pickup (Valor seguro por defecto)
+            ...payload
+        };
+
         try {
-            const response = await api.get(`${BASE_ENDPOINT}/${id}`);
+            // El segundo argumento es el body. Al enviarlo, axios pone Content-Type: application/json
+            const response = await api.put(`${BASE_ENDPOINT}/${id}/confirm`, defaultPayload);
             return response.data;
         } catch (error) {
-            throw new Error('Error al cargar el detalle de la orden.');
+            throw new Error('No se pudo confirmar la orden.');
         }
     },
 
-    /**
-     * Convierte una Orden confirmada en una Venta Fiscal.
-     * @param {Object} processData - { orderId, userId, documentTypeId, paymentMethodId }
-     */
+    // 2. Enviar (Confirmado -> En Camino)
+    markAsIncoming: async (id) => {
+        try {
+            const response = await api.put(`${BASE_ENDPOINT}/${id}/incoming`);
+            return response.data;
+        } catch (error) {
+            throw new Error('No se pudo marcar como en camino.');
+        }
+    },
+
+    // 3. Procesar Venta (En Camino/Confirmado -> Completado)
+    // Payload: { orderId, userId }
     processToSale: async (processData) => {
         try {
-            // Endpoint: POST /api/Orders/process
             const response = await api.post(`${BASE_ENDPOINT}/process`, processData);
-            return response.data; // Retorna { saleId, message }
+            return response.data; // { saleId, message }
         } catch (error) {
-            const errorData = error.response?.data || {};
-            throw new Error(errorData.message || 'Error al procesar la venta.');
+            // Extraemos el mensaje de error limpio del backend (ValidationException/ConflictException)
+            const backendError = error.response?.data?.detail || error.response?.data?.title || 'Error al procesar venta';
+            throw new Error(backendError);
         }
     },
 
-    /**
-     * Cancela manualmente una orden (liberando stock).
-     * (Asumiendo que implementaremos un endpoint DELETE o PUT /cancel en el futuro si se requiere manual)
-     */
     cancel: async (id) => {
-        try {
-            await api.post(`${BASE_ENDPOINT}/${id}/cancel`);
-            return true;
-        } catch (error) {
-            throw new Error('No se pudo cancelar la orden.');
-        }
+        await api.post(`${BASE_ENDPOINT}/${id}/cancel`);
+        return true;
     }
 };
