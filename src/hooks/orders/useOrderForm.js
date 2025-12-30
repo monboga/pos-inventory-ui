@@ -3,8 +3,12 @@ import toast from 'react-hot-toast';
 import { orderService } from '../../services/orderService';
 import { getItemFinancials } from '../../utils/financials';
 
+// Contexto de usuario
+import { useAuth } from '../../context/AuthContext';
+
 export const useOrderForm = (onSuccessMain, onCloseMain) => {
     const [cart, setCart] = useState([]);
+    const { user } = useAuth();
     
     // Estado inicial de contacto, incluyendo campos de dirección
     const [contact, setContact] = useState({ 
@@ -70,7 +74,9 @@ export const useOrderForm = (onSuccessMain, onCloseMain) => {
         try {
             // 1. Payload para CREAR (Lo que enviamos)
             const payload = {
-                source: 1, 
+                source: 1,
+                clientId: null,
+                userId: user?.id, 
                 contactName: contact.name,
                 contactPhone: contact.phone,
                 contactStreet: contact.isDelivery ? contact.street : null,
