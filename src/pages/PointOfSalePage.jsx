@@ -7,7 +7,8 @@ import AnimatedSelect from '../components/common/AnimatedSelect';
 import CategoryFilter from '../components/pos/CategoryFilter';
 import SaleSuccessModal from '../components/sales/SaleSuccessModal';
 import cashSoundAsset from '../assets/sounds/cash_register.mp3';
-import toast from 'react-hot-toast';
+import {toast, Toaster} from 'react-hot-toast';
+import {useToastLimit} from '../hooks/useToastLimit';
 import { productService } from '../services/productService';
 import { categoryService } from '../services/categoryService';
 import { clientService } from '../services/clientService';
@@ -50,6 +51,8 @@ const gridItemVariants = {
 
 function PointOfSalePage() {
     const { user } = useAuth();
+
+    useToastLimit(1);
 
     const [allProducts, setAllProducts] = useState([]);
     const [displayedProducts, setDisplayedProducts] = useState([]);
@@ -176,7 +179,7 @@ function PointOfSalePage() {
     }));
 
     const handleProcessSale = async (docTypeString, totalAmount) => {
-        if (!selectedClientId || selectedClientId === 0) {
+        if (!selectedClientId) {
             toast.error("Selecciona un Cliente para cerrar la venta.");
             return;
         }
@@ -199,11 +202,11 @@ function PointOfSalePage() {
 
             const saleId = (typeof response === 'object' && response !== null)
                 ? (response.id || response.Id || response.saleId)
-            
+
                 : response;
             if (!saleId) throw new Error("ID de venta inválido recibido del servidor.");
             const fullSaleDetails = await saleService.getById(saleId);
-            
+
             toast.dismiss(toastId);
 
             playSuccessSound();
@@ -228,14 +231,14 @@ function PointOfSalePage() {
         try {
             // 1. Obtener el BLOB del backend
             const blob = await saleService.getTicketPdf(saleId);
-            
+
             // 2. Crear una URL local para el archivo
             const url = window.URL.createObjectURL(blob);
-            
+
             // 3. Abrir en una nueva ventana para imprimir
             // Nota: Para tickets, suele ser mejor abrir en iframe oculto o nueva ventana
             window.open(url, '_blank');
-            
+
             toast.success("Ticket generado", { id: toastId });
         } catch (error) {
             console.error("Error impresión:", error);
@@ -262,6 +265,7 @@ function PointOfSalePage() {
     return (
         <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden relative bg-gray-50/50">
 
+            <Toaster position="top-center" reverseOrder={false} />
             {/* IZQUIERDA: PRODUCTOS */}
             <div className="flex-1 flex flex-col h-full min-w-0">
                 <div className="p-4 md:p-6 pb-2 flex-shrink-0">
