@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, MapPin, Layers, Percent } from 'lucide-react';
+import { RefreshCw, MapPin } from 'lucide-react';
 
 const OrderSuccessModal = ({ 
     isOpen, 
@@ -10,6 +10,8 @@ const OrderSuccessModal = ({
 }) => {
     // Si no hay datos, no mostramos nada (seguridad)
     if (!orderData) return null;
+
+    const items = orderData.items || [];
 
     return (
         <AnimatePresence>
@@ -57,40 +59,33 @@ const OrderSuccessModal = ({
                         {/* --- DETALLES DE LA ORDEN --- */}
                         <div className="w-full bg-gray-50 rounded-2xl p-5 mb-6 border border-gray-100 text-left relative">
                             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full border border-gray-100" />
-
                             <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-200 border-dashed">
                                 <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Nº Orden</span>
                                 <span className="font-mono font-bold text-gray-900 text-lg">#{orderData.orderNumber}</span>
                             </div>
 
                             <div className="space-y-3 max-h-40 overflow-y-auto custom-scrollbar pr-1 mb-3">
-                                {orderData.items.map((item, idx) => (
-                                    <div key={idx} className="flex flex-col border-b border-gray-100 last:border-0 pb-2 last:pb-0">
-                                        
-                                        <div className="flex justify-between text-xs text-gray-700 mb-0.5">
-                                            <span className="font-bold truncate w-2/3">{item.quantity}x {item.name}</span>
-                                            <span className="font-mono font-bold">${item.lineTotal.toFixed(2)}</span>
-                                        </div>
-
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-[10px] text-gray-400">Unit: ${item.unitPrice.toFixed(2)}</span>
-
-                                            {/* BADGE DINÁMICO SEGÚN TIPO */}
-                                            {item.hasDiscount && (
-                                                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                                                    item.isBulkType 
-                                                        ? 'bg-blue-50 text-blue-600' // Estilo Mayoreo (Azul)
-                                                        : 'bg-pink-50 text-pink-600' // Estilo Oferta (Rosa)
-                                                }`}>
-                                                    {item.isBulkType ? <Layers size={9} /> : <Percent size={9} />}
-                                                    <span>
-                                                        Ahorro -{item.discountPercentage}% (${item.discount.toFixed(2)})
-                                                    </span>
-                                                </div>
+                                {items.length > 0 ? (
+                                items.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0 last:pb-0 first:pt-0">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-gray-800 line-clamp-1">
+                                                {item.quantity}x {item.productName}
+                                            </span>
+                                            {item.discountTotal > 0 && (
+                                                <span className="text-[9px] text-emerald-600 font-bold">
+                                                    Ahorro: -${Number(item.discountTotal).toFixed(2)}
+                                                </span>
                                             )}
                                         </div>
+                                        <span className="text-xs font-black text-gray-900">
+                                            ${Number(item.total).toFixed(2)}
+                                        </span>
                                     </div>
-                                ))}
+                                ))
+                            ) : (
+                                <p className="text-xs text-gray-400 text-center py-2">Detalles cargados en segundo plano...</p>
+                            )}
                             </div>
 
                             <div className="flex justify-between items-end pt-3 border-t border-gray-200 border-dashed">

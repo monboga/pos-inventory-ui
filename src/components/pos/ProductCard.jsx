@@ -35,6 +35,8 @@ function ProductCard({ product, onAddToCart, currentQty = 0 }) {
     if (discountObj) {
         const mq = discountObj.minQuantity !== undefined ? discountObj.minQuantity : discountObj.MinQuantity;
         if (mq && mq > 0) minQty = mq;
+    } else if (product.minQuantity || product.MinQuantity) {
+        minQty = Number(product.minQuantity || product.MinQuantity);
     }
 
     const hasDiscount = discountPercent > 0;
@@ -43,7 +45,7 @@ function ProductCard({ product, onAddToCart, currentQty = 0 }) {
     // 4. Precio Visual
     // Si es mayoreo, mostramos el precio regular (porque al llevar 1 no hay descuento).
     // Si es directo, mostramos el precio ya rebajado.
-    const originalPrice = Number(product.price || product.Price || 0);
+    const originalPrice = Number(product.originalPrice || product.OriginalPrice || product.price || product.Price || 0);
     const displayPrice = (!isBulkDiscount && hasDiscount)
         ? originalPrice * (1 - discountPercent / 100)
         : originalPrice;

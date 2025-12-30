@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { orderService } from '../../services/orderService';
+import { storeService } from '../../services/storeService';
 
 const BUSINESS_PHONE = import.meta.env.VITE_BUSINESS_PHONE;
 
@@ -14,7 +14,13 @@ export function useStoreCart() {
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [lastOrder, setLastOrder] = useState(null); // Guardamos la data para mostrarla en el recibo
 
-    const [contact, setContact] = useState({ name: '', phone: '' });
+    const [contact, setContact] = useState({ 
+        name: '', 
+        phone: '',
+        street: '',
+        externalNumber: '',
+        neighborhood: ''
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // --- Lógica Financiera ---
@@ -112,102 +118,50 @@ export function useStoreCart() {
     // ... (imports previos se mantienen igual)
 
     // --- Manejador de Confirmación ACTUALIZADO ---
-    const handleConfirmOrder = async (e) => {
-        e.preventDefault();
-        setIsSubmitting(true);
+    const handleConfirmOrder = async () => {
+        if (cart.length === 0) return;
 
+        setIsSubmitting(true);
         try {
-            // 1. Preparar Payload (Esto sigue igual)
+            // Construir Payload Inteligente
             const payload = {
-                source: 2, 
                 contactName: contact.name,
                 contactPhone: contact.phone,
-                items: cart.map(item => {
-                    const fin = getItemFinancials(item);
-                    return { 
-                        productId: item.id, 
-                        quantity: item.quantity, 
-                        unitPrice: fin.unitPrice
-                    };
-                }),
-                total: orderSummary.total
-            };
-
-            // 2. Enviar a BD (POST)
-            const createResponse = await orderService.create(payload);
-            
-            // Obtenemos el ID generado. 
-            // Nota: Verifica si tu API devuelve el ID directo o un objeto { id: ... }
-            const generatedId = createResponse?.id || createResponse?.Id || createResponse; 
-
-            if (!generatedId) {
-                throw new Error("No se recibió un ID de orden válido.");
-            }
-
-           const officialOrderData = await orderService.getById(generatedId);
-
-            // 4. MAPEO INTELIGENTE (Merge: API + Local Context)
-            const mappedOrderData = {
-                id: officialOrderData.id,
-                orderNumber: officialOrderData.orderNumber || "PENDIENTE",
-                customerName: officialOrderData.customerName,
-                total: officialOrderData.total,
                 
-                items: (officialOrderData.items || []).map(apiItem => {
-                    // A. Buscar el ítem original en el carrito para recuperar metadatos (Tipo de descuento)
-                    const localItem = cart.find(c => c.id === apiItem.productId) || {};
-                    
-                    // B. Calcular datos financieros oficiales
-                    // Asumimos que apiItem.unitPrice es el Precio Original (según tus imágenes)
-                    const quantity = apiItem.quantity;
-                    const originalTotal = apiItem.unitPrice * quantity;
-                    const discountVal = apiItem.discountTotal || 0;
-                    const finalLineTotal = apiItem.total || (originalTotal - discountVal);
-
-                    // C. Determinar Porcentaje y Tipo Visual
-                    // Si la API trae descuento, calculamos el % real
-                    const discountPct = originalTotal > 0 
-                        ? Math.round((discountVal / originalTotal) * 100) 
-                        : 0;
-
-                    // Recuperamos la lógica de "Tipo" del carrito local
-                    const discountObj = localItem.discount || localItem.Discount || {};
-                    const minQty = Number(discountObj.minQuantity || localItem.minQuantity || 1);
-                    const isBulkType = minQty > 1; // True = Mayoreo, False = Oferta Directa
-
-                    return {
-                        name: apiItem.productName,
-                        quantity: quantity,
-                        unitPrice: apiItem.unitPrice, // Precio lista
-                        lineTotal: finalLineTotal,    // Lo que realmente pagó
-                        discount: discountVal,        // Dinero ahorrado
-                        discountPercentage: discountPct,
-                        // Banderas para la UI
-                        hasDiscount: discountVal > 0, // Solo mostramos si hay ahorro real en dinero
-                        isBulkType: isBulkType        // Para pintar Azul (Mayoreo) o Rosa (Oferta)
-                    };
-                })
+                // FIX: Enviamos NULL si no es delivery o si el campo está vacío
+                contactStreet: contact.isDelivery && contact.street ? contact.street : null,
+                contactExternalNumber: contact.isDelivery && contact.externalNumber ? contact.externalNumber : null,
+                contactNeighborhood: contact.isDelivery && contact.neighborhood ? contact.neighborhood : null,
+                
+                items: cart.map(item => ({
+                    productId: item.id,
+                    quantity: item.quantity
+                }))
             };
 
-            setLastOrder(mappedOrderData);
+            // 1. Crear Orden (POST)
+            const createdId = await storeService.checkout(payload);
 
-            // 5. Abrir WhatsApp (Con datos locales para rapidez o podrías usar los oficiales)
-            const waLink = generateWhatsAppLink();
-            if (waLink) {
-                setTimeout(() => window.open(waLink, '_blank'), 500);
-            }
+            // 2. Obtener Detalle Oficial (GET) - Usando el nuevo endpoint del StoreController
+            // Nota: Asegúrate de agregar getOrder al storeService.js apuntando a api/store/orders/{id}
+            const response = await storeService.getOrder(createdId); 
+            // Si storeService.getOrder no existe aún, usa axios directo temporalmente:
+            // const response = await api.get(`/api/store/orders/${createdId}`);
 
-            // 6. ÉXITO: Limpiar y Abrir Modal
-            // Si algo falló antes de llegar aquí (en el GET), el catch lo atrapa y NO abre el modal
+            const officialOrder = response.data || response;
+
+            // 3. Setear datos para modal de éxito
+            setLastOrder(officialOrder);
+
+            // 4. Limpiar
+            setCart([]);
+            setContact({ name: '', phone: '', isDelivery: false, street: '', externalNumber: '', neighborhood: '' });
             setIsCheckoutModalOpen(false);
-            setCart([]); 
-            setContact({ name: '', phone: '' });
-            setIsSuccessModalOpen(true); 
+            setIsSuccessModalOpen(true);
 
         } catch (error) {
-            console.error("Error en el flujo de pedido:", error);
-            // Si falla la creación O el fetch del detalle, mostramos error y NO abrimos el modal
-            toast.error("Hubo un problema al procesar tu pedido. Por favor intenta de nuevo.");
+            console.error(error);
+            toast.error("Error al procesar el pedido. Verifique los datos.");
         } finally {
             setIsSubmitting(false);
         }
