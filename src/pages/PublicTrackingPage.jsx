@@ -7,49 +7,22 @@ import TrackingSearch from '../components/tracking/TrackingSearch'; // Ajusta la
 import TrackingResult from '../components/tracking/TrackingResult';
 
 // Servicios y Hooks
-import { orderService } from '../services/orderService';
+import { useOrderTracking } from '../hooks/tracking/useOrderTracking';
 
 // Assets
 import logoImg from '../assets/logo.png'; // Asegúrate de tener tu logo
 
 function PublicTrackingPage() {
-    // Estado del formulario
-    const [searchParams, setSearchParams] = useState({ orderNumber: '', phone: '' });
-    
-    // Estado de la búsqueda
-    const [orderResult, setOrderResult] = useState(null);
-    const [loading, setLoading] = useState(false);
 
-    // Manejadores de Inputs
-    const handleOrderChange = (val) => setSearchParams(prev => ({ ...prev, orderNumber: val.toUpperCase() }));
-    const handlePhoneChange = (val) => {
-        const numeric = val.replace(/\D/g, '').slice(0, 10); // Solo números, max 10
-        setSearchParams(prev => ({ ...prev, phone: numeric }));
-    };
-
-    // Acción de Buscar
-    const handleTrack = async (e) => {
-        e.preventDefault();
-        if (!searchParams.orderNumber || searchParams.phone.length < 10) return;
-
-        setLoading(true);
-        setOrderResult(null);
-
-        try {
-            const data = await orderService.trackOrder(searchParams.orderNumber, searchParams.phone);
-            setOrderResult(data);
-        } catch (err) {
-            toast.error(err.message || "No encontramos ese pedido.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Limpiar búsqueda
-    const clearSearch = () => {
-        setOrderResult(null);
-        setSearchParams({ orderNumber: '', phone: '' });
-    };
+    const { 
+        searchParams, 
+        handleOrderInput, 
+        handlePhoneInput, 
+        handleTrack, 
+        orderResult, 
+        loading, 
+        clearSearch 
+    } = useOrderTracking();
 
     return (
         <div className="min-h-screen bg-gray-50/50 font-sans selection:bg-pink-100 selection:text-pink-900 flex flex-col items-center justify-center p-4 relative">
@@ -76,8 +49,8 @@ function PublicTrackingPage() {
                         >
                             <TrackingSearch 
                                 params={searchParams}
-                                onOrderChange={handleOrderChange}
-                                onPhoneChange={handlePhoneChange}
+                                onOrderChange={handleOrderInput}
+                                onPhoneChange={handlePhoneInput}
                                 onSearch={handleTrack}
                                 loading={loading}
                             />
@@ -99,11 +72,6 @@ function PublicTrackingPage() {
                     )}
                 </AnimatePresence>
             </main>
-            
-            {/* Footer sencillo */}
-            <div className="mt-12 text-center text-gray-300 text-xs font-bold uppercase tracking-widest">
-                Desarrollado con ❤️ para tu negocio
-            </div>
         </div>
     );
 }
