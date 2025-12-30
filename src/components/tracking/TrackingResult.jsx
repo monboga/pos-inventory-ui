@@ -1,22 +1,17 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Package, Clock, Percent, Layers } from 'lucide-react';
+import { ArrowLeft, Package, Truck, Percent, CheckCircle2 } from 'lucide-react';
 
 // CORRECCIÓN: Importamos desde orderStatus, no trackingConfig
 import { getStatusConfig, TRACKING_STEPS, ORDER_STATUS } from '../../constants/orderStatus';
 
 const TrackingResult = ({ order, onBack }) => {
-    
     // 1. Determinar estado actual
     const currentStatusId = order.statusId || order.status; // Soporte para ambos por si acaso
     const config = getStatusConfig(currentStatusId); // Usamos el helper centralizado
     const StatusIcon = config.icon;
-
-    const isCanceled = currentStatusId === ORDER_STATUS.CANCELLED;
     
-    // Encontrar el índice del paso actual para la barra de progreso
-    const currentStepIndex = TRACKING_STEPS.findIndex(s => s.id === currentStatusId);
-
+    const isCanceled = currentStatusId === ORDER_STATUS.CANCELLED;
     // Construcción segura de imagen
     const getImageUrl = (img) => {
         if (!img) return null;
@@ -25,7 +20,19 @@ const TrackingResult = ({ order, onBack }) => {
         const baseUrl = import.meta.env.VITE_API_URL || ''; 
         return `${baseUrl}/${img.replace(/\\/g, '/')}`;
     };
-
+    
+    const isPickup = order.orderTypeId === 1;
+    const stepsToRender = TRACKING_STEPS.filter(step => {
+        if (isPickup && step.id === ORDER_STATUS.INCOMING) return false;
+        return true;
+    });
+    
+    // Encontrar el índice del paso actual para la barra de progreso
+    let currentStepIndex = stepsToRender.findIndex(s => s.id === currentStatusId);
+    if (currentStepIndex === -1) {
+        // Lógica de fallback simple: si está completado, índice final, si no, índice 0
+        currentStepIndex = currentStatusId === ORDER_STATUS.COMPLETED ? stepsToRender.length - 1 : 0;
+    }
     return (
         <motion.div 
             initial={{ opacity: 0, y: 20 }} 
@@ -64,12 +71,12 @@ const TrackingResult = ({ order, onBack }) => {
                             {/* Línea de Progreso */}
                             <motion.div 
                                 initial={{ width: 0 }}
-                                animate={{ width: `${(currentStepIndex / (TRACKING_STEPS.length - 1)) * 100}%` }}
+                                animate={{ width: `${(currentStepIndex / (stepsToRender.length - 1)) * 100}%` }}
                                 className="absolute top-6 left-0 h-1.5 bg-gradient-to-r from-pink-400 to-pink-600 rounded-full -z-10 transition-all duration-1000 ease-out shadow-sm"
                             />
 
                             {/* Pasos */}
-                            {TRACKING_STEPS.map((step, idx) => {
+                            {stepsToRender.map((step, idx) => {
                                 const isCompleted = idx <= currentStepIndex;
                                 const isCurrent = idx === currentStepIndex;
                                 const StepIcon = step.icon;
@@ -155,13 +162,13 @@ const TrackingResult = ({ order, onBack }) => {
                         ))}
                     </div>
 
-                    <div className="bg-gray-900 rounded-2xl p-6 text-white shadow-xl shadow-gray-200">
+                    <div className="bg-gradient-to-r from-pink-600 to-pink-700 rounded-2xl p-6 text-white shadow-xl shadow-pink-200/50">
                         <div className="flex justify-between items-center">
                             <div className="flex flex-col">
-                                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-1">Total Pagado</span>
-                                <span className="text-xs text-gray-500">Impuestos incluidos</span>
+                                <span className="text-[10px] uppercase font-bold text-pink-100 tracking-widest mb-1">Total Pagado</span>
+                                <span className="text-xs text-pink-200">Impuestos incluidos</span>
                             </div>
-                            <span className="text-4xl font-black tracking-tighter">
+                            <span className="text-4xl font-black tracking-tighter text-white">
                                 ${order.total?.toFixed(2)}
                             </span>
                         </div>
