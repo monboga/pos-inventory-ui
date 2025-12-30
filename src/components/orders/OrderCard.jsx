@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Package, Phone, Eye, MapPin, Truck, Store } from 'lucide-react'; // Agregamos iconos
+import { Package, Phone, Eye, MapPin, Truck, Store, CheckCircle2 } from 'lucide-react'; // Agregamos iconos
 import OrderTimer from './OrderTimer';
 import { getStatusConfig, ORDER_STATUS } from '../../constants/orderStatus';
 import { getSourceConfig } from '../../constants/orderSource';
@@ -19,6 +19,17 @@ const OrderCard = ({ order, onOpenDetail, onConfirm, onCancel, onRefresh, onAdva
     const displayName = order.clientName || order.contactName || "Cliente General";
     const displayPhone = order.contactPhone || order.clientPhone; // Obtenemos el teléfono disponible
     const itemCount = order.itemsCount || (order.items ? order.items.length : 0);
+
+    let actionLabel = statusConfig.actionLabel;
+    let ActionIcon = statusConfig.icon;
+    let isPickupAction = false;
+
+    // Si está Confirmado (2) y es Pickup (1), cambiamos el botón
+    if (order.statusId === 2 && order.orderTypeId === 1) {
+        actionLabel = "Completar Venta";
+        ActionIcon = CheckCircle2; // Icono de check
+        isPickupAction = true;
+    }
 
     return (
         <motion.div
@@ -110,13 +121,13 @@ const OrderCard = ({ order, onOpenDetail, onConfirm, onCancel, onRefresh, onAdva
 
             {/* Footer / Acciones */}
             <div className="mt-auto pt-2 flex gap-2" onClick={e => e.stopPropagation()}>
-                {statusConfig.actionLabel ? (
+                {actionLabel ? (
                     <button
                         onClick={() => onAdvanceStatus && onAdvanceStatus(order, order.statusId)}
                         className="flex-1 py-2.5 rounded-xl bg-pink-50 text-pink-600 font-bold text-xs uppercase tracking-wider hover:bg-pink-500 hover:text-white transition-all flex items-center justify-center gap-2"
                     >
-                        <statusConfig.icon size={14} />
-                        {statusConfig.actionLabel}
+                        <ActionIcon size={14} />
+                        {actionLabel}
                     </button>
                 ) : (
                     <div className={`w-full py-2 rounded-xl text-center text-xs font-bold ${statusConfig.color} opacity-80`}>
