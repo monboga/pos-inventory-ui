@@ -40,7 +40,7 @@ function PointOfSalePage() {
 
     // 2. Capa de Carrito (Cart Layer)
     const { 
-        cart, addToCart, updateQuantity, removeFromCart, clearCart 
+        cart, cartTotals,addToCart, updateQuantity, removeFromCart, clearCart 
     } = usePosCart();
 
     // 3. Capa de Transacción (Transaction Layer)
@@ -167,6 +167,7 @@ function PointOfSalePage() {
                 <div className="flex-1 overflow-hidden relative z-0">
                     <OrderSummary
                         cartItems={cart}
+                        totals={cartTotals}
                         onUpdateQuantity={updateQuantity}
                         onRemoveItem={removeFromCart}
                         onProcessSale={processSale}

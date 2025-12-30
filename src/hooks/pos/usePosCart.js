@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
+import { getItemFinancials } from '../../utils/financials';
 
 export const usePosCart = () => {
     const [cart, setCart] = useState([]);
+    const TAX_RATE = 0.16; // 16% IVA
 
     const addToCart = (product) => {
         // Normalización defensiva del descuento
@@ -64,8 +66,34 @@ export const usePosCart = () => {
 
     const clearCart = () => setCart([]);
 
+    const cartTotals = useMemo(() => {
+        let subtotal = 0;
+        let savings = 0;
+        let count = 0;
+
+        cart.forEach(item => {
+            // Usamos el util compartido para asegurar consistencia en toda la app
+            const financials = getItemFinancials(item);
+            subtotal += financials.lineTotal;
+            savings += financials.savings;
+            count += item.quantity;
+        });
+
+        const tax = subtotal * TAX_RATE;
+        const total = subtotal + tax;
+
+        return {
+            subtotal,
+            tax,
+            total,
+            savings,
+            count
+        };
+    }, [cart]);
+
     return {
         cart,
+        cartTotals,
         addToCart,
         updateQuantity,
         removeFromCart,
