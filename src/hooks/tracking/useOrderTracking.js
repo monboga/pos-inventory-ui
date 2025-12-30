@@ -3,14 +3,14 @@ import { orderService } from '../../services/orderService';
 import toast from 'react-hot-toast';
 
 export const useOrderTracking = () => {
+    // Estado inicial limpio
     const [searchParams, setSearchParams] = useState({ orderNumber: '', phone: '' });
     const [orderResult, setOrderResult] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
 
-    // Formateador inteligente para la UI (Solo permite números en el input visual)
+    // Inputs handlers (Validaciones visuales)
     const handleOrderInput = (val) => {
-        // Removemos "ORD-" si el usuario intenta escribirlo, y cualquier no-dígito
+        // Solo permitimos números porque el prefijo ORD- es visual/automático
         const numericVal = val.replace(/[^0-9]/g, '');
         setSearchParams(prev => ({ ...prev, orderNumber: numericVal }));
     };
@@ -22,31 +22,36 @@ export const useOrderTracking = () => {
         }
     };
 
+    // LOGICA PRINCIPAL
     const handleTrack = async (e) => {
         e.preventDefault();
-        
+
         if (!searchParams.orderNumber || searchParams.phone.length < 10) {
-            toast.error("Por favor completa los campos correctamente");
+            toast.error("Ingresa el número de orden y un teléfono válido.");
             return;
         }
 
         setLoading(true);
-        setError(null);
         setOrderResult(null);
 
         try {
-            // 1. Formateo estricto para el Backend: 50 -> ORD-00050
+            // 2. FORMATEO CRÍTICO: Convertir "50" -> "ORD-00050"
+            // El usuario escribe "50", nosotros rellenamos ceros y agregamos prefijo
             const formattedOrderNumber = `ORD-${searchParams.orderNumber.padStart(5, '0')}`;
-            
-            // 2. Llamada al servicio
+
             const data = await orderService.trackOrder(formattedOrderNumber, searchParams.phone);
-            if (!data) throw new Error("Orden no encontrada");
-            
+
             setOrderResult(data);
+
         } catch (err) {
-            console.error(err);
-            setError("No encontramos una orden con esos datos. Verifica e intenta de nuevo.");
-            toast.error("Orden no encontrada");
+            console.error("❌ Error en Tracking:", err);            
+            // FIX DOBLE TOAST:
+            // Si el error ya viene del servicio con mensaje, lo usamos.
+            // Si tienes un interceptor global que ya muestra alertas, comenta la línea de abajo.
+            const msg = err.message || "No encontramos una orden con esos datos.";
+            
+            // Solo mostramos toast si el error no fue cancelado o manejado globalmente
+            toast.error(msg, { id: 'tracking-error' }); // 'id' previene duplicados visuales en hot-toast
         } finally {
             setLoading(false);
         }
@@ -55,7 +60,6 @@ export const useOrderTracking = () => {
     const clearSearch = () => {
         setOrderResult(null);
         setSearchParams({ orderNumber: '', phone: '' });
-        setError(null);
     };
 
     return {
@@ -65,7 +69,6 @@ export const useOrderTracking = () => {
         handleTrack,
         clearSearch,
         orderResult,
-        loading,
-        error
+        loading
     };
 };
