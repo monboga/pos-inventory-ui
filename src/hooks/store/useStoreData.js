@@ -27,13 +27,16 @@ export const useStoreData = () => {
             const mappedProducts = (data.products || []).map(prod => ({
                 id: prod.id,
                 description: prod.name,       // UI espera 'description'
-                price: prod.finalPrice,       // UI espera 'price' (usamos el final)
+                price: prod.originalPrice,       // UI espera 'price' (usamos el final)
+                finalPrice: prod.finalPrice,
                 originalPrice: prod.originalPrice,
                 image: prod.imageUrl,         // UI espera 'image'
                 stock: prod.stock,
                 categoryId: prod.categoryId,
                 categoryName: prod.categoryName,
-                hasDiscount: prod.hasDiscount,
+                discountPercentage: prod.discountPercentage,
+                minQuantity: prod.discountMinQuantity || 1,
+                isBulkDiscount: (prod.isBulkDiscount || 1) > 1,
                 isActive: true
             }));
 
