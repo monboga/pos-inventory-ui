@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { orderService } from '../services/orderService';
 import toast from 'react-hot-toast';
+import { ORDER_STATUS } from '../constants/orderStatus';
+import {useAuth} from '../context/AuthContext';
+
 
 export const useOrders = (initialStatus = 'Pending') => {
     // Estado de Datos
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { user } = useAuth();
     
     // Estado de Paginación y Filtros
     const [page, setPage] = useState(1);
@@ -88,12 +92,29 @@ export const useOrders = (initialStatus = 'Pending') => {
                 }); 
             }
             else if (currentStatusId === 2) { 
-                // Confirmed -> Incoming
-                await orderService.markAsIncoming(order.id);
+                // Confirmed -> Next step depends on order type
+                if (order.orderTypeId === 1) {
+                    const payload = {
+                        orderId: order.id,
+                        userId: user.id,
+                        documentTypeId: 1
+                    };
+                    await orderService.processToSale(payload);
+                    toast.success("Pedido procesado a venta");
+                } else {
+                    await orderService.markAsIncoming(order.id);
+                    toast.success("Pedido enviado a repartidor");
+                }
             }
-            else if (currentStatusId === 6) { 
+            else if (currentStatusId === ORDER_STATUS.INCOMING) { 
                 // Incoming -> Completed
-                await orderService.markAsCompleted(order.id);
+                const payload = {
+                    orderId: order.id,
+                    userId: user.id,
+                    documentTypeId: 1
+                };
+                await orderService.markAsCompleted(payload);
+                toast.success("Entrega finalizada y venta generada");
             }
             
             toast.success("Estatus actualizado");
