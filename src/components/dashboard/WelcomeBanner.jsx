@@ -79,17 +79,6 @@ function WelcomeBanner({ userName }) {
                         </motion.div>
                     </AnimatePresence>
                 </div>
-
-                <motion.div 
-                    className="mt-6"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                >
-                    <button className="px-6 py-2.5 bg-white text-pink-600 font-bold rounded-xl shadow-lg hover:bg-pink-50 hover:shadow-xl hover:scale-105 transition-all active:scale-95 text-sm uppercase tracking-wide">
-                        Ver Reportes
-                    </button>
-                </motion.div>
             </div>
 
             {/* --- SECCIÓN DE IMAGEN (Derecha) --- */}
