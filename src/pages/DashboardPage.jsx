@@ -9,27 +9,13 @@ import SummaryCard from '../components/common/SummaryCard';
 import DynamicTable from '../components/common/DynamicTable';
 
 // Iconos y Gráficos
-import { TrendingUp, ShoppingBag, DollarSign, PackageX, Layers, Activity, Star } from 'lucide-react';
+import { ShoppingBag, DollarSign, PackageX, Layers, Activity, Star } from 'lucide-react';
 import { 
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+    BarChart, Bar, XAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
     AreaChart, Area, PieChart, Pie, Cell 
 } from 'recharts';
 import { motion } from 'framer-motion';
 
-// --- ESTILOS LOCALES ---
-const DashboardStyles = () => (
-    <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
-        
-        .font-montserrat {
-            font-family: 'Montserrat', sans-serif;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #fbcfe8; border-radius: 4px; }
-    `}</style>
-);
 
 // --- COMPONENTES VISUALES ---
 const DateBadge = () => {
@@ -54,7 +40,7 @@ const DateBadge = () => {
 const CustomTooltip = ({ active, payload, label, prefix = "$" }) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-white p-3 text-xs rounded-xl shadow-xl border border-pink-100 z-50 font-montserrat">
+            <div className="bg-white p-3 text-xs rounded-xl shadow-xl border border-pink-100 z-50">
                 <p className="font-semibold mb-1 text-gray-400">{label}</p>
                 <p className="font-bold text-lg text-pink-600">
                     {prefix === "$" ? `$${Number(payload[0].value).toLocaleString()}` : payload[0].value}
@@ -110,7 +96,7 @@ function DashboardPage() {
     ], []);
 
     if (loading) return (
-        <div className="h-screen w-full flex items-center justify-center bg-[#F9FAFB] font-montserrat">
+        <div className="h-screen w-full flex items-center justify-center bg-[#F9FAFB]">
             <div className="flex flex-col items-center gap-3">
                 <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-200 border-t-pink-500"></div>
                 <p className="text-xs text-gray-400 font-semibold tracking-widest uppercase animate-pulse">Cargando...</p>
@@ -120,12 +106,11 @@ function DashboardPage() {
 
     return (
         <motion.div 
-            className="p-6 md:p-8 w-full mx-auto min-h-screen bg-[#F9FAFB] font-montserrat overflow-hidden"
+            className="p-6 md:p-8 w-full mx-auto min-h-screen bg-[#F9FAFB] overflow-hidden"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
         >
-            <DashboardStyles />
 
             {/* HEADER */}
             <motion.div variants={itemVariants} className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">

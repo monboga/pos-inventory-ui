@@ -1,4 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    /* Hace que la fuente se vea más nítida */
+    -moz-osx-font-smoothing: grayscale;
+
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #fbcfe8;
+        border-radius: 4px;
+    }
+}
 
 /* --- ALBA DATEPICKER FINAL THEME --- */
 
