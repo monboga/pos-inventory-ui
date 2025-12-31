@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import welcomeImage from '../../assets/welcome-girl.svg';
+import { AlertCircle, TrendingUp } from 'lucide-react';
 
-// --- LISTA DE FRASES DE INSPIRACIÓN ---
+// --- FRASES DE INSPIRACIÓN ---
 const INSPIRATION_QUOTES = [
     {
         text: "El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
@@ -22,80 +22,105 @@ const INSPIRATION_QUOTES = [
     }
 ];
 
-function WelcomeBanner({ userName }) {
+function WelcomeBanner({ userName, lowStockCount }) {
     const [index, setIndex] = useState(0);
+    const hasAlert = lowStockCount > 0;
 
-    // --- LÓGICA DE ROTACIÓN ---
+    // --- LÓGICA DE ROTACIÓN (Solo si no hay alertas) ---
     useEffect(() => {
-        // Cambia la frase cada 6 segundos
-        const timer = setInterval(() => {
-            setIndex((prevIndex) => (prevIndex + 1) % INSPIRATION_QUOTES.length);
-        }, 6000);
-
-        return () => clearInterval(timer);
-    }, []);
+        if (!hasAlert) {
+            const timer = setInterval(() => {
+                setIndex((prevIndex) => (prevIndex + 1) % INSPIRATION_QUOTES.length);
+            }, 6000);
+            return () => clearInterval(timer);
+        }
+    }, [hasAlert]);
 
     const currentQuote = INSPIRATION_QUOTES[index];
 
     return (
-        <div className="bg-gradient-to-r from-pink-600 to-rose-400 rounded-3xl text-white shadow-xl mb-8 relative overflow-hidden flex flex-col md:flex-row items-center min-h-[240px]">
+        <div className="bg-gradient-to-r from-pink-600 to-rose-400 rounded-3xl text-white shadow-xl shadow-pink-200/50 mb-8 relative overflow-hidden font-montserrat">
             
-            {/* --- DECORACIÓN DE FONDO (Sutil) --- */}
-            <div className="absolute top-0 left-0 w-64 h-64 bg-white opacity-10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl pointer-events-none"></div>
-            <div className="absolute bottom-0 right-1/3 w-48 h-48 bg-rose-800 opacity-20 rounded-full translate-y-1/2 blur-2xl pointer-events-none"></div>
+            {/* --- DECORACIÓN DE FONDO --- */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full translate-x-1/3 -translate-y-1/3 blur-3xl pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-rose-800 opacity-20 rounded-full -translate-x-1/3 translate-y-1/3 blur-2xl pointer-events-none"></div>
 
-            {/* --- SECCIÓN DE TEXTO (Izquierda) --- */}
-            {/* FIX: 'pl-8 md:pl-12' para buen margen izquierdo, 'flex-1' para ocupar espacio disponible */}
-            <div className="relative z-10 flex-1 p-8 md:p-12 flex flex-col justify-center h-full">
+            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center p-8 md:p-10 gap-6">
                 
-                {/* Saludo Estático */}
-                <motion.h1 
-                    className="text-3xl md:text-4xl font-bold mb-4 tracking-tight leading-tight"
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                >
-                    ¡Hola de nuevo, {userName}! 👋
-                </motion.h1>
+                {/* IZQUIERDA: SALUDO */}
+                <div className="flex-1 text-center md:text-left">
+                    <motion.h1 
+                        className="text-3xl md:text-4xl font-extrabold mb-3 tracking-tight leading-tight"
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                    >
+                        ¡Hola de nuevo, {userName}!
+                    </motion.h1>
 
-                {/* Frase Dinámica con AnimatePresence */}
-                <div className="h-20 md:h-16 relative"> {/* Contenedor de altura fija para evitar saltos */}
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={index} // La clave cambia para disparar la animación
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.5 }}
-                            className="absolute top-0 left-0 w-full"
+                    {/* LÓGICA CONDICIONAL */}
+                    <div className="h-16 relative">
+                        <AnimatePresence mode="wait">
+                            {hasAlert ? (
+                                // --- MODO ALERTA (PRIORIDAD) ---
+                                <motion.div
+                                    key="alert"
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    className="flex flex-col md:flex-row items-center md:items-start gap-2"
+                                >
+                                    <span className="bg-red-500/20 border border-red-200/30 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 backdrop-blur-sm">
+                                        <AlertCircle size={14} className="text-red-200" /> Atención Requerida
+                                    </span>
+                                    <p className="text-pink-50 text-sm md:text-base font-medium mt-1 md:mt-0.5">
+                                        Tienes productos con inventario crítico.
+                                    </p>
+                                </motion.div>
+                            ) : (
+                                // --- MODO INSPIRACIÓN ---
+                                <motion.div
+                                    key={`quote-${index}`}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="flex flex-col justify-center h-full"
+                                >
+                                    <p className="text-pink-50 text-base md:text-lg font-light leading-snug">
+                                        "{currentQuote.text}"
+                                    </p>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </div>
+
+                {/* DERECHA: INDICADOR GRANDE */}
+                <div className="flex-shrink-0">
+                    {hasAlert ? (
+                        <motion.div 
+                            className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl flex flex-col items-center min-w-[140px]"
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
                         >
-                            <p className="text-pink-50 text-lg leading-relaxed opacity-95 font-light max-w-lg">
-                                "{currentQuote.text}"
-                                <br/> 
-                                <span className="font-semibold text-white mt-1 block drop-shadow-sm">
-                                    {currentQuote.highlight}
-                                </span>
-                            </p>
+                            <span className="text-4xl font-black text-white drop-shadow-md">{lowStockCount}</span>
+                            <span className="text-[10px] uppercase tracking-widest font-bold opacity-80 mt-1">Stock Bajo</span>
                         </motion.div>
-                    </AnimatePresence>
+                    ) : (
+                        <motion.div 
+                            className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl flex items-center gap-4"
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                        >
+                            <div className="bg-white/20 p-3 rounded-full">
+                                <TrendingUp size={24} className="text-white" />
+                            </div>
+                            <div>
+                                <span className="block text-sm font-bold opacity-90">Todo en Orden</span>
+                                <span className="text-[10px] opacity-70">Sistema Saludable</span>
+                            </div>
+                        </motion.div>
+                    )}
                 </div>
             </div>
-
-            {/* --- SECCIÓN DE IMAGEN (Derecha) --- */}
-            {/* FIX ALINEACIÓN: Usamos 'flex items-center justify-center' y eliminamos rotaciones extrañas */}
-            <motion.div 
-                className="hidden md:flex relative z-10 w-1/3 h-full items-center justify-center pr-8"
-                initial={{ opacity: 0, x: 50, scale: 0.9 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                transition={{ duration: 0.7, ease: "easeOut" }}
-            >
-                <img 
-                    src={welcomeImage} 
-                    alt="Welcome Illustration" 
-                    // Ajustamos el tamaño máximo y usamos object-contain para que no se corte
-                    className="max-h-[220px] w-auto object-contain drop-shadow-2xl" 
-                />
-            </motion.div>
         </div>
     );
 }

@@ -1,255 +1,313 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { saleService } from '../services/saleService';
-import { productService } from '../services/productService';
+import { useDashboardData } from '../hooks/dashboard/useDashboardData';
 
+// Componentes UI
 import PageHeader from '../components/common/PageHeader';
 import WelcomeBanner from '../components/dashboard/WelcomeBanner';
 import SummaryCard from '../components/common/SummaryCard';
 import DynamicTable from '../components/common/DynamicTable';
 
-import { TrendingUp, ShoppingBag, DollarSign, PackageX } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { motion } from 'framer-motion'; // <--- IMPORTANTE
+// Iconos y Gráficos
+import { TrendingUp, ShoppingBag, DollarSign, PackageX, Layers, Activity, Star } from 'lucide-react';
+import { 
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+    AreaChart, Area, PieChart, Pie, Cell 
+} from 'recharts';
+import { motion } from 'framer-motion';
+
+// --- ESTILOS LOCALES ---
+const DashboardStyles = () => (
+    <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+        
+        .font-montserrat {
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #fbcfe8; border-radius: 4px; }
+    `}</style>
+);
+
+// --- COMPONENTES VISUALES ---
+const DateBadge = () => {
+    const currentDate = new Date();
+    const dayNum = currentDate.getDate();
+    const dayName = currentDate.toLocaleDateString('es-MX', { weekday: 'long' });
+    const monthYear = currentDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+
+    return (
+        <div className="flex items-center gap-3 bg-white pl-1 pr-5 py-1.5 rounded-full shadow-sm border border-pink-100 h-fit">
+            <div className="bg-pink-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shadow-md shadow-pink-200">
+                {dayNum}
+            </div>
+            <div className="flex flex-col leading-tight">
+                <span className="text-[10px] text-pink-500 font-bold uppercase tracking-wider">{dayName}</span>
+                <span className="text-[10px] font-semibold text-gray-400 capitalize">{monthYear}</span>
+            </div>
+        </div>
+    );
+};
+
+const CustomTooltip = ({ active, payload, label, prefix = "$" }) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-white p-3 text-xs rounded-xl shadow-xl border border-pink-100 z-50 font-montserrat">
+                <p className="font-semibold mb-1 text-gray-400">{label}</p>
+                <p className="font-bold text-lg text-pink-600">
+                    {prefix === "$" ? `$${Number(payload[0].value).toLocaleString()}` : payload[0].value}
+                    {prefix !== "$" && " pedidos"}
+                </p>
+            </div>
+        );
+    }
+    return null;
+};
+
+// --- ANIMACIONES ---
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: "easeOut" } }
+};
 
 function DashboardPage() {
     const { user } = useAuth();
-    const [loading, setLoading] = useState(true);
+    const { loading, kpis, chartData, lowStockProducts, topProducts } = useDashboardData();
 
-    const [kpis, setKpis] = useState({ todaySales: 0, monthSales: 0, totalOrders: 0 });
-    const [salesChartData, setSalesChartData] = useState([]);
-    const [lowStockProducts, setLowStockProducts] = useState([]);
-
-    const currentDate = new Date().toLocaleDateString('es-MX', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-    });
-    const formattedDate = currentDate.charAt(0).toUpperCase() + currentDate.slice(1);
-
-    // --- CONFIGURACIÓN DE ANIMACIONES ---
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.1 // Efecto cascada: cada hijo aparece 0.1s después del anterior
-            }
-        }
-    };
-
-    const itemVariants = {
-        hidden: { y: 20, opacity: 0 },
-        visible: {
-            y: 0,
-            opacity: 1,
-            transition: {
-                type: "spring", // Tipo rebote
-                stiffness: 100, // Rigidez del resorte
-                damping: 15     // Amortiguación
-            }
-        }
-    };
-
-    useEffect(() => {
-        const loadDashboardData = async () => {
-            try {
-                setLoading(true);
-                const [salesData, productsData] = await Promise.all([
-                    saleService.getAll(),
-                    productService.getAll()
-                ]);
-
-                processSalesData(salesData);
-                processStockData(productsData);
-
-            } catch (error) {
-                console.error("Error cargando dashboard:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadDashboardData();
-    }, []);
-
-    // ... (Mantén las funciones processSalesData, processStockData y columns IGUAL que en tu código original) ...
-    const processSalesData = (sales) => {
-        const now = new Date();
-        const todayStr = now.toLocaleDateString();
-        const currentMonth = now.getMonth();
-
-        const todayTotal = sales
-            .filter(s => new Date(s.registrationDate).toLocaleDateString() === todayStr)
-            .reduce((acc, curr) => acc + curr.total, 0);
-
-        const monthTotal = sales
-            .filter(s => new Date(s.registrationDate).getMonth() === currentMonth)
-            .reduce((acc, curr) => acc + curr.total, 0);
-
-        setKpis({ todaySales: todayTotal, monthSales: monthTotal, totalOrders: sales.length });
-
-        const last7Days = [];
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const dateLabel = d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' });
-            const daySales = sales
-                .filter(s => new Date(s.registrationDate).toLocaleDateString() === d.toLocaleDateString())
-                .reduce((acc, curr) => acc + curr.total, 0);
-            last7Days.push({ name: dateLabel, ventas: daySales });
-        }
-        setSalesChartData(last7Days);
-    };
-
-    const processStockData = (products) => {
-        const lowStock = products.filter(p => {
-            const rawStock = p.stock !== undefined ? p.stock : p.Stock;
-            const qty = Number(rawStock);
-            return !isNaN(qty) && qty <= 5;
-        });
-        const sortedLowStock = lowStock.sort((a, b) => {
-            const stockA = Number(a.stock ?? a.Stock ?? 0);
-            const stockB = Number(b.stock ?? b.Stock ?? 0);
-            return stockA - stockB;
-        });
-        setLowStockProducts(sortedLowStock);
-    };
-
+    // Configuración Tabla Stock
     const columns = useMemo(() => [
         {
             header: "Producto",
             render: (row) => (
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded bg-red-50 text-red-500 flex items-center justify-center flex-shrink-0">
-                        <PackageX size={16} />
+                    <div className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center flex-shrink-0 border border-red-100">
+                        <PackageX size={14} />
                     </div>
-                    <span className="font-bold text-gray-700 text-sm truncate max-w-[150px]" title={row.description || row.Description}>
-                        {row.description || row.Description}
+                    <span className="font-semibold text-gray-700 text-xs truncate max-w-[140px]" title={row.description}>
+                        {row.description}
                     </span>
                 </div>
             )
         },
         {
             header: "Stock",
-            className: "text-center",
-            render: (row) => {
-                const stockVal = Number(row.stock !== undefined ? row.stock : row.Stock);
-                return (
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${stockVal === 0 ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
-                        {stockVal}
-                    </span>
-                );
-            }
-        },
-        {
-            header: "Estado",
             className: "text-right",
             render: (row) => {
-                const stockVal = Number(row.stock !== undefined ? row.stock : row.Stock);
-                return stockVal === 0
-                    ? <span className="text-xs text-red-500 font-bold">Agotado</span>
-                    : <span className="text-xs text-orange-500 font-bold">Bajo</span>;
+                const stock = Number(row.stock ?? row.Stock ?? 0);
+                return (
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${stock === 0 ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
+                        {stock === 0 ? 'Agotado' : `${stock} pzs`}
+                    </span>
+                );
             }
         }
     ], []);
 
-    // Spinner de carga (puedes usar tu CartLoader aquí si quieres)
-    if (loading) return <div className="p-8 flex justify-center h-full items-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div></div>;
+    if (loading) return (
+        <div className="h-screen w-full flex items-center justify-center bg-[#F9FAFB] font-montserrat">
+            <div className="flex flex-col items-center gap-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-200 border-t-pink-500"></div>
+                <p className="text-xs text-gray-400 font-semibold tracking-widest uppercase animate-pulse">Cargando...</p>
+            </div>
+        </div>
+    );
 
     return (
-        // motion.div envuelve todo el contenido
         <motion.div 
-            className="p-6 md:p-8 max-w-7xl mx-auto h-full flex flex-col"
+            className="p-6 md:p-8 w-full mx-auto min-h-screen bg-[#F9FAFB] font-montserrat overflow-hidden"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
         >
+            <DashboardStyles />
 
-            {/* Header con Fecha */}
-            <motion.div variants={itemVariants}>
-                <PageHeader title="Dashboard">
-                    <div className="text-right hidden sm:block">
-                        <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Hoy es</p>
-                        <p className="text-sm font-bold text-gray-700 capitalize">{formattedDate}</p>
-                    </div>
+            {/* HEADER */}
+            <motion.div variants={itemVariants} className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <PageHeader title="Mis Indicadores">
+                    {/* Header children vacío */}
                 </PageHeader>
+                <div className="self-start md:self-auto">
+                    <DateBadge />
+                </div>
             </motion.div>
 
-            {/* Banner */}
+            {/* BANNER */}
             <motion.div variants={itemVariants}>
-                <WelcomeBanner userName={user?.name?.split(' ')[0] || 'Admin'} />
+                <WelcomeBanner 
+                    userName={user?.name?.split(' ')[0] || 'Admin'} 
+                    lowStockCount={lowStockProducts.length} 
+                />
             </motion.div>
 
             {/* KPIs */}
-            <motion.div 
-                className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
-                variants={itemVariants}
-            >
-                <SummaryCard title="Ventas de Hoy" value={`$${kpis.todaySales.toFixed(2)}`} subtitle={new Date().toLocaleDateString()} icon={DollarSign} colorClass="bg-green-100 text-green-600" />
-                <SummaryCard title="Ventas del Mes" value={`$${kpis.monthSales.toFixed(2)}`} subtitle="Acumulado mensual" icon={TrendingUp} colorClass="bg-pink-100 text-pink-600" />
-                <SummaryCard title="Total Pedidos" value={kpis.totalOrders} subtitle="Histórico total" icon={ShoppingBag} colorClass="bg-blue-100 text-blue-600" />
+            <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10" variants={itemVariants}>
+                <SummaryCard 
+                    title="Venta Hoy" 
+                    value={`$${kpis.todaySales.toLocaleString('en-US', { minimumFractionDigits: 2 })}`} 
+                    subtitle="Cierre al momento" 
+                    icon={Activity} 
+                    colorClass="bg-emerald-50 text-emerald-500"
+                />
+                <SummaryCard 
+                    title="Ventas del Mes" 
+                    value={`$${kpis.monthSales.toLocaleString('en-US', { minimumFractionDigits: 0 })}`} 
+                    subtitle="Acumulado mensual" 
+                    icon={DollarSign} 
+                    colorClass="bg-pink-100 text-pink-600"
+                />
+                <SummaryCard 
+                    title="Pedidos (Web/App)" 
+                    value={kpis.monthOrders} 
+                    subtitle="Confirmados este mes" 
+                    icon={ShoppingBag} 
+                    colorClass="bg-rose-50 text-rose-500"
+                />
+                <SummaryCard 
+                    title="Ticket Promedio" 
+                    value={`$${kpis.ticketAverage.toFixed(0)}`} 
+                    subtitle="Valor por venta" 
+                    icon={Layers} 
+                    colorClass="bg-purple-50 text-purple-500"
+                />
             </motion.div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Gráfica */}
-                <motion.div 
-                    className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
-                    variants={itemVariants}
-                >
-                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-                        <TrendingUp size={20} className="text-pink-500" />
-                        Comportamiento de Ventas (7 días)
-                    </h3>
-                    <div className="h-80 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={salesChartData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} dy={10} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} tickFormatter={(val) => `$${val}`} />
-                                <Tooltip cursor={{ fill: '#FCE7F3' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-                                <Bar dataKey="ventas" name="Ventas ($)" fill="#EC4899" radius={[4, 4, 0, 0]} barSize={40} animationDuration={1500} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </motion.div>
+            {/* GRID GRÁFICAS */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                
+                {/* IZQUIERDA: GRÁFICAS DE BARRAS/AREA */}
+                <div className="xl:col-span-2 space-y-8">
+                    
+                    {/* 1. VENTAS */}
+                    <motion.div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-50 h-[350px]" variants={itemVariants}>
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-800">Ingresos Semanales</h3>
+                                <p className="text-xs text-gray-400 font-medium">Ventas en tienda (POS)</p>
+                            </div>
+                            <div className="bg-pink-50 text-pink-500 p-2 rounded-xl"><DollarSign size={20}/></div>
+                        </div>
+                        <div className="h-[240px] w-full">
+                            {/* FIX FREEZE: debounce={300} espera 300ms tras el resize para redibujar */}
+                            <ResponsiveContainer width="100%" height="100%" debounce={300}>
+                                <BarChart data={chartData}>
+                                    <defs>
+                                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#ec4899" stopOpacity={1}/>
+                                            <stop offset="100%" stopColor="#fbcfe8" stopOpacity={0.6}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 10, fontFamily: 'Montserrat' }} dy={10} />
+                                    <Tooltip cursor={{ fill: '#fdf2f8' }} content={<CustomTooltip />} />
+                                    <Bar dataKey="ventas" fill="url(#barGradient)" radius={[6, 6, 6, 6]} barSize={32} animationDuration={1500} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </motion.div>
 
-                {/* Tabla de Alertas */}
-                <motion.div 
-                    className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col h-fit lg:self-start"
-                    variants={itemVariants}
-                >
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
-                            <PackageX className="text-red-500" size={24} />
-                            Productos sin Stock
+                    {/* 2. PEDIDOS */}
+                    <motion.div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-50 h-[320px]" variants={itemVariants}>
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-800">Flujo de Pedidos</h3>
+                                <p className="text-xs text-gray-400 font-medium">Órdenes confirmadas por día</p>
+                            </div>
+                            <div className="bg-rose-50 text-rose-500 p-2 rounded-xl"><ShoppingBag size={20}/></div>
+                        </div>
+                        <div className="h-[200px] w-full">
+                            {/* FIX FREEZE: debounce={300} */}
+                            <ResponsiveContainer width="100%" height="100%" debounce={300}>
+                                <AreaChart data={chartData}>
+                                    <defs>
+                                        <linearGradient id="colorPedidos" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2}/>
+                                            <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 10, fontFamily: 'Montserrat' }} dy={10} />
+                                    <Tooltip content={<CustomTooltip prefix="#" />} />
+                                    <Area type="monotone" dataKey="pedidos" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorPedidos)" animationDuration={1500} />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </motion.div>
+                </div>
+
+                {/* DERECHA: TOPS & STOCK */}
+                <div className="space-y-8">
+                    
+                    {/* 3. PASTEL */}
+                    <motion.div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-50 flex flex-col items-center relative" variants={itemVariants}>
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-pink-50 rounded-bl-full opacity-50 pointer-events-none"></div>
+                        <h3 className="text-lg font-bold text-gray-800 mb-2 self-start w-full flex items-center gap-2">
+                             <Star size={18} className="text-yellow-400 fill-yellow-400"/> Top Categorías
                         </h3>
-                        <p className="text-xs text-gray-400">Menos de 5 piezas</p>
+                        <div className="h-[220px] w-full relative">
+                            {/* FIX FREEZE: debounce={300} */}
+                            <ResponsiveContainer width="100%" height="100%" debounce={300}>
+                                <PieChart>
+                                    <Pie data={topProducts} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" cornerRadius={5} stroke="none">
+                                        {topProducts.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', fontFamily: 'Montserrat' }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none flex-col">
+                                <span className="text-3xl font-bold text-gray-800">4</span>
+                                <span className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">Tops</span>
+                            </div>
+                        </div>
+                        <div className="w-full mt-4 space-y-2">
+                            {topProducts.map((item, idx) => (
+                                <div key={idx} className="flex justify-between text-xs">
+                                    <span className="flex items-center gap-2 text-gray-600 font-medium">
+                                        <span className="w-2 h-2 rounded-full" style={{background: item.color}}/> {item.name}
+                                    </span>
+                                    <span className="font-bold">{item.value}%</span>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
 
-                        {lowStockProducts.length > 0 && (
-                            <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                    {/* 4. STOCK */}
+                    <motion.div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-50 flex flex-col h-[400px]" variants={itemVariants}>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
+                                <PackageX className="text-red-500" size={20} /> Stock Bajo
+                            </h3>
+                            <span className="bg-red-50 text-red-600 text-[10px] font-bold px-2 py-1 rounded-full animate-pulse">
                                 {lowStockProducts.length}
                             </span>
-                        )}
-                    </div>
-
-                    <div className="flex-1 overflow-auto p-0">
-                        {lowStockProducts.length > 0 ? (
-                            <DynamicTable
-                                columns={columns}
-                                data={lowStockProducts}
-                                loading={false}
-                                pagination={{ currentPage: 1, totalPages: 1 }}
-                                onPageChange={() => { }}
-                                compact={true}
-                            />
-                        ) : (
-                            <div className="flex flex-col items-center justify-center text-gray-400 text-center p-8">
-                                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-2">
-                                    <ShoppingBag className="text-green-500" size={24} />
+                        </div>
+                        
+                        <div className="flex-1 overflow-hidden relative">
+                            {lowStockProducts.length > 0 ? (
+                                <div className="h-full overflow-y-auto pr-1 custom-scrollbar">
+                                    <DynamicTable
+                                        columns={columns}
+                                        data={lowStockProducts}
+                                        loading={false}
+                                        compact={true}
+                                    />
                                 </div>
-                                <p className="text-sm font-medium">Inventario Saludable</p>
-                            </div>
-                        )}
-                    </div>
-                </motion.div>
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-center">
+                                    <div className="p-3 bg-green-50 rounded-full mb-3 text-green-500"><ShoppingBag size={24} /></div>
+                                    <p className="text-xs text-gray-400">Inventario Saludable</p>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                </div>
             </div>
         </motion.div>
     );

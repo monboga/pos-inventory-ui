@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Receipt, User, Phone, MapPin, Calendar, Eye, Package, Store, Truck } from 'lucide-react';
 import { orderService } from '../../services/orderService';
 import { getStatusConfig } from '../../constants/orderStatus'; // Asegúrate de tener esto o usa un fallback
+import { formatDateTime } from '../../utils/dateUtils';
 
 const OrderDetailModal = ({ isOpen, orderId, onClose }) => {
     const [detail, setDetail] = useState(null);
@@ -19,13 +20,6 @@ const OrderDetailModal = ({ isOpen, orderId, onClose }) => {
             setDetail(null);
         }
     }, [isOpen, orderId]);
-
-    // Helpers de visualización
-    const formatDate = (dateString) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
-    };
 
     if (!isOpen) return null;
 
@@ -107,7 +101,7 @@ const OrderDetailModal = ({ isOpen, orderId, onClose }) => {
                                             <Calendar size={16} className="text-gray-400 mt-1" />
                                             <div>
                                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Fecha de Creación</p>
-                                                <p className="text-xs font-medium text-gray-600 capitalize">{formatDate(detail.createdAt)}</p>
+                                                <p className="text-xs font-medium text-gray-600 capitalize">{formatDateTime(detail.createdAt)}</p>
                                             </div>
                                         </div>
                                     </div>

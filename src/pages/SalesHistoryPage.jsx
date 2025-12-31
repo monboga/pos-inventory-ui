@@ -5,6 +5,7 @@ import SummaryCard from '../components/common/SummaryCard';
 import SaleDetailModal from '../components/sales/SaleDetailModal';
 import DateRangeModal from '../components/sales/DateRangeModal';
 import { saleService } from '../services/saleService';
+import { formatDateTime } from '../utils/dateUtils';
 // Importamos icono Printer o FileText
 import { Search, Eye, TrendingUp, DollarSign, ShoppingBag, FileText, Loader, Calendar, Download, FileSpreadsheet, Printer } from 'lucide-react';
 import toast from 'react-hot-toast'; // Usamos toast para feedback
@@ -175,9 +176,17 @@ function SalesHistoryPage() {
         },
         {
             header: "Fecha y Hora",
-            render: (row) => new Date(row.registrationDate).toLocaleString('es-MX', {
-                day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit'
-            })
+            render: (row) => (
+                <div className="text-gray-600 font-medium text-xs">
+                    {formatDateTime(row.registrationDate, {
+                        day: '2-digit', 
+                        month: 'short', 
+                        year: 'numeric', // '2-digit' si prefieres '25' en vez de '2025'
+                        hour: '2-digit', 
+                        minute: '2-digit'
+                    })}
+                </div>
+            )
         },
         {
             header: "Cliente",
