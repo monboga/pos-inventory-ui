@@ -2,6 +2,8 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Printer, Check } from 'lucide-react';
 
+import { formatDateTime } from '../../utils/dateUtils';
+
 const backdropVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1 },
@@ -37,9 +39,12 @@ function SaleSuccessModal({ isOpen, onClose, saleData, onPrint }) {
     if (!saleData) return null;
 
     // Formatear Fecha (Ej: 21 de diciembre de 2025)
-    const dateStr = new Date(saleData.registrationDate).toLocaleString('es-MX', {
-        day: 'numeric', month: 'long', year: 'numeric',
-        hour: '2-digit', minute: '2-digit'
+    const dateStr = formatDateTime(saleData.registrationDate, {
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric',
+        hour: '2-digit', 
+        minute: '2-digit'
     });
 
     return (

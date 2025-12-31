@@ -29,6 +29,12 @@ export const useDashboardData = () => {
         loadData();
     }, []);
 
+    const getLocalDateStr = (utcDateString) => {
+        if (!utcDateString) return '';
+        const utc = utcDateString.endsWith('Z') ? utcDateString : `${utcDateString}Z`;
+        return new Date(utc).toLocaleDateString('es-MX'); // Devuelve string local (ej. "30/12/2025")
+    };
+
     const loadData = async () => {
         try {
             setLoading(true);
@@ -59,16 +65,20 @@ export const useDashboardData = () => {
 
     const processKPIs = (sales, orders) => {
         const now = new Date();
-        const todayStr = now.toLocaleDateString();
+        const todayStr = now.toLocaleDateString('es-MX');
         const currentMonth = now.getMonth();
 
         // --- VENTAS (Dinero ingresado) ---
         const todaySales = sales
-            .filter(s => new Date(s.registrationDate).toLocaleDateString() === todayStr)
+            .filter(s => getLocalDateStr(s.registrationDate) === todayStr)
             .reduce((acc, curr) => acc + curr.total, 0);
 
         const monthSales = sales
-            .filter(s => new Date(s.registrationDate).getMonth() === currentMonth)
+            .filter(s => {
+                // Convertimos a objeto fecha local para checar el mes
+                const utc = s.registrationDate.endsWith('Z') ? s.registrationDate : `${s.registrationDate}Z`;
+                return new Date(utc).getMonth() === currentMonth;
+            })
             .reduce((acc, curr) => acc + curr.total, 0);
 
         // --- PEDIDOS (Volumen operativo) ---
@@ -80,7 +90,10 @@ export const useDashboardData = () => {
         );
 
         const monthOrders = relevantOrders
-            .filter(o => new Date(o.createdAt).getMonth() === currentMonth)
+            .filter(o => {
+                const utc = o.createdAt.endsWith('Z') ? o.createdAt : `${o.createdAt}Z`;
+                return new Date(utc).getMonth() === currentMonth;
+            })
             .length;
 
         // Ticket Promedio (Del mes)
@@ -102,25 +115,25 @@ export const useDashboardData = () => {
         for (let i = 6; i >= 0; i--) {
             const d = new Date();
             d.setDate(d.getDate() - i);
-            const dateStr = d.toLocaleDateString();
+            const dateLabelTarget = d.toLocaleDateString('es-MX');
             
             // Label corto (ej. "Lun 12")
-            const dateLabel = d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' });
+            const dateLabelVisual = d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' });
 
             // Suma de Ventas del día
             const dailySalesAmount = sales
-                .filter(s => new Date(s.registrationDate).toLocaleDateString() === dateStr)
+                .filter(s => getLocalDateStr(s.registrationDate) === dateLabelTarget) // Comparación Local vs Local
                 .reduce((acc, curr) => acc + curr.total, 0);
 
             // Conteo de Pedidos del día (Solo Confirmados/En Camino para medir flujo de trabajo)
             const dailyOrdersCount = orders
                 .filter(o => 
-                    new Date(o.createdAt).toLocaleDateString() === dateStr && 
+                    getLocalDateStr(o.createdAt) === dateLabelTarget && 
                     (o.statusId === ORDER_STATUS.CONFIRMED || o.statusId === ORDER_STATUS.INCOMING)
                 ).length;
 
             last7Days.push({
-                name: dateLabel,
+                name: dateLabelVisual,
                 ventas: dailySalesAmount,
                 pedidos: dailyOrdersCount
             });
