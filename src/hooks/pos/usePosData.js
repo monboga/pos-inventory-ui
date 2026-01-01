@@ -50,7 +50,8 @@ export const usePosData = () => {
                 id: c.id || c.Id,
                 fullName: c.fullName || c.FullName || `${c.firstName} ${c.lastName}`,
                 rfc: c.rfc || c.Rfc,
-                email: c.email || c.Email
+                email: c.email || c.Email,
+                phoneNumber: c.phoneNumber || c.PhoneNumber
             }));
 
             setAllProducts(activeProducts);

@@ -1,4 +1,4 @@
-import { Search, Loader, FileText, Mail, User, Filter } from 'lucide-react';
+import { Search, Loader, FileText, Mail, User, Filter, Phone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 
@@ -156,8 +156,8 @@ function PointOfSalePage() {
                                     <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded">{clientInfo.rfc || "Sin RFC"}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-gray-500">
-                                    <Mail size={14} className="text-pink-400" />
-                                    <span className="truncate">{clientInfo.email}</span>
+                                    {clientInfo.phoneNumber ? (<Phone size={14} className="text-pink-400" />) : (<Mail size={14} className="text-pink-400" />)}
+                                    <span className="truncate">{clientInfo.phoneNumber || clientInfo.email || "Sin datos de Contacto"}</span>
                                 </div>
                             </motion.div>
                         )}
