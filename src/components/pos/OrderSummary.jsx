@@ -4,8 +4,6 @@ import SaleConfirmationModal from '../sales/SaleConfirmationModal';
 import toast from 'react-hot-toast';
 import { getItemFinancials } from '../../utils/financials'; // Usamos el util compartido
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7031';
-
 function OrderSummary({ 
     cartItems, 
     totals,
@@ -34,18 +32,6 @@ function OrderSummary({
     const handleConfirmCheckout = (docType) => {
         setIsModalOpen(false);
         onProcessSale(docType, totals.total);
-    };
-
-    // Helper de imagen (UI Logic)
-    const getImgUrl = (item) => {
-        const rawImg = item.image || item.Image;
-        if (!rawImg) return null;
-        if (rawImg.includes("Uploads")) {
-            const cleanPath = rawImg.replace(/\\/g, '/');
-            const prefix = cleanPath.startsWith('/') ? '' : '/';
-            return `${API_BASE_URL}${prefix}${cleanPath}`;
-        }
-        return rawImg;
     };
 
     return (
@@ -82,7 +68,6 @@ function OrderSummary({
                         const isMaxStock = item.quantity >= (item.stock || item.Stock);
                         // Calculamos financieros item por item solo para renderizado visual
                         const { originalPrice, unitPrice, isDiscountActive, minQty, discountPct, isNearDiscount, isBulkType, savings } = getItemFinancials(item);
-                        const imgUrl = getImgUrl(item);
 
                         // Lógica visual
                         const themeColorText = isBulkType ? 'text-blue-600' : 'text-pink-600';
@@ -98,7 +83,7 @@ function OrderSummary({
                                 <div className="flex items-center">
                                     {/* Imagen */}
                                     <div className="w-12 h-12 rounded-xl bg-gray-50 overflow-hidden flex-shrink-0 mr-3 border border-gray-100 relative">
-                                        {imgUrl ? <img src={imgUrl} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><Layers size={16}/></div>}
+                                        {item.image ? <img src={item.image} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><Layers size={16}/></div>}
                                         {isDiscountActive && (
                                             <div className={`absolute bottom-0 left-0 right-0 h-3 ${themeBg} flex items-center justify-center`}>
                                                 <span className="text-[8px] font-bold text-white flex items-center gap-0.5 leading-none">
