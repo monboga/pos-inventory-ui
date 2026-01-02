@@ -8,23 +8,9 @@ export const businessService = {
         return response.data; 
     },
 
-    create: async (businessData) => {
-        const formData = new FormData();
-        formData.append('Rfc', businessData.rfc);
-        formData.append('RazonSocial', businessData.legalName);
-        formData.append('Email', businessData.email);
-        formData.append('Address', businessData.address);
-        formData.append('PhoneNumber', businessData.phoneNumber);
-        formData.append('PostalCode', businessData.postalCode);
-        formData.append('CurrencyType', businessData.currencyType || 'MXN');
-        formData.append('RegimenFiscalId', businessData.regimenFiscalId);
-
-        if (businessData.logoFile) {
-            formData.append('Logo', businessData.logoFile);
-        }
-
+    // Ahora recibe el FormData ya construido desde el Hook
+    create: async (formData) => {
         try {
-            // --- FIX: HEADER MULTIPART ---
             const response = await api.post(BASE_ENDPOINT, formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
@@ -35,24 +21,10 @@ export const businessService = {
         }
     },
 
-    update: async (id, businessData) => {
-        const formData = new FormData();
-        formData.append('Id', id);
-        formData.append('Rfc', businessData.rfc);
-        formData.append('RazonSocial', businessData.legalName);
-        formData.append('Email', businessData.email);
-        formData.append('Address', businessData.address);
-        formData.append('PhoneNumber', businessData.phoneNumber);
-        formData.append('PostalCode', businessData.postalCode);
-        formData.append('CurrencyType', businessData.currencyType || 'MXN');
-        formData.append('RegimenFiscalId', businessData.regimenFiscalId);
-
-        if (businessData.logoFile) {
-            formData.append('Logo', businessData.logoFile);
-        }
-
+    // Ahora recibe el FormData ya construido desde el Hook
+    update: async (id, formData) => {
         try {
-            // --- FIX: HEADER MULTIPART ---
+            // Aseguramos que el ID vaya en la URL, el resto en el cuerpo
             const response = await api.put(`${BASE_ENDPOINT}/${id}`, formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });

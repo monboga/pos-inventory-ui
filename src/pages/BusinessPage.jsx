@@ -1,93 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion'; // Importamos para animaciones
-import PageHeader from '../components/common/PageHeader';
-import BusinessModal from '../components/business/BusinessModal';
-import { businessService } from '../services/businessService';
-import { MapPin, Phone, Mail, FileText, Store, Plus, RefreshCw, Globe } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Store, MapPin, Phone, Mail, FileText, Plus, Edit3, Globe, CreditCard, Building2, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7031';
+// Componentes
+import PageHeader from '../components/common/PageHeader';
+import BusinessModal from '../components/business/BusinessModal';
+import BusinessCardSection from '../components/business/BusinessCardSection'; // <--- NUEVO
+import BusinessInformationItem from '../components/business/BusinessInformationItem'; // <--- NUEVO
 
-// Variantes de animación consistentes
-const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-};
-
-const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: "easeOut" } }
-};
+// Hooks y Servicios
+import { useBusinessData } from '../hooks/business/useBusinessData';
+import { businessService } from '../services/businessService';
 
 function BusinessPage() {
-    const [business, setBusiness] = useState(null);
-    const [loading, setLoading] = useState(true);
+    // 1. Hook de Lectura (Obtiene datos formateados)
+    const { 
+        business, 
+        loading, 
+        refreshBusiness, 
+        logoUrl, 
+        fullAddress, 
+        fullLocation 
+    } = useBusinessData();
+    
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const loadBusiness = async () => {
-        try {
-            setLoading(true);
-            const data = await businessService.getBusiness();
-            if (Array.isArray(data) && data.length > 0) {
-                setBusiness(data[0]);
-            } else {
-                setBusiness(null);
-            }
-        } catch (error) {
-            console.warn("No se encontró información del negocio o error al cargar");
-            setBusiness(null);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { loadBusiness(); }, []);
-
+    // 2. Lógica de Guardado (Orquestación)
+    // Se mantiene aquí porque la página debe actualizarse tras el guardado
     const handleSave = async (formData) => {
         const toastId = toast.loading(business ? "Actualizando..." : "Registrando...");
         try {
             if (business) {
-                await businessService.update(business.id || business.Id, formData);
+                await businessService.update(business.id, formData);
                 toast.success("Información actualizada", { id: toastId });
             } else {
                 await businessService.create(formData);
-                toast.success("Negocio registrado con éxito", { id: toastId });
+                toast.success("Negocio registrado", { id: toastId });
             }
             setIsModalOpen(false);
-            loadBusiness();
+            refreshBusiness(); // Recargar datos para ver cambios
         } catch (error) {
-            toast.error(error.message, { id: toastId });
+            console.error(error);
+            toast.error("Error al guardar información", { id: toastId });
         }
-    };
-
-    const getImageUrl = (rawImage) => {
-        if (!rawImage) return null;
-        if (!rawImage.includes('/') && rawImage.length > 100) return `data:image/png;base64,${rawImage}`;
-        if (rawImage.includes("Uploads") || rawImage.includes("/")) {
-            const cleanPath = rawImage.replace(/\\/g, '/');
-            const pathPart = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
-            return `${API_BASE_URL}/${pathPart}`;
-        }
-        return rawImage;
-    };
-
-    const renderLogo = () => {
-        const src = getImageUrl(business?.logo || business?.Logo);
-        if (src) {
-            const cacheBuster = src.startsWith('http') ? `?t=${new Date().getTime()}` : '';
-            return (
-                <img
-                    src={`${src}${cacheBuster}`}
-                    alt="Logo"
-                    className="w-32 h-32 rounded-2xl border-4 border-white shadow-md object-contain bg-white"
-                />
-            );
-        }
-        return (
-            <div className="w-32 h-32 rounded-2xl border-4 border-white bg-white shadow-md flex items-center justify-center text-pink-500">
-                <Store size={64} strokeWidth={1.5} />
-            </div>
-        );
     };
 
     if (loading) return (
@@ -97,147 +53,151 @@ function BusinessPage() {
     );
 
     return (
-        // 1. WRAPPER PRINCIPAL (Full Width + Fondo Gris)
         <div className="w-full min-h-screen bg-[#F9FAFB] font-montserrat overflow-x-hidden flex flex-col">
-            
-            {/* 2. HEADER FULL WIDTH */}
             <div className="flex-shrink-0">
-                <PageHeader title="Información del Negocio" />
+                <PageHeader title="Mi Negocio" />
             </div>
 
-            {/* 3. CONTENIDO PRINCIPAL (Centrado y limitado) */}
-            <motion.div 
-                className="flex-1 p-6 md:p-8 max-w-[1600px] mx-auto w-full"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-            >
-                <motion.div variants={itemVariants}>
+            <div className="flex-1 p-6 md:p-8 max-w-[1600px] mx-auto w-full">
+                <AnimatePresence mode="wait">
                     {!business ? (
-                        // --- ESTADO VACÍO (Centrado visualmente en pantalla) ---
-                        <div className="min-h-[60vh] flex flex-col items-center justify-center">
-                            <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-12 text-center flex flex-col items-center max-w-2xl w-full">
-                                <div className="w-24 h-24 bg-pink-50 rounded-full flex items-center justify-center mb-6 text-pink-500">
-                                    <Store size={48} />
-                                </div>
-                                <h2 className="text-2xl font-bold text-gray-800 mb-2">Configura tu Negocio</h2>
-                                <p className="text-gray-500 mb-8 max-w-md">
-                                    Registra la información fiscal y general de tu empresa para que aparezca correctamente en tus tickets y facturas.
-                                </p>
-                                <button
-                                    onClick={() => setIsModalOpen(true)}
-                                    className="flex items-center gap-2 px-8 py-4 bg-pink-500 hover:bg-pink-600 text-white rounded-2xl font-bold shadow-xl shadow-pink-200 transition-all active:scale-95"
-                                >
-                                    <Plus size={20} /> Registrar Negocio
-                                </button>
+                        /* --- EMPTY STATE --- */
+                        <motion.div 
+                            key="empty"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-[2.5rem] border-2 border-dashed border-pink-200 p-12 flex flex-col items-center justify-center text-center shadow-sm max-w-2xl mx-auto mt-10"
+                        >
+                            <div className="w-32 h-32 bg-pink-50 rounded-full flex items-center justify-center mb-6 relative group">
+                                <div className="absolute inset-0 bg-pink-200 rounded-full opacity-20 animate-ping group-hover:animate-none"></div>
+                                <Store size={64} className="text-pink-500 relative z-10" />
                             </div>
-                        </div>
+                            <h2 className="text-2xl font-bold text-gray-800 mb-3">Comencemos a configurar tu negocio</h2>
+                            <p className="text-gray-500 max-w-md mb-8 leading-relaxed">
+                                Registra tu información fiscal y ubicación para comenzar.
+                            </p>
+                            <button
+                                onClick={() => setIsModalOpen(true)}
+                                className="flex items-center gap-2 px-8 py-4 bg-pink-600 hover:bg-pink-700 text-white rounded-xl font-bold shadow-lg shadow-pink-200 transition-all"
+                            >
+                                <Plus size={20} /> Registrar mi Negocio
+                            </button>
+                        </motion.div>
                     ) : (
-                        // --- VISTA DETALLE ---
-                        // Usamos max-w-5xl para que la info no se estire demasiado en pantallas 1600px
-                        <div className="max-w-5xl mx-auto bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
-                            {/* Banner Fondo */}
-                            <div className="bg-gradient-to-r from-pink-500 to-pink-600 h-40 relative"></div>
-
-                            <div className="px-8 md:px-12 pb-12">
-                                {/* Header con Logo Superpuesto */}
-                                <div className="relative -mt-16 mb-8 flex flex-col sm:flex-row justify-between items-end gap-6">
-                                    <div className="flex items-end gap-6">
-                                        {renderLogo()}
-                                        <div className="mb-2">
-                                            <h2 className="text-3xl font-black text-gray-800 tracking-tight">
-                                                {business.legalName || business.LegalName}
-                                            </h2>
-                                            <div className="flex items-center gap-2 text-gray-500 font-medium bg-gray-50 px-3 py-1 rounded-lg w-fit mt-2">
-                                                <FileText size={16} className="text-pink-500" />
-                                                <span>RFC: <span className="text-gray-700 font-bold">{business.rfc || business.Rfc}</span></span>
-                                            </div>
+                        /* --- BUSINESS INFO STATE --- */
+                        <div key="content" className="space-y-8 max-w-6xl mx-auto">
+                            
+                            {/* 1. SECCIÓN PRINCIPAL (Identidad) */}
+                            <BusinessCardSection className="relative pt-0" delay={0.1}>
+                                <div className="h-32 bg-gradient-to-r from-pink-600 to-pink-400">
+                                    <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-medium border border-white/30 flex items-center gap-1">
+                                        <CheckCircle2 size={12} /> Activo
+                                    </div>
+                                </div>
+                                <div className="px-8 pb-8 flex flex-col md:flex-row gap-6">
+                                    <div className="-mt-12 shrink-0 relative">
+                                        <div className="w-32 h-32 rounded-2xl bg-white border-4 border-white shadow-lg flex items-center justify-center overflow-hidden">
+                                            {logoUrl ? (
+                                                <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                                            ) : (
+                                                <Store size={48} className="text-pink-300" />
+                                            )}
                                         </div>
                                     </div>
 
-                                    <button 
-                                        onClick={() => setIsModalOpen(true)} 
-                                        className="bg-white border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl font-bold hover:bg-gray-50 hover:text-pink-600 hover:border-pink-200 transition-all shadow-sm flex items-center gap-2 mb-2"
-                                    >
-                                        <RefreshCw size={18} /> Editar Información
-                                    </button>
-                                </div>
-
-                                {/* Grid de Información */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-12">
-                                    {/* Columna Izquierda */}
-                                    <div className="space-y-8">
-                                        <h3 className="text-lg font-bold text-gray-800 border-b border-gray-100 pb-3 flex items-center gap-2">
-                                            <MapPin size={20} className="text-pink-500"/> Ubicación y Contacto
-                                        </h3>
-
-                                        <div className="space-y-6">
-                                            <div className="group">
-                                                <p className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Dirección Fiscal</p>
-                                                <p className="text-gray-700 font-medium text-lg leading-snug group-hover:text-pink-600 transition-colors">
-                                                    {business.address || business.Address}
-                                                </p>
-                                                <span className="inline-block mt-1 text-sm text-gray-500 bg-gray-50 px-2 py-0.5 rounded">
-                                                    C.P. {business.postalCode || business.PostalCode}
+                                    <div className="pt-4 flex-1 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                        <div>
+                                            <h2 className="text-2xl md:text-3xl font-black text-gray-800 tracking-tight">{business.legalName}</h2>
+                                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                <span className="bg-pink-100 text-pink-700 px-2 py-0.5 rounded text-sm font-bold border border-pink-200">
+                                                    {business.rfc}
                                                 </span>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                                <div>
-                                                    <p className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Correo Electrónico</p>
-                                                    <div className="flex items-center gap-2 text-gray-700 font-medium">
-                                                        <Mail size={16} className="text-gray-400" />
-                                                        {business.email || business.Email}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Teléfono</p>
-                                                    <div className="flex items-center gap-2 text-gray-700 font-medium">
-                                                        <Phone size={16} className="text-gray-400" />
-                                                        {business.phoneNumber || business.PhoneNumber}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Columna Derecha */}
-                                    <div className="space-y-8">
-                                        <h3 className="text-lg font-bold text-gray-800 border-b border-gray-100 pb-3 flex items-center gap-2">
-                                            <FileText size={20} className="text-pink-500"/> Datos Fiscales
-                                        </h3>
-
-                                        <div className="space-y-4">
-                                            <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
-                                                <p className="text-xs text-gray-400 uppercase font-bold mb-2 tracking-wider">Régimen Fiscal</p>
-                                                <p className="text-gray-800 font-bold text-xl leading-tight">
-                                                    {business.regimenFiscalDescription || "No especificado"}
-                                                </p>
-                                                <div className="mt-3 flex items-center gap-2">
-                                                    <span className="text-xs font-bold text-gray-400">CLAVE:</span>
-                                                    <span className="bg-white border border-gray-200 px-2 py-1 rounded text-xs text-gray-600 font-mono font-bold">
-                                                        {business.regimenFiscalId || business.RegimenFiscalId}
+                                                {business.commercialName && (
+                                                    <span className="text-gray-400 text-sm font-medium border-l border-gray-300 pl-2 flex items-center gap-1">
+                                                        <Store size={12}/> {business.commercialName}
                                                     </span>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center justify-between p-5 bg-gray-50 rounded-2xl border border-gray-100">
-                                                <div>
-                                                    <p className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Moneda Base</p>
-                                                    <p className="text-gray-800 font-bold text-lg">{business.currencyType || business.CurrencyType}</p>
-                                                </div>
-                                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-pink-200 shadow-sm">
-                                                    <Globe size={24} />
-                                                </div>
+                                                )}
                                             </div>
                                         </div>
+
+                                        <button
+                                            onClick={() => setIsModalOpen(true)}
+                                            className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-pink-100 text-pink-600 font-bold rounded-xl hover:bg-pink-50 hover:border-pink-200 transition-colors shadow-sm"
+                                        >
+                                            <Edit3 size={18} /> <span>Editar Información</span>
+                                        </button>
                                     </div>
                                 </div>
+                            </BusinessCardSection>
+
+                            {/* 2. GRID DE DETALLES */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                
+                                {/* Columna Izquierda: Ubicación y Contacto */}
+                                <BusinessCardSection delay={0.2} className="p-6 h-full">
+                                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-50">
+                                        <div className="p-2 bg-gray-100 rounded-lg text-gray-600">
+                                            <Building2 size={24} />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-gray-800">Ubicación y Contacto</h3>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <BusinessInformationItem 
+                                            icon={MapPin} 
+                                            label="Dirección Fiscal" 
+                                            value={`${fullAddress} \n ${fullLocation}`} 
+                                        />
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <BusinessInformationItem icon={Phone} label="Teléfono" value={business.phoneNumber} />
+                                            <BusinessInformationItem icon={Mail} label="Email" value={business.email} />
+                                        </div>
+                                    </div>
+                                </BusinessCardSection>
+
+                                {/* Columna Derecha: Fiscal */}
+                                <BusinessCardSection delay={0.3} className="p-6 h-full flex flex-col">
+                                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-50">
+                                        <div className="p-2 bg-gray-100 rounded-lg text-gray-600">
+                                            <FileText size={24} />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-gray-800">Configuración Fiscal</h3>
+                                    </div>
+
+                                    <div className="space-y-4 flex-1">
+                                        {/* Card Régimen (Diseño especial inline, o podrías hacer un componente extra si reutilizas) */}
+                                        <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-5 relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 w-16 h-16 bg-pink-100 rounded-bl-full -mr-8 -mt-8 opacity-50"></div>
+                                            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Régimen Fiscal</p>
+                                            <p className="text-gray-800 font-bold text-lg pr-4 leading-tight">
+                                                {business.regimenFiscalDescription || "No especificado"}
+                                            </p>
+                                            <div className="mt-3 inline-flex items-center gap-2 bg-white px-2 py-1 rounded border border-gray-200 shadow-sm">
+                                                <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                                <span className="text-xs font-mono text-gray-500 font-bold">ID: {business.regimenFiscalId}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <BusinessInformationItem 
+                                                icon={Globe} 
+                                                label="Moneda" 
+                                                value={business.currencyCode || business.currencyType} 
+                                            />
+                                            <BusinessInformationItem 
+                                                icon={CreditCard} 
+                                                label="Pagos" 
+                                                value="Habilitados" 
+                                            />
+                                        </div>
+                                    </div>
+                                </BusinessCardSection>
                             </div>
                         </div>
                     )}
-                </motion.div>
-            </motion.div>
+                </AnimatePresence>
+            </div>
 
             <BusinessModal
                 isOpen={isModalOpen}
