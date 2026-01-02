@@ -1,256 +1,94 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Building, MapPin, Phone, Mail, FileText, Globe, Camera, RefreshCw, Hash } from 'lucide-react';
-import { satService } from '../../services/satService';
-import { motion, AnimatePresence } from 'framer-motion'; 
+import { motion } from 'framer-motion';
+import { X, Upload, Trash2, Image as ImageIcon, Save, MapPin, Building2, FileText, Globe } from 'lucide-react';
 import AnimatedSelect from '../common/AnimatedSelect';
-import toast from 'react-hot-toast';
+import { useBusinessCatalogs } from '../../hooks/business/useBusinessCatalogs';
+import { useBusinessForm } from '../../hooks/business/useBusinessForm';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7031'; 
-
-// --- ANIMACIONES ---
-const backdropVariants = { hidden: { opacity: 0 }, visible: { opacity: 1 }, exit: { opacity: 0 } };
-const modalVariants = { 
-    hidden: { scale: 0.95, y: 20, opacity: 0 }, 
-    visible: { scale: 1, y: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 25, mass: 0.5 } }, 
-    exit: { scale: 0.95, y: 20, opacity: 0, transition: { duration: 0.15 } } 
-};
-
-function BusinessModal({ isOpen, onClose, onSubmit, businessToEdit }) {
-    const fileInputRef = useRef(null);
-    const [regimenes, setRegimenes] = useState([]);
+const BusinessModal = ({ isOpen, onClose, onSubmit, businessToEdit }) => {
+    const { regimenOptions, currencyOptions, loading: loadingCatalogs } = useBusinessCatalogs(isOpen);
     
-    const initialFormState = {
-        rfc: '', legalName: '', email: '', address: '', phoneNumber: '', postalCode: '',
-        currencyType: 'MXN', regimenFiscalId: ''
-    };
+    const {
+        formData, previewLogo, fileInputRef,
+        handleChange, handleSelectChange, handleFileChange, handleRemoveLogo, handleSubmit
+    } = useBusinessForm(businessToEdit, isOpen, onSubmit);
 
-    const [formData, setFormData] = useState(initialFormState);
-    const [logoPreview, setLogoPreview] = useState(null);
-    const [logoFile, setLogoFile] = useState(null);
-
-    // Opciones estáticas para AnimatedSelect
-    const currencyOptions = [
-        { id: 'MXN', name: 'MXN - Peso Mexicano' },
-        { id: 'USD', name: 'USD - Dólar Americano' }
-    ];
-
-    useEffect(() => {
-        if (isOpen) {
-            const loadCatalog = async () => {
-                try {
-                    const data = await satService.getRegimenesFiscales();
-                    // Mapeo para AnimatedSelect {id, name}
-                    const formattedRegimenes = data.map(r => ({
-                        id: r.id || r.Id,
-                        name: `${r.code || r.Code} - ${r.description || r.Description}`
-                    }));
-                    setRegimenes(formattedRegimenes);
-                } catch (error) {
-                    console.error("Error catálogo SAT", error);
-                    toast.error("No se pudieron cargar los regímenes fiscales.");
-                }
-            };
-            loadCatalog();
-        }
-    }, [isOpen]);
-
-    useEffect(() => {
-        if (isOpen) {
-            setLogoFile(null);
-            if (businessToEdit) {
-                let existingLogo = null;
-                const rawLogo = businessToEdit.logo || businessToEdit.Logo;
-                if (rawLogo) {
-                    if (rawLogo.startsWith('data:') || rawLogo.startsWith('http')) {
-                        existingLogo = rawLogo;
-                    } else {
-                        const cleanPath = rawLogo.replace(/\\/g, '/');
-                        const pathPart = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
-                        existingLogo = `${API_BASE_URL}/${pathPart}`;
-                    }
-                }
-
-                setFormData({
-                    rfc: businessToEdit.rfc || businessToEdit.Rfc || '',
-                    legalName: businessToEdit.legalName || businessToEdit.LegalName || '',
-                    email: businessToEdit.email || businessToEdit.Email || '',
-                    address: businessToEdit.address || businessToEdit.Address || '',
-                    phoneNumber: businessToEdit.phoneNumber || businessToEdit.PhoneNumber || '',
-                    postalCode: businessToEdit.postalCode || businessToEdit.PostalCode || '',
-                    currencyType: businessToEdit.currencyType || businessToEdit.CurrencyType || 'MXN',
-                    regimenFiscalId: businessToEdit.regimenFiscalId || businessToEdit.RegimenFiscalId || ''
-                });
-                setLogoPreview(existingLogo);
-            } else {
-                setFormData(initialFormState);
-                setLogoPreview(null);
-            }
-        }
-    }, [isOpen, businessToEdit]);
-
-    const handleFileChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setLogoPreview(URL.createObjectURL(file));
-            setLogoFile(file);
-        }
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!formData.regimenFiscalId) {
-            toast.error("⚠️ Selecciona un Régimen Fiscal.");
-            return;
-        }
-        const phoneRegex = /^[0-9]{10}$/;
-        if (!phoneRegex.test(formData.phoneNumber)) {
-             toast.error("⚠️ El teléfono debe tener 10 dígitos numéricos.");
-             return; 
-        }
-        onSubmit({ ...formData, logoFile });
-    };
+    if (!isOpen) return null;
 
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    {/* 1. BACKDROP */}
-                    <motion.div
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-                        variants={backdropVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                        onClick={onClose}
-                    />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm font-montserrat">
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
+            >
+                <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white z-10">
+                    <div>
+                        <h2 className="text-xl font-black text-gray-800 tracking-tight">
+                            {businessToEdit ? 'Editar Negocio' : 'Registrar Nuevo Negocio'}
+                        </h2>
+                        <p className="text-xs font-medium text-gray-400 mt-0.5">Completa la información fiscal y comercial</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"><X size={20} /></button>
+                </div>
 
-                    {/* 2. MODAL (Fondo Blanco Explícito) */}
-                    <motion.div
-                        className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] relative z-10"
-                        variants={modalVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                    >
-                        {/* HEADER */}
-                        <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-pink-50/50">
-                            <h2 className="text-xl font-bold text-gray-800">
-                                {businessToEdit ? 'Editar Negocio' : 'Registrar Negocio'}
-                            </h2>
-                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 hover:bg-white p-2 rounded-full transition-colors">
-                                <X size={20} />
-                            </button>
+                <div className="overflow-y-auto p-8 custom-scrollbar bg-[#F9FAFB]">
+                    <form id="business-form" onSubmit={handleSubmit} className="space-y-8">
+                        {/* IDENTIDAD */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-6 flex items-center gap-2"><Building2 size={18} className="text-pink-500" /> Identidad Visual</h3>
+                            <div className="flex flex-col md:flex-row gap-8">
+                                <div className="flex flex-col items-center gap-3 w-full md:w-1/3">
+                                    <div onClick={() => fileInputRef.current.click()} className={`relative w-48 h-48 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all group ${previewLogo ? 'border-pink-300 bg-white' : 'border-gray-300 bg-gray-50 hover:bg-pink-50 hover:border-pink-300'}`}>
+                                        {previewLogo ? <><img src={previewLogo} alt="Preview" className="w-full h-full object-contain p-4" /><div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><span className="text-white font-bold text-sm flex items-center gap-2"><Upload size={16}/> Cambiar</span></div></> : <div className="text-center p-4"><div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm mx-auto mb-3 text-pink-300 group-hover:text-pink-500"><ImageIcon size={24} /></div><p className="text-xs font-bold text-gray-400 group-hover:text-pink-500">Subir Logotipo</p></div>}
+                                    </div>
+                                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+                                    {previewLogo && <button type="button" onClick={handleRemoveLogo} className="text-xs font-bold text-red-500 flex items-center gap-1 hover:underline"><Trash2 size={12}/> Eliminar</button>}
+                                </div>
+                                <div className="flex-1 space-y-5">
+                                    <div><label className="block text-xs font-bold text-gray-700 mb-1.5 ml-1">Razón Social <span className="text-pink-500">*</span></label><input required name="legalName" value={formData.legalName} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 outline-none text-sm font-medium" placeholder="Razón Social" /></div>
+                                    <div><label className="block text-xs font-bold text-gray-700 mb-1.5 ml-1">Nombre Comercial</label><input name="commercialName" value={formData.commercialName} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 outline-none text-sm font-medium" placeholder="Nombre Comercial" /></div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div><label className="block text-xs font-bold text-gray-700 mb-1.5 ml-1">RFC <span className="text-pink-500">*</span></label><input required name="rfc" value={formData.rfc} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 outline-none text-sm font-medium uppercase" placeholder="RFC" /></div>
+                                        <div className="relative z-20"><AnimatedSelect label="Moneda Base" options={currencyOptions} value={formData.currencyTypeId} onChange={(val) => handleSelectChange('currencyTypeId', val)} icon={Globe} disabled={loadingCatalogs} placeholder="Selecciona moneda" /></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
-                            
-                            {/* LOGO */}
-                            <div className="flex flex-col items-center gap-3">
-                                <div className="relative group cursor-pointer w-32 h-32" onClick={() => fileInputRef.current.click()}>
-                                    {logoPreview ? (
-                                        <img src={logoPreview} alt="Logo" className="w-full h-full rounded-xl object-contain border-4 border-pink-100 shadow-sm bg-white" />
-                                    ) : (
-                                        <div className="w-full h-full rounded-xl bg-gray-50 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 text-gray-400">
-                                            <Building size={32} />
-                                            <span className="text-xs mt-1">Subir Logo</span>
-                                        </div>
-                                    )}
-                                    <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Camera className="text-white" size={24} />
-                                    </div>
-                                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-                                </div>
+                        {/* UBICACIÓN */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-6 flex items-center gap-2"><MapPin size={18} className="text-pink-500" /> Ubicación</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                <div className="md:col-span-2"><label className="block text-xs font-bold text-gray-700 mb-1.5 ml-1">Calle</label><input name="street" value={formData.street} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 outline-none text-sm font-medium" /></div>
+                                <div><label className="block text-xs font-bold text-gray-700 mb-1.5 ml-1">No. Exterior</label><input name="externalNumber" value={formData.externalNumber} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 outline-none text-sm font-medium" /></div>
+                                <div><label className="block text-xs font-bold text-gray-700 mb-1.5 ml-1">Colonia</label><input name="neighborhood" value={formData.neighborhood} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 outline-none text-sm font-medium" /></div>
+                                <div><label className="block text-xs font-bold text-gray-700 mb-1.5 ml-1">C.P.</label><input name="postalCode" value={formData.postalCode} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 outline-none text-sm font-medium" /></div>
+                                <div><label className="block text-xs font-bold text-gray-700 mb-1.5 ml-1">Ciudad</label><input name="city" value={formData.city} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 outline-none text-sm font-medium" /></div>
+                                <div><label className="block text-xs font-bold text-gray-700 mb-1.5 ml-1">Estado</label><input name="state" value={formData.state} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 outline-none text-sm font-medium" /></div>
+                                <div><label className="block text-xs font-bold text-gray-700 mb-1.5 ml-1">País</label><input name="country" value={formData.country} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 outline-none text-sm font-medium" /></div>
                             </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Razón Social</label>
-                                    <div className="relative">
-                                        <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                        <input type="text" required className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none transition-all" value={formData.legalName} onChange={e => setFormData({...formData, legalName: e.target.value})} />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">RFC</label>
-                                    <div className="relative">
-                                        <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                        <input type="text" required className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none uppercase transition-all" value={formData.rfc} onChange={e => setFormData({...formData, rfc: e.target.value.toUpperCase()})} maxLength={13} />
-                                    </div>
-                                </div>
-
-                                {/* REGIMEN FISCAL (ANIMATED) */}
-                                <div>
-                                    <AnimatedSelect
-                                        label="Régimen Fiscal"
-                                        options={regimenes}
-                                        value={formData.regimenFiscalId}
-                                        onChange={(val) => setFormData({ ...formData, regimenFiscalId: val })}
-                                        icon={FileText}
-                                        placeholder="Seleccionar..."
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
-                                    <div className="relative">
-                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                        <input type="email" required className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none transition-all" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                                    <div className="relative">
-                                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                        <input type="tel" required className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none transition-all" value={formData.phoneNumber} onChange={e => { const val = e.target.value.replace(/\D/g, ''); setFormData({...formData, phoneNumber: val}); }} maxLength={10} placeholder="Ej. 8123456789" />
-                                    </div>
-                                </div>
-
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                                    <div className="relative">
-                                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                        <input type="text" required className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none transition-all" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Código Postal</label>
-                                    <div className="relative">
-                                        <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                        <input type="text" required className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none transition-all" value={formData.postalCode} onChange={e => setFormData({...formData, postalCode: e.target.value})} maxLength={5} />
-                                    </div>
-                                </div>
-
-                                {/* MONEDA (ANIMATED) */}
-                                <div>
-                                    <AnimatedSelect
-                                        label="Moneda"
-                                        options={currencyOptions}
-                                        value={formData.currencyType}
-                                        onChange={(val) => setFormData({ ...formData, currencyType: val })}
-                                        icon={Globe}
-                                        placeholder="Seleccionar..."
-                                    />
-                                </div>
+                            <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div><label className="block text-xs font-bold text-gray-700 mb-1.5 ml-1">Teléfono</label><input type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 outline-none text-sm font-medium" /></div>
+                                <div><label className="block text-xs font-bold text-gray-700 mb-1.5 ml-1">Email</label><input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-500 outline-none text-sm font-medium" /></div>
                             </div>
+                        </div>
 
-                            {/* FOOTER */}
-                            <div className="pt-2 flex gap-3 justify-end border-t border-gray-50">
-                                <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl font-medium transition-colors">
-                                    Cancelar
-                                </button>
-                                <button type="submit" className="flex items-center gap-2 px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-xl font-medium shadow-sm active:scale-95 transition-all">
-                                    {businessToEdit ? <><RefreshCw size={18} /> Actualizar Negocio</> : <><Save size={18} /> Guardar Negocio</>}
-                                </button>
-                            </div>
-                        </form>
-                    </motion.div>
+                        {/* FISCAL */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative z-10">
+                            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-6 flex items-center gap-2"><FileText size={18} className="text-pink-500" /> Configuración Fiscal</h3>
+                            <AnimatedSelect label="Régimen Fiscal" options={regimenOptions} value={formData.regimenFiscalId} onChange={(val) => handleSelectChange('regimenFiscalId', val)} icon={FileText} disabled={loadingCatalogs} placeholder="Selecciona un régimen..." />
+                        </div>
+                    </form>
                 </div>
-            )}
-        </AnimatePresence>
+
+                <div className="px-8 py-5 border-t border-gray-100 bg-white flex justify-end gap-3 z-10">
+                    <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-50 transition-colors">Cancelar</button>
+                    <button type="submit" form="business-form" className="flex items-center gap-2 px-8 py-2.5 bg-pink-500 text-white rounded-xl text-sm font-bold hover:bg-pink-600 shadow-lg shadow-pink-200 transition-all active:scale-95"><Save size={18} /> Guardar Cambios</button>
+                </div>
+            </motion.div>
+        </div>
     );
-}
+};
 
 export default BusinessModal;
