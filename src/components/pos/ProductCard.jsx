@@ -1,21 +1,7 @@
 import React from 'react';
 import { Box, Plus, Ban, Percent, Layers } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7031';
-
 function ProductCard({ product, onAddToCart, currentQty = 0 }) {
-    // --- LÓGICA DE IMAGEN ---
-    let imgUrl = null;
-    const rawImg = product.image || product.Image;
-    if (rawImg) {
-        if (rawImg.includes("Uploads")) {
-            const cleanPath = rawImg.replace(/\\/g, '/');
-            const prefix = cleanPath.startsWith('/') ? '' : '/';
-            imgUrl = `${API_BASE_URL}${prefix}${cleanPath}`;
-        } else {
-            imgUrl = rawImg;
-        }
-    }
 
     // --- LÓGICA DE DATOS ---
     const name = product.description || product.Description || "Sin nombre";
@@ -77,8 +63,8 @@ function ProductCard({ product, onAddToCart, currentQty = 0 }) {
             {/* --- ZONA DE IMAGEN --- */}
             <div className="p-3 pb-0 relative">
                 <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center">
-                    {imgUrl ? (
-                        <img src={imgUrl} alt={name} className="w-full h-full object-cover" />
+                    {product.image ? (
+                        <img src={product.image} alt={name} className="w-full h-full object-cover" />
                     ) : (
                         <div className="flex flex-col items-center justify-center text-gray-300">
                             <Box size={48} strokeWidth={1.5} />

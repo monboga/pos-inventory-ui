@@ -8,7 +8,18 @@ import { saleService } from '../services/saleService';
 import { formatDateTime } from '../utils/dateUtils';
 // Importamos icono Printer o FileText
 import { Search, Eye, TrendingUp, DollarSign, ShoppingBag, FileText, Loader, Calendar, Download, FileSpreadsheet, Printer } from 'lucide-react';
+import { motion } from 'framer-motion';
 import toast from 'react-hot-toast'; // Usamos toast para feedback
+
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: "easeOut" } }
+};
 
 function SalesHistoryPage() {
     // ... (Estados existentes: sales, loading, kpis, etc. se mantienen igual) ...
@@ -277,69 +288,93 @@ function SalesHistoryPage() {
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
     return (
-        <div className="p-6 md:p-8 max-w-7xl mx-auto h-full flex flex-col">
-            <PageHeader title="Historial de Ventas" />
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <SummaryCard title="Ventas de Hoy" value={`$${kpis.todaySales.toFixed(2)}`} subtitle="Calculado al momento" icon={TrendingUp} colorClass="bg-pink-100 text-pink-600" />
-                <SummaryCard title="Tickets Emitidos" value={kpis.totalTickets} subtitle="Histórico total" icon={ShoppingBag} colorClass="bg-blue-100 text-blue-600" />
-                <SummaryCard title="Ticket Promedio" value={`$${kpis.avgTicket.toFixed(2)}`} subtitle="Promedio general" icon={DollarSign} colorClass="bg-purple-100 text-purple-600" />
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-4 mb-6 justify-between items-center">
-                <div className="relative w-full md:w-96">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input
-                        type="text" placeholder="Buscar por # Venta o Cliente..." className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm transition-all"
-                        value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-
-                <div className="flex gap-3 w-full md:w-auto relative">
-                    <button onClick={() => setIsDateModalOpen(true)} className={`flex items-center gap-2 px-4 py-2.5 bg-white border rounded-xl text-sm font-medium transition-colors shadow-sm ${dateRange.start ? 'border-pink-500 text-pink-600 bg-pink-50' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                        <Calendar size={18} /> {dateRange.start ? 'Filtro Activo' : 'Fecha'}
-                    </button>
-
-                    {/* Menú Exportar (Para listados masivos futuros) */}
-                    <div className="relative">
-                        <button onClick={() => setShowExportMenu(!showExportMenu)} className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
-                            <Download size={18} /> <span>Exportar</span>
-                        </button>
-                        {showExportMenu && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-20">
-                                <button onClick={() => handleBulkExport('pdf')} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 flex items-center gap-2"><FileText size={16} /> Lista PDF</button>
-                                <button onClick={() => handleBulkExport('excel')} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 flex items-center gap-2"><FileSpreadsheet size={16} /> Lista Excel</button>
+        <div className="w-full min-h-screen bg-[#F9FAFB] overflow-x-hidden font-montserrat">
+            <motion.div 
+                className="w-full h-full flex flex-col"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+            >
+                {/* 4. HEADER PEGADO AL BORDE SUPERIOR */}
+                <motion.div variants={itemVariants}>
+                    <PageHeader title="Historial de Ventas">
+                        {/* Contenido del Header: Buscador y Filtros */}
+                        <div className="flex flex-col md:flex-row gap-4 justify-between items-center w-full md:w-auto">
+                            <div className="relative w-full md:w-80 lg:w-96">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <input
+                                    type="text" placeholder="Buscar por # Venta o Cliente..." className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm transition-all"
+                                    value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                                />
                             </div>
-                        )}
-                    </div>
+
+                            <div className="flex gap-3 w-full md:w-auto relative">
+                                <button onClick={() => setIsDateModalOpen(true)} className={`flex items-center gap-2 px-4 py-2.5 bg-white border rounded-xl text-sm font-medium transition-colors shadow-sm ${dateRange.start ? 'border-pink-500 text-pink-600 bg-pink-50' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                                    <Calendar size={18} /> {dateRange.start ? 'Filtro Activo' : 'Fecha'}
+                                </button>
+
+                                {/* Menú Exportar */}
+                                <div className="relative">
+                                    <button onClick={() => setShowExportMenu(!showExportMenu)} className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
+                                        <Download size={18} /> <span className="hidden sm:inline">Exportar</span>
+                                    </button>
+                                    {showExportMenu && (
+                                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-20">
+                                            <button onClick={() => handleBulkExport('pdf')} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 flex items-center gap-2"><FileText size={16} /> Lista PDF</button>
+                                            <button onClick={() => handleBulkExport('excel')} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 flex items-center gap-2"><FileSpreadsheet size={16} /> Lista Excel</button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </PageHeader>
+                </motion.div>
+
+                {/* 5. CONTENIDO CON PADDING Y MAX-WIDTH */}
+                <div className="p-6 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-8">
+                    
+                    {/* Tarjetas KPI */}
+                    <motion.div 
+                        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                        variants={itemVariants}
+                    >
+                        <SummaryCard title="Ventas de Hoy" value={`$${kpis.todaySales.toFixed(2)}`} subtitle="Calculado al momento" icon={TrendingUp} colorClass="bg-pink-100 text-pink-600" />
+                        <SummaryCard title="Tickets Emitidos" value={kpis.totalTickets} subtitle="Histórico total" icon={ShoppingBag} colorClass="bg-blue-100 text-blue-600" />
+                        <SummaryCard title="Ticket Promedio" value={`$${kpis.avgTicket.toFixed(2)}`} subtitle="Promedio general" icon={DollarSign} colorClass="bg-purple-100 text-purple-600" />
+                    </motion.div>
+
+                    {/* Tabla */}
+                    <motion.div 
+                        className="w-full"
+                        variants={itemVariants}
+                    >
+                        <DynamicTable
+                            columns={columns}
+                            data={currentData}
+                            loading={loading}
+                            pagination={{ currentPage, totalPages }}
+                            onPageChange={setCurrentPage}
+                            itemsPerPage={itemsPerPage}
+                            onItemsPerPageChange={(val) => {
+                                setItemsPerPage(val); setCurrentPage(1);
+                            }}
+                            selectable={true}
+                            selectedItems={selectedIds}
+                            onSelectionChange={setSelectedIds}
+                        />
+                    </motion.div>
                 </div>
-            </div>
 
-            <div className="w-full">
-                <DynamicTable
-                    columns={columns}
-                    data={currentData}
-                    loading={loading}
-                    pagination={{ currentPage, totalPages }}
-                    onPageChange={setCurrentPage}
-                    itemsPerPage={itemsPerPage}
-                    onItemsPerPageChange={(val) => {
-                        setItemsPerPage(val); setCurrentPage(1);
-                    }}
-                    selectable={true}
-                    selectedItems={selectedIds}
-                    onSelectionChange={setSelectedIds}
+                {/* Modales */}
+                <SaleDetailModal isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} sale={selectedSale} />
+                <DateRangeModal 
+                    isOpen={isDateModalOpen} 
+                    onClose={() => setIsDateModalOpen(false)} 
+                    onApply={handleDateFilter} 
+                    initialStartDate={dateRange.start}
+                    initialEndDate={dateRange.end}
                 />
-            </div>
-
-            <SaleDetailModal isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} sale={selectedSale} />
-            <DateRangeModal 
-                isOpen={isDateModalOpen} 
-                onClose={() => setIsDateModalOpen(false)} 
-                onApply={handleDateFilter} 
-                initialStartDate={dateRange.start}
-                initialEndDate={dateRange.end}
-            />
+            </motion.div>
         </div>
     );
 }
