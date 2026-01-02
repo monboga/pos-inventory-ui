@@ -1,29 +1,38 @@
-// src/components/common/PageHeader.jsx
-
-// Se importa la librería React.
 import React from 'react';
 
-// Se define un componente funcional para el encabezado de página.
-// Acepta 'title' (título principal) y 'children' (elementos extra, como botones) como props.
 function PageHeader({ title, children }) {
-    // El componente retorna la estructura JSX del encabezado.
     return (
-        // Contenedor principal del encabezado, usa Flexbox para alinear elementos.
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8">
-            {/* Contenedor para el breadcrumb y el título. */}
+        // 1. Contenedor Full Width (Barra Superior)
+        // bg-white: Fondo del header (cámbialo si tu sidebar tiene otro color)
+        // border-b: Línea sutil de separación
+        // px-6 md:px-8: Padding lateral interno para alinear con el contenido
+        // py-4: Altura cómoda
+        <div className="w-full bg-white border-b border-gray-100 px-6 md:px-8 py-4 sticky top-0 z-20 flex flex-col sm:flex-row sm:justify-between sm:items-center">
+            
+            {/* Sección Título y Breadcrumb */}
             <div>
-                {/* Breadcrumb que muestra la ruta de navegación. */}
-                <p className="text-sm text-gray-500">Home / {title}</p>
-                {/* Título principal de la página. */}
-                <h1 className="text-3xl font-bold text-gray-800">{title}</h1>
+                {/* Breadcrumb minimalista */}
+                <nav className="text-[10px] md:text-xs text-gray-400 font-medium mb-1 uppercase tracking-wide flex items-center gap-1">
+                    <span className="hover:text-pink-500 cursor-pointer transition-colors">Home</span>
+                    <span className="text-gray-300">/</span>
+                    <span className="text-gray-600">{title}</span>
+                </nav>
+                
+                {/* Título Principal */}
+                <h1 className="text-xl md:text-2xl font-bold text-gray-800 tracking-tight">
+                    {title}
+                </h1>
             </div>
-            {/* Contenedor para los elementos hijos (botones de acción). */}
-            <div className="mt-4 sm:mt-0">
-                {children}
-            </div>
+
+            {/* Acciones / Botones (Children) */}
+            {/* Si hay contenido extra (botones), se muestra aquí */}
+            {children && (
+                <div className="mt-3 sm:mt-0 flex items-center gap-3">
+                    {children}
+                </div>
+            )}
         </div>
     );
 }
 
-// Se exporta el componente para su uso en otras páginas.
 export default PageHeader;
