@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, ShoppingBag, RefreshCw, Store, Truck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 
-// Componentes Refactorizados
+// Componentes
 import PageHeader from '../components/common/PageHeader';
 import DynamicTable from '../components/common/DynamicTable';
 import OrderCard from '../components/orders/OrderCard';
@@ -13,6 +13,12 @@ import OrderDetailModal from '../components/orders/OrderDetailModal';
 
 // Hooks
 import { useOrders } from '../hooks/useOrders';
+
+// Animaciones de entrada (opcional, para consistencia)
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
 
 function OrdersManagerPage() {
     const { 
@@ -94,12 +100,14 @@ function OrdersManagerPage() {
     ], []);
 
     return (
-        <div className="min-h-screen bg-gray-50/50 pb-20 font-sans">
+        // 1. WRAPPER PRINCIPAL: Full Width + Fondo Gris + Fuente Global
+        <div className="w-full min-h-screen bg-[#F9FAFB] font-montserrat overflow-x-hidden flex flex-col">
             <Toaster position="top-right" />
 
-            <div className="max-w-[1600px] mx-auto p-4 md:p-8 space-y-8">
-                {/* HEADER CON BOTONES DESCRIPTIVOS */}
+            {/* 2. HEADER FULL WIDTH (Fuera del padding del contenido) */}
+            <div className="flex-shrink-0">
                 <PageHeader title="Gestión de Pedidos">
+                    {/* Botones del Header (Sin cambios en su lógica interna) */}
                     <div className="flex flex-wrap items-center gap-3 mt-4 sm:mt-0">
                         <div className="flex bg-white p-1.5 rounded-[1.5rem] border border-gray-100 shadow-sm mr-2">
                             <button
@@ -113,7 +121,7 @@ function OrdersManagerPage() {
                                 onClick={() => window.open('/track', '_blank')}
                                 className="flex items-center gap-2 px-4 py-2.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest"
                             >
-                                <Truck size={16} /> <span>Seguimiento de Pedidos</span>
+                                <Truck size={16} /> <span>Seguimiento</span>
                             </button>
                         </div>
 
@@ -129,15 +137,23 @@ function OrdersManagerPage() {
                         </button>
                     </div>
                 </PageHeader>
+            </div>
 
-                {/* FILTROS CON CORRECCIÓN DE RECORTE */}
+            {/* 3. CONTENIDO PRINCIPAL (Con Padding y Max-Width) */}
+            <motion.div 
+                className="flex-1 p-6 md:p-8 max-w-[1600px] mx-auto w-full space-y-8"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+            >
+                {/* FILTROS */}
                 <OrdersFilterBar
                     searchTerm={searchTerm} setSearchTerm={setSearchTerm}
                     filterStatus={filterStatus} setFilterStatus={setFilterStatus}
                     viewMode={viewMode} setViewMode={setViewMode}
                 />
 
-                {/* CONTENIDO DINÁMICO (GRID O TABLA) */}
+                {/* GRID / TABLA */}
                 <div className="min-h-[400px]">
                     <AnimatePresence mode="wait">
                         {loading ? (
@@ -183,8 +199,9 @@ function OrdersManagerPage() {
                     </AnimatePresence>
                 </div>
 
+                {/* PAGINACIÓN */}
                 {(pagination.totalRecords > 0 || pagination.page > 1) && (
-                    <div className="mt-10 flex justify-center items-center gap-4 pb-8">
+                    <div className="flex justify-center items-center gap-4 pb-8">
                         <button
                             onClick={() => pagination.setPage(p => Math.max(1, p - 1))}
                             disabled={!pagination.hasPrev || loading}
@@ -206,11 +223,11 @@ function OrdersManagerPage() {
                         </button>
                     </div>
                 )}
+            </motion.div>
 
-                {/* MODALES */}
-                <OrderModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onSuccess={refreshOrders} />
-                <OrderDetailModal isOpen={isDetailModalOpen} orderId={selectedOrderId} onClose={() => { setIsDetailModalOpen(false); setSelectedOrderId(null); }} />
-            </div>
+            {/* MODALES */}
+            <OrderModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onSuccess={refreshOrders} />
+            <OrderDetailModal isOpen={isDetailModalOpen} orderId={selectedOrderId} onClose={() => { setIsDetailModalOpen(false); setSelectedOrderId(null); }} />
         </div>
     );
 }

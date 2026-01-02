@@ -1,18 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion'; // 1. Importar animaciones
 import PageHeader from '../components/common/PageHeader';
 import DynamicTable from '../components/common/DynamicTable';
 import CustomerModal from '../components/customers/CustomerModal';
 import toast from 'react-hot-toast';
 import { clientService } from '../services/clientService';
-// 1. Importamos el icono Phone
 import { Search, Plus, Edit, Trash2, Mail, FileText, ShoppingBag, Phone } from 'lucide-react';
+
+// Variantes de animación estándar
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
 
 function CustomerPage() {
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(6);
+    const [itemsPerPage, setItemsPerPage] = useState(10); // Aumentado a 10 para aprovechar mejor el espacio
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentClient, setCurrentClient] = useState(null);
@@ -20,7 +26,7 @@ function CustomerPage() {
     const loadClients = async () => {
         try {
             setLoading(true);
-            const data = await clientService.getAll(); //
+            const data = await clientService.getAll();
             setClients(data);
         } catch (error) {
             console.error(error);
@@ -61,7 +67,7 @@ function CustomerPage() {
                     <button onClick={() => { toast.dismiss(t.id); performDelete(id); }} className="px-4 py-2 text-sm font-bold bg-pink-500 text-white rounded-xl hover:bg-pink-600 shadow-sm transition-colors flex items-center gap-2"><span>Eliminar</span></button>
                 </div>
             </div>
-        ), { duration: 6000, position: 'top-center', style: { background: '#ffffff', color: '#1f2937', padding: '24px', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid #f3f4f6' }, icon: null });
+        ), { duration: 6000, position: 'top-center' });
     };
 
     const performDelete = async (id) => {
@@ -102,7 +108,6 @@ function CustomerPage() {
                 );
             }
         },
-        // 2. Columna Contacto Actualizada (Teléfono + Email)
         {
             header: "Contacto",
             render: (row) => (
@@ -137,14 +142,11 @@ function CustomerPage() {
                 );
             }
         },
-        // 3. Columna Compras Dinámica
         {
             header: "Compras",
             className: "text-center",
             render: (row) => {
-                // Leemos la propiedad calculada desde el Backend
                 const count = row.salesCount !== undefined ? row.salesCount : (row.SalesCount || 0);
-                
                 return (
                     <div className="flex justify-center">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold ${
@@ -179,7 +181,6 @@ function CustomerPage() {
         
         const email = (c.email || c.Email || "").toLowerCase();
         const rfc = (c.rfc || c.Rfc || "").toLowerCase();
-        // 4. Agregar búsqueda por teléfono
         const phone = (c.phoneNumber || c.PhoneNumber || "").toLowerCase();
         
         return fullName.includes(term) || email.includes(term) || rfc.includes(term) || phone.includes(term);
@@ -191,40 +192,53 @@ function CustomerPage() {
     const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
     return (
-        <div className="p-8 max-w-7xl mx-auto h-full flex flex-col">
-            <PageHeader title="Clientes">
-                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                    <div className="relative w-full sm:w-80">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Buscar por nombre, tel, RFC..."
-                            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm transition-all"
-                            value={searchTerm}
-                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                        />
+        // 1. WRAPPER PRINCIPAL
+        <div className="w-full min-h-screen bg-[#F9FAFB] font-montserrat overflow-x-hidden flex flex-col">
+            
+            {/* 2. HEADER FULL WIDTH (Sin padding lateral excesivo) */}
+            <div className="flex-shrink-0">
+                <PageHeader title="Gestion de Clientes">
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                        <div className="relative w-full sm:w-80">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Buscar por nombre, tel, RFC..."
+                                className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm transition-all"
+                                value={searchTerm}
+                                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                            />
+                        </div>
+                        <button onClick={openCreate} className="flex items-center justify-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm whitespace-nowrap">
+                            <Plus size={18} />
+                            <span>Nuevo Cliente</span>
+                        </button>
                     </div>
-                    <button onClick={openCreate} className="flex items-center justify-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm whitespace-nowrap">
-                        <Plus size={18} />
-                        <span>Nuevo Cliente</span>
-                    </button>
-                </div>
-            </PageHeader>
-
-            <div className="w-full">
-                <DynamicTable
-                    columns={columns}
-                    data={currentData}
-                    loading={loading}
-                    pagination={{ currentPage, totalPages }}
-                    onPageChange={setCurrentPage}
-                    itemsPerPage={itemsPerPage}
-                    onItemsPerPageChange={(val) => {
-                        setItemsPerPage(val);
-                        setCurrentPage(1);
-                    }}
-                />
+                </PageHeader>
             </div>
+
+            {/* 3. CONTENIDO PRINCIPAL (Centrado y limitado) */}
+            <motion.div 
+                className="flex-1 p-6 md:p-8 max-w-[1600px] mx-auto w-full"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+            >
+                <div className="w-full">
+                    <DynamicTable
+                        columns={columns}
+                        data={currentData}
+                        loading={loading}
+                        pagination={{ currentPage, totalPages }}
+                        onPageChange={setCurrentPage}
+                        itemsPerPage={itemsPerPage}
+                        onItemsPerPageChange={(val) => {
+                            setItemsPerPage(val);
+                            setCurrentPage(1);
+                        }}
+                    />
+                </div>
+            </motion.div>
 
             <CustomerModal
                 isOpen={isModalOpen}

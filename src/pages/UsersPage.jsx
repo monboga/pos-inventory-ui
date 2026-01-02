@@ -1,16 +1,26 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion'; // 1. Animaciones
+import { Search, Plus, Edit, Trash2, Shield, Filter } from 'lucide-react';
+import {toast, Toaster} from 'react-hot-toast';
+
+// Componentes
 import PageHeader from '../components/common/PageHeader';
 import UserModal from '../components/users/UserModal';
 import DynamicTable from '../components/common/DynamicTable';
-import ViewSelector from '../components/common/ViewSelector'; // Componente de vistas
-import { userService } from '../services/userService';
-import { Search, Plus, Edit, Trash2, Shield } from 'lucide-react';
-import { PERMISSIONS } from '../constants/permissions';
+import ViewSelector from '../components/common/ViewSelector';
 import PermissionGate from '../components/auth/PermissionGate';
-import toast from 'react-hot-toast';
 
-// URL BASE DE TU API (Ajusta si cambia el puerto)
-const API_BASE_URL = 'https://localhost:7031';
+// Servicios y Constantes
+import { userService } from '../services/userService';
+import { PERMISSIONS } from '../constants/permissions';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7031';
+
+// Variantes de animación estándar
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
 
 function UsersPage() {
     const [users, setUsers] = useState([]);
@@ -18,25 +28,23 @@ function UsersPage() {
 
     // --- ESTADOS DE FILTROS ---
     const [searchTerm, setSearchTerm] = useState("");
-    // null = Todos, true = Activos, false = Inactivos
-    const [statusFilter, setStatusFilter] = useState(null);
+    const [statusFilter, setStatusFilter] = useState(null); // null=Todos, true=Activos, false=Inactivos
 
     // --- PAGINACIÓN ---
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(5);
+    const [itemsPerPage, setItemsPerPage] = useState(10); // Aumentado a 10 por defecto para aprovechar espacio
 
     // --- MODALES ---
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
 
-    // --- 1. CONFIGURACIÓN DE LA VISTA (Para ViewSelector) ---
-    // Este objeto define qué se guardará en el JSON de la base de datos
+    // --- CONFIG VISTAS ---
     const currentFiltersState = useMemo(() => ({
         searchTerm: searchTerm,
-        isActive: statusFilter // Guardamos el filtro de estado
+        isActive: statusFilter
     }), [searchTerm, statusFilter]);
 
-    // --- NORMALIZACIÓN DE DATOS (API -> Frontend) ---
+    // --- NORMALIZACIÓN ---
     const normalizeUser = (rawUser) => {
         let fName = rawUser.firstName || rawUser.FirstName || "";
         let lName = rawUser.lastName || rawUser.LastName || "";
@@ -57,11 +65,9 @@ function UsersPage() {
                 const cleanPath = rawPhoto.replace(/\\/g, '/');
                 const pathPart = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
                 normalizedPhoto = `${API_BASE_URL}/${pathPart}`;
-            }
-            else if (rawPhoto.startsWith('data:') || rawPhoto.startsWith('http')) {
+            } else if (rawPhoto.startsWith('data:') || rawPhoto.startsWith('http')) {
                 normalizedPhoto = rawPhoto;
-            }
-            else {
+            } else {
                 normalizedPhoto = `data:image/jpeg;base64,${rawPhoto}`;
             }
         }
@@ -77,11 +83,10 @@ function UsersPage() {
         };
     };
 
-    // --- CARGA DE DATOS ---
+    // --- CARGA ---
     const loadUsers = async () => {
         try {
             setLoading(true);
-            // Aquí traemos TODOS los usuarios y filtramos en cliente (o podrías enviar filtros al API)
             const data = await userService.getAll();
             const cleanData = data.map(normalizeUser);
             setUsers(cleanData);
@@ -95,56 +100,43 @@ function UsersPage() {
 
     useEffect(() => { loadUsers(); }, []);
 
-    // --- 2. APLICAR VISTA GUARDADA (Lógica del ViewSelector) ---
+    // --- HANDLERS ---
     const handleApplyView = (savedConfig) => {
         if (!savedConfig) {
-            // Resetear a valores por defecto
             setSearchTerm("");
             setStatusFilter(null);
             toast.success("Vista predeterminada aplicada");
             return;
         }
-
-        // Aplicar valores del JSON guardado
         if (savedConfig.searchTerm !== undefined) setSearchTerm(savedConfig.searchTerm);
-
-        // Recuperar el filtro de estado (true/false/null)
-        if (savedConfig.isActive !== undefined) {
-            setStatusFilter(savedConfig.isActive);
-        } else {
-            setStatusFilter(null);
-        }
-
-        setCurrentPage(1); // Reset paginación
+        if (savedConfig.isActive !== undefined) setStatusFilter(savedConfig.isActive);
+        else setStatusFilter(null);
+        setCurrentPage(1);
         toast.success("Vista personalizada cargada");
     };
 
-    // --- GUARDAR / CREAR ---
     const handleSaveUser = async (formData) => {
         const toastId = toast.loading("Guardando usuario...");
         try {
             if (currentUser) {
                 await userService.update(currentUser.id, formData);
-                toast.success("Usuario actualizado correctamente", { id: toastId });
+                toast.success("Usuario actualizado", { id: toastId });
             } else {
                 await userService.create(formData);
-                toast.success("Usuario creado correctamente", { id: toastId });
+                toast.success("Usuario creado", { id: toastId });
             }
             setIsModalOpen(false);
             loadUsers();
         } catch (error) {
-            console.error("Error al guardar usuario: ", error);
-
             toast.error(error.message, { id: toastId });
         }
     };
 
-    // --- ELIMINAR / DESACTIVAR ---
     const performDelete = async (id) => {
         const toastId = toast.loading("Procesando...");
         try {
             await userService.delete(id);
-            toast.success("Usuario procesado correctamente", { id: toastId });
+            toast.success("Usuario procesado", { id: toastId });
             loadUsers();
         } catch (error) {
             toast.error(error.message, { id: toastId });
@@ -163,53 +155,37 @@ function UsersPage() {
                     <button onClick={() => { toast.dismiss(t.id); performDelete(id); }} className="px-4 py-2 text-sm font-bold bg-pink-500 text-white rounded-xl hover:bg-pink-600 shadow-sm transition-colors flex items-center gap-2"><span>Desactivar</span></button>
                 </div>
             </div>
-        ), { duration: 6000, position: 'top-center', style: { background: '#ffffff', color: '#1f2937', padding: '24px', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid #f3f4f6' }, icon: null });
+        ), { duration: 6000, position: 'top-center' });
     };
 
     const openCreateModal = () => { setCurrentUser(null); setIsModalOpen(true); };
     const openEditModal = (user) => { setCurrentUser(user); setIsModalOpen(true); };
 
-    // --- DEFINICIÓN DE COLUMNAS ---
+    // --- COLUMNAS ---
     const columns = useMemo(() => [
         {
             header: "Usuario",
             render: (user) => {
-                const fName = user.firstName;
-                const lName = user.lastName;
-                const hasName = Boolean(fName || lName);
-
                 let initials = "U";
-                if (fName) {
-                    initials = fName.charAt(0).toUpperCase();
-                    if (lName) initials += lName.charAt(0).toUpperCase();
-                } else if (user.email) {
-                    const namePart = user.email.split('@')[0];
-                    initials = namePart.substring(0, 2).toUpperCase();
-                }
-
-                let avatarContent;
-                if (user.photo) {
-                    avatarContent = <img src={user.photo} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-gray-200" />;
-                } else {
-                    avatarContent = (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-400 to-pink-600 text-white flex items-center justify-center font-bold text-sm shadow-sm select-none">
-                            {initials}
-                        </div>
-                    );
+                if (user.firstName) {
+                    initials = user.firstName.charAt(0).toUpperCase();
+                    if (user.lastName) initials += user.lastName.charAt(0).toUpperCase();
                 }
 
                 return (
                     <div className="flex items-center">
-                        <div className="mr-3 flex-shrink-0">{avatarContent}</div>
-                        <div>
-                            {hasName ? (
-                                <>
-                                    <div className="font-bold text-gray-800">{fName} {lName}</div>
-                                    <div className="text-xs text-gray-400">{user.email}</div>
-                                </>
+                        <div className="mr-3 flex-shrink-0">
+                            {user.photo ? (
+                                <img src={user.photo} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-gray-200" />
                             ) : (
-                                <div className="text-sm text-gray-500 font-medium">{user.email}</div>
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-400 to-pink-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                                    {initials}
+                                </div>
                             )}
+                        </div>
+                        <div>
+                            <div className="font-bold text-gray-800 text-sm">{user.firstName} {user.lastName}</div>
+                            <div className="text-xs text-gray-400">{user.email}</div>
                         </div>
                     </div>
                 );
@@ -217,36 +193,33 @@ function UsersPage() {
         },
         {
             header: "Rol",
-            render: (user) => {
-                const role = user.roles ? user.roles[0] : "Usuario";
-                return (
-                    <div className="flex items-center text-sm text-gray-600 bg-gray-50 w-fit px-3 py-1 rounded-full border border-gray-200">
-                        <Shield size={14} className="mr-2 text-gray-400" />
-                        {role}
-                    </div>
-                );
-            }
+            render: (user) => (
+                <div className="flex items-center text-xs font-medium text-gray-600 bg-gray-50 w-fit px-2.5 py-1 rounded-full border border-gray-200">
+                    <Shield size={12} className="mr-1.5 text-gray-400" />
+                    {user.roles?.[0] || "Usuario"}
+                </div>
+            )
         },
         {
             header: "Estado",
             className: "text-center",
             render: (user) => (
                 user.isActive ?
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">Activo</span> :
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">Inactivo</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 uppercase tracking-wide">Activo</span> :
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200 uppercase tracking-wide">Inactivo</span>
             )
         },
         {
             header: "Acciones",
             className: "text-right",
             render: (user) => (
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex items-center justify-end gap-1">
                     <PermissionGate permission={PERMISSIONS.USERS.EDIT}>
-                        <button onClick={() => openEditModal(user)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar"><Edit size={18} /></button>
+                        <button onClick={() => openEditModal(user)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Edit size={16} /></button>
                     </PermissionGate>
                     {user.isActive && (
                         <PermissionGate permission={PERMISSIONS.USERS.DELETE}>
-                            <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Desactivar"><Trash2 size={18} /></button>
+                            <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={16} /></button>
                         </PermissionGate>
                     )}
                 </div>
@@ -254,18 +227,13 @@ function UsersPage() {
         }
     ], []);
 
-    // --- FILTRADO LOCAL (Combinando Búsqueda + Estado) ---
+    // --- FILTRADO ---
     const filteredUsers = users.filter(user => {
-        // 1. Filtro Texto
         const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
-        const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase());
-
-        // 2. Filtro Estado (Visual)
+        const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || user.email.toLowerCase().includes(searchTerm.toLowerCase());
         let matchesStatus = true;
         if (statusFilter === true) matchesStatus = user.isActive === true;
         if (statusFilter === false) matchesStatus = user.isActive === false;
-
         return matchesSearch && matchesStatus;
     });
 
@@ -275,72 +243,98 @@ function UsersPage() {
     const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
 
     return (
-        <div className="p-8 max-w-7xl mx-auto h-full flex flex-col">
-            <PageHeader title="Gestión de Usuarios">
-                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                    <div className="relative w-full sm:w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Buscar usuario..."
-                            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-sm transition-all"
-                            value={searchTerm}
-                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                        />
+        // 1. WRAPPER PRINCIPAL
+        <div className="w-full min-h-screen bg-[#F9FAFB] font-montserrat overflow-x-hidden flex flex-col">
+            <Toaster position="top-right" />
+
+            {/* 2. HEADER FULL WIDTH */}
+            <div className="flex-shrink-0">
+                <PageHeader title="Gestión de Usuarios">
+                    {/* CONTROLES INTEGRADOS EN EL HEADER */}
+                    <div className="flex flex-col xl:flex-row gap-4 items-center w-full xl:w-auto mt-4 xl:mt-0">
+                        
+                        {/* Grupo Izquierda: Búsqueda y Vistas */}
+                        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+                            <div className="relative w-full sm:w-64">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                <input
+                                    type="text"
+                                    placeholder="Buscar usuario..."
+                                    className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all shadow-sm"
+                                    value={searchTerm}
+                                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                                />
+                            </div>
+                            
+                            <div className="w-full sm:w-auto">
+                                <ViewSelector
+                                    entityName="Users"
+                                    currentFilters={currentFiltersState}
+                                    onApplyView={handleApplyView}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Grupo Derecha: Filtros Estado y Acción */}
+                        <div className="flex flex-row gap-3 w-full xl:w-auto items-center justify-between xl:justify-start">
+                            
+                            {/* Segmented Control para Estado */}
+                            <div className="flex p-1 bg-gray-100/80 rounded-xl border border-gray-200">
+                                <button
+                                    onClick={() => setStatusFilter(null)}
+                                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${statusFilter === null ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    Todos
+                                </button>
+                                <button
+                                    onClick={() => setStatusFilter(true)}
+                                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${statusFilter === true ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-green-600'}`}
+                                >
+                                    Activos
+                                </button>
+                                <button
+                                    onClick={() => setStatusFilter(false)}
+                                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${statusFilter === false ? 'bg-white text-red-700 shadow-sm' : 'text-gray-500 hover:text-red-600'}`}
+                                >
+                                    Inactivos
+                                </button>
+                            </div>
+
+                            {/* Botón Principal */}
+                            <button 
+                                onClick={openCreateModal} 
+                                className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl text-sm font-bold transition-all shadow-lg shadow-pink-200 active:scale-95 whitespace-nowrap"
+                            >
+                                <Plus size={18} />
+                                <span className="hidden sm:inline">Nuevo Usuario</span>
+                            </button>
+                        </div>
                     </div>
-                    <button onClick={openCreateModal} className="flex items-center justify-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm whitespace-nowrap">
-                        <Plus size={18} /><span>Nuevo Usuario</span>
-                    </button>
-                </div>
-            </PageHeader>
-
-            {/* --- CONTROLES DE VISTA Y FILTRO --- */}
-            <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
-
-                {/* 1. Selector de Vistas Guardadas */}
-                <ViewSelector
-                    entityName="Users"
-                    currentFilters={currentFiltersState}
-                    onApplyView={handleApplyView}
-                />
-
-                {/* 2. Filtros Visuales de Estado */}
-                <div className="flex gap-2 p-1 bg-gray-100/50 w-fit rounded-xl self-start">
-                    <button
-                        onClick={() => setStatusFilter(null)}
-                        className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${statusFilter === null ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Todos
-                    </button>
-                    <button
-                        onClick={() => setStatusFilter(true)}
-                        className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${statusFilter === true ? 'bg-white text-green-700 shadow-sm border border-green-100' : 'text-gray-500 hover:text-green-600'}`}
-                    >
-                        Activos
-                    </button>
-                    <button
-                        onClick={() => setStatusFilter(false)}
-                        className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${statusFilter === false ? 'bg-white text-red-700 shadow-sm border border-red-100' : 'text-gray-500 hover:text-red-600'}`}
-                    >
-                        Inactivos
-                    </button>
-                </div>
+                </PageHeader>
             </div>
 
-            <div className="w-full">
-                <DynamicTable
-                    columns={columns}
-                    data={currentUsers}
-                    loading={loading}
-                    pagination={{ currentPage, totalPages }}
-                    onPageChange={setCurrentPage}
-                    itemsPerPage={itemsPerPage}
-                    onItemsPerPageChange={(val) => {
-                        setItemsPerPage(val);
-                        setCurrentPage(1);
-                    }}
-                />
-            </div>
+            {/* 3. CONTENIDO PRINCIPAL */}
+            <motion.div 
+                className="flex-1 p-6 md:p-8 max-w-[1600px] mx-auto w-full"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+            >
+                <div className="w-full">
+                    <DynamicTable
+                        columns={columns}
+                        data={currentUsers}
+                        loading={loading}
+                        pagination={{ currentPage, totalPages }}
+                        onPageChange={setCurrentPage}
+                        itemsPerPage={itemsPerPage}
+                        onItemsPerPageChange={(val) => {
+                            setItemsPerPage(val);
+                            setCurrentPage(1);
+                        }}
+                    />
+                </div>
+            </motion.div>
 
             <UserModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleSaveUser} userToEdit={currentUser} />
         </div>
