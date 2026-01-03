@@ -5,12 +5,13 @@ import {
     ShoppingCart,
     History,
     Store,
-    Settings,
-    Briefcase,
+    Layers,
     Users,
     Package,
     Tags,
-    Percent
+    IdCard,
+    Percent,
+    Building
 } from 'lucide-react';
 
 export const MENU_ITEMS = [
@@ -47,13 +48,13 @@ export const MENU_ITEMS = [
     },
 {
     title: "Administración",
-        icon: Settings,
+        icon: Layers,
             permission: null,
                 submenu: [
                     {
                         title: "Negocio",
                         path: "/business",
-                        icon: Briefcase,
+                        icon: Building,
                         permission: PERMISSIONS.USERS.VIEW
                     },
                     {
@@ -65,7 +66,7 @@ export const MENU_ITEMS = [
                     {
                         title: "Clientes",
                         path: "/customers",
-                        icon: Users,
+                        icon: IdCard,
                         permission: PERMISSIONS.CLIENTS.VIEW
                     }
                 ]

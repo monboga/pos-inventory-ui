@@ -1,22 +1,10 @@
 import { useState, useRef } from 'react';
+import { getNormalizedImageUrl } from '../../utils/imageUtils';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export function useFlyAnimation() {
     const [flyingItems, setFlyingItems] = useState([]);
     const cartBtnRef = useRef(null);
-
-    // Helper para limpiar URL de imagen
-    const getProductImageUrl = (product) => {
-        const rawImg = product.image || product.Image;
-        if (!rawImg) return null;
-        if (rawImg.includes("Uploads")) {
-            const cleanPath = rawImg.replace(/\\/g, '/');
-            const prefix = cleanPath.startsWith('/') ? '' : '/';
-            return `${API_BASE_URL}${prefix}${cleanPath}`;
-        }
-        return rawImg;
-    };
 
     const triggerFly = (product, e) => {
         // Si no hay evento (ej. carga automática), no animamos
@@ -28,9 +16,11 @@ export function useFlyAnimation() {
 
         if (!cartRect) return;
 
+        const imgUrl = getNormalizedImageUrl(product.image || product.Image);
+
         const newItem = {
             id: Date.now(),
-            img: getProductImageUrl(product),
+            img: imgUrl,
             start: {
                 x: rect.left + (rect.width / 2) - 24,
                 y: rect.top + (rect.height / 2) - 24,

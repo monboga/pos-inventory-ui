@@ -113,7 +113,7 @@ export const useOrders = (initialStatus = 'Pending') => {
                     userId: user.id,
                     documentTypeId: 1
                 };
-                await orderService.markAsCompleted(payload);
+                await orderService.processToSale(payload);
                 toast.success("Entrega finalizada y venta generada");
             }
             
