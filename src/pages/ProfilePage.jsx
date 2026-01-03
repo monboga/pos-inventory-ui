@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import PageHeader from '../components/common/PageHeader';
 import { User } from 'lucide-react';
 import { userService } from '../services/userService';
-// 1. IMPORTAMOS EL NUEVO SERVICIO
 import { changePassword } from '../services/authService';
 import toast from 'react-hot-toast';
 
@@ -36,78 +35,62 @@ function ProfilePage() {
                 firstName: user.firstName || '',
                 lastName: user.lastName || '',
                 email: user.email || '',
-                role: user.role || 'Usuario'
+                role: user.roles?.[0] || 'Usuario'
             });
-            setPhotoPreview(user.photo);
+            setPhotoPreview(user.photoUrl);
         }
     }, [user]);
 
-    // Handler Foto
+    // --- HANDLERS ---
     const handlePhotoChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            setPhotoPreview(URL.createObjectURL(file));
             setPhotoFile(file);
+            setPhotoPreview(URL.createObjectURL(file));
         }
     };
 
-    // Handler Actualizar Perfil (Info Personal)
     const handleUpdateProfile = async (e) => {
-        // ... (tu lógica existente de update profile se mantiene igual)
         e.preventDefault();
         setIsLoading(true);
+        const loadId = toast.loading("Actualizando perfil...");
+
         try {
-            const dataToUpdate = {
-                ...formData,
-                isActive: true,
-                photoFile: photoFile,
-                role: user.role
-            };
-            await userService.update(user.id, dataToUpdate);
+            const data = new FormData();
+            data.append('FirstName', formData.firstName);
+            data.append('LastName', formData.lastName);
+            data.append('Email', formData.email);
+            if (photoFile) {
+                data.append('Photo', photoFile);
+            }
+
+            await userService.updateProfile(user.id, data);
+            
             await refreshUser();
-            toast.success("Perfil actualizado correctamente");
+            toast.success("Perfil actualizado correctamente", { id: loadId });
             setPhotoFile(null);
         } catch (error) {
             console.error(error);
-            toast.error(error.message || "Error al actualizar perfil");
+            toast.error("Error al actualizar perfil", { id: loadId });
         } finally {
             setIsLoading(false);
         }
     };
 
-    // --- HANDLER CAMBIO DE CONTRASEÑA (NUEVO) ---
     const handleChangePassword = async (e) => {
         e.preventDefault();
-
-        // 1. Validaciones de UI previas
         if (passData.newPassword !== passData.confirmPassword) {
             toast.error("Las contraseñas nuevas no coinciden");
             return;
         }
 
-        // 2. Nota: Aunque el backend valida complejidad, validamos longitud básica aquí
-        // para ahorrar una llamada si es muy obvio.
-        if (passData.newPassword.length < 12) {
-            toast.error("La contraseña debe tener al menos 12 caracteres (Regla del Sistema)");
-            return;
-        }
-
         setIsLoading(true);
         try {
-            // 3. Llamada al Backend
-            // Nota: Tu endpoint actual NO valida la 'currentPassword', solo la 'newPassword'.
-            // Enviamos solo la nueva.
-            await changePassword(passData.newPassword);
-
-            toast.success("Contraseña actualizada con éxito");
-
-            // 4. Limpiamos el formulario
-            setPassData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-
+            await changePassword(user.email, passData.currentPassword, passData.newPassword);
+            toast.success("Contraseña actualizada. Por favor inicia sesión nuevamente.");
+            logout(); 
         } catch (error) {
-            // 5. Manejo de errores del Backend (ej. "La contraseña debe tener mayúsculas")
             console.error(error);
-            // El servicio ya nos devuelve el mensaje limpio en error.message
             toast.error(error.message);
         } finally {
             setIsLoading(false);
@@ -117,40 +100,47 @@ function ProfilePage() {
     if (!user) return null;
 
     return (
-        <div className="max-w-7xl mx-auto w-full p-6 lg:p-8 animate-in fade-in duration-500">
+        // 1. WRAPPER PRINCIPAL (Estructura Full Width estándar)
+        <div className="w-full min-h-screen bg-[#F9FAFB] font-montserrat overflow-x-hidden flex flex-col">
 
-            <PageHeader
-                title="Mi Perfil"
-                subtitle="Gestiona tu información personal y seguridad"
-                icon={User}
-            />
-
-            <div className="flex flex-col lg:flex-row gap-8 items-start">
-
-                <ProfileSidebar
-                    user={user}
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                    onLogout={logout}
-                    onPhotoChange={handlePhotoChange}
-                    photoPreview={photoPreview}
+            {/* 2. PAGE HEADER (Ocupa todo el ancho superior) */}
+            <div className="flex-shrink-0">
+                <PageHeader
+                    title="Mi Perfil"
+                    subtitle="Gestiona tu información personal y seguridad"
+                    icon={User}
                 />
+            </div>
 
-                <ProfileContent
-                    activeTab={activeTab}
+            {/* 3. CONTENIDO PRINCIPAL (Centrado y limitado a 7xl) */}
+            <div className="flex-1 w-full max-w-7xl mx-auto p-6 lg:p-8 animate-in fade-in duration-500">
+                <div className="flex flex-col lg:flex-row gap-8 items-start">
 
-                    // Props Info Personal
-                    formData={formData}
-                    setFormData={setFormData}
-                    onUpdateProfile={handleUpdateProfile}
+                    <ProfileSidebar
+                        user={user}
+                        activeTab={activeTab}
+                        setActiveTab={setActiveTab}
+                        onLogout={logout}
+                        onPhotoChange={handlePhotoChange}
+                        photoPreview={photoPreview}
+                    />
 
-                    // Props Seguridad
-                    passData={passData}
-                    setPassData={setPassData}
-                    onChangePassword={handleChangePassword} // <--- Conectado aquí
+                    <ProfileContent
+                        activeTab={activeTab}
 
-                    isLoading={isLoading}
-                />
+                        // Props Info Personal
+                        formData={formData}
+                        setFormData={setFormData}
+                        onUpdateProfile={handleUpdateProfile}
+
+                        // Props Seguridad
+                        passData={passData}
+                        setPassData={setPassData}
+                        onChangePassword={handleChangePassword} // <--- Conectado aquí
+
+                        isLoading={isLoading}
+                    />
+                </div>
             </div>
         </div>
     );
