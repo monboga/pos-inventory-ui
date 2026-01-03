@@ -2,8 +2,7 @@ import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Package, Truck, Store, MapPin, Trash2, Plus, Minus, Layers, Percent, ArrowUpRight } from 'lucide-react';
 import { getItemFinancials } from '../../utils/financials'; // Asegúrate de que esta ruta sea correcta
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7031';
+import {getNormalizedImageUrl} from '../../utils/imageUtils';
 
 const OrderCart = ({
     cart,
@@ -39,17 +38,6 @@ const OrderCart = ({
         contact.phone?.replace(/\D/g, '').length === 10 &&
         (!isDelivery || (contact.street && contact.neighborhood));
 
-    const getImgUrl = (product) => {
-        const rawImg = product.image || product.Image;
-        if (!rawImg) return null;
-        if (rawImg.includes('Uploads/')) {
-            const cleanPath = rawImg.replace(/\\/g, '/');
-            const prefix = cleanPath.startsWith('/') ? '' : '/';
-            return `${API_BASE_URL}${prefix}${cleanPath}`;
-        }
-        return rawImg;
-    }
-
     return (
         <div className="w-full md:w-[450px] bg-white flex flex-col shadow-2xl relative z-20 h-full border-l border-gray-100">
 
@@ -72,7 +60,7 @@ const OrderCart = ({
                 ) : (
                     cart.map(item => {
                         const financials = getItemFinancials(item);
-                        const imageUrl = getImgUrl(item);
+                        const imageUrl = getNormalizedImageUrl(item.image);
                         const missingForBulk = financials.isBulkType && !financials.isDiscountActive
                             ? (financials.minQty - item.quantity)
                             : 0;

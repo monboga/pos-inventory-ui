@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Package } from 'lucide-react';
 import { productService } from '../../services/productService';
-import ProductCard from '../pos/ProductCard'; // <--- REUTILIZACIÓN
+import ProductCard from '../pos/ProductCard';
+// 1. IMPORTAR EL UTILITY
+import { getNormalizedImageUrl } from '../../utils/imageUtils';
 
 const OrderProductList = ({ cart, onAddToCart }) => {
     const [products, setProducts] = useState([]);
@@ -49,7 +51,7 @@ const OrderProductList = ({ cart, onAddToCart }) => {
                 </div>
             </div>
 
-            {/* Grid de Productos Reutilizables */}
+            {/* Grid de Productos */}
             <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                 {loading ? (
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
@@ -62,16 +64,25 @@ const OrderProductList = ({ cart, onAddToCart }) => {
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
-                        {filteredProducts.map(product => (
-                            <div key={product.id} className="h-full">
-                                {/* AQUÍ USAMOS TU COMPONENTE EXISTENTE */}
-                                <ProductCard 
-                                    product={product}
-                                    currentQty={cart.find(c => c.id === product.id)?.quantity || 0}
-                                    onAddToCart={(p) => onAddToCart(p)}
-                                />
-                            </div>
-                        ))}
+                        {filteredProducts.map(product => {
+                            // 2. NORMALIZAR ANTES DE RENDERIZAR
+                            // Creamos una copia del producto con la imagen corregida
+                            // Esto asegura que ProductCard reciba la URL completa
+                            const productWithImage = {
+                                ...product,
+                                image: getNormalizedImageUrl(product.image || product.Image)
+                            };
+
+                            return (
+                                <div key={product.id} className="h-full">
+                                    <ProductCard 
+                                        product={productWithImage} // Pasamos el producto limpio
+                                        currentQty={cart.find(c => c.id === product.id)?.quantity || 0}
+                                        onAddToCart={(p) => onAddToCart(p)}
+                                    />
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
             </div>

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { storeService } from '../../services/storeService';
+import { getNormalizedImageUrl } from '../../utils/imageUtils';
+
 
 export const useStoreData = () => {
     const [products, setProducts] = useState([]);
@@ -30,7 +32,7 @@ export const useStoreData = () => {
                 price: prod.originalPrice,       // UI espera 'price' (usamos el final)
                 finalPrice: prod.finalPrice,
                 originalPrice: prod.originalPrice,
-                image: prod.imageUrl,         // UI espera 'image'
+                image: getNormalizedImageUrl(prod.imageUrl),         // UI espera 'image'
                 stock: prod.stock,
                 categoryId: prod.categoryId,
                 categoryName: prod.categoryName,

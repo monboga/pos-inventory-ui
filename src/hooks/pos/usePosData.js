@@ -3,8 +3,7 @@ import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
 import { clientService } from '../../services/clientService';
 import toast from 'react-hot-toast';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7031';
+import {getNormalizedImageUrl} from '../../utils/imageUtils';
 
 export const usePosData = () => {
     const [allProducts, setAllProducts] = useState([]);
@@ -15,18 +14,6 @@ export const usePosData = () => {
     // Estados de UI para filtros
     const [activeCategory, setActiveCategory] = useState('Todos');
     const [searchTerm, setSearchTerm] = useState('');
-
-    const getImageUrl = (img) => {
-        if (!img) return null;
-        if (img.includes("http")) return img; // Ya es absoluta
-        
-        if (img.includes("Uploads")) {
-            const cleanPath = img.replace(/\\/g, '/');
-            const prefix = cleanPath.startsWith('/') ? '' : '/';
-            return `${API_BASE_URL}${prefix}${cleanPath}`;
-        }
-        return img;
-    };
 
     const loadData = async () => {
         setLoading(true);
@@ -46,7 +33,7 @@ export const usePosData = () => {
                     id: p.id || p.Id,
                     description: p.description || p.Description,
                     price: Number(p.price || p.Price || 0),
-                    image: getImageUrl(p.image || p.Image),
+                    image: getNormalizedImageUrl(p.image || p.Image),
                     stock: p.stock ?? p.Stock ?? 0,
                     categoryId: String(p.categoryId || p.CategoryId), // String para comparar fácil
                     barcode: p.barcode || p.Barcode || ""
