@@ -1,33 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react'; // Eliminamos useEffect
 import { Search, Package } from 'lucide-react';
-import { productService } from '../../services/productService';
 import ProductCard from '../pos/ProductCard';
-// 1. IMPORTAR EL UTILITY
-import { getNormalizedImageUrl } from '../../utils/imageUtils';
+import { useProducts } from '../../hooks/common/useProducts'; // <--- USAR HOOK
 
 const OrderProductList = ({ cart, onAddToCart }) => {
-    const [products, setProducts] = useState([]);
+    // Usamos el hook centralizado
+    const { products, loading } = useProducts();
     const [searchTerm, setSearchTerm] = useState('');
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        loadProducts();
-    }, []);
+    // Filtramos localmente (Activos y con Stock)
+    const availableProducts = products.filter(p => p.isActive && p.stock > 0);
 
-    const loadProducts = async () => {
-        setLoading(true);
-        try {
-            const data = await productService.getAll();
-            // Filtramos solo productos activos y con stock
-            setProducts(data.filter(p => (p.isActive ?? true) && (p.stock ?? 0) > 0));
-        } catch (error) {
-            console.error("Error cargando productos");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const filteredProducts = products.filter(p => 
+    const filteredProducts = availableProducts.filter(p => 
         (p.description || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
         (p.barcode || '').includes(searchTerm)
     );
@@ -51,7 +35,7 @@ const OrderProductList = ({ cart, onAddToCart }) => {
                 </div>
             </div>
 
-            {/* Grid de Productos */}
+            {/* Grid */}
             <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                 {loading ? (
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
@@ -64,25 +48,15 @@ const OrderProductList = ({ cart, onAddToCart }) => {
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
-                        {filteredProducts.map(product => {
-                            // 2. NORMALIZAR ANTES DE RENDERIZAR
-                            // Creamos una copia del producto con la imagen corregida
-                            // Esto asegura que ProductCard reciba la URL completa
-                            const productWithImage = {
-                                ...product,
-                                image: getNormalizedImageUrl(product.image || product.Image)
-                            };
-
-                            return (
-                                <div key={product.id} className="h-full">
-                                    <ProductCard 
-                                        product={productWithImage} // Pasamos el producto limpio
-                                        currentQty={cart.find(c => c.id === product.id)?.quantity || 0}
-                                        onAddToCart={(p) => onAddToCart(p)}
-                                    />
-                                </div>
-                            );
-                        })}
+                        {filteredProducts.map(product => (
+                            <div key={product.id} className="h-full">
+                                <ProductCard 
+                                    product={product} // El producto YA VIENE con la imagen normalizada desde useProducts
+                                    currentQty={cart.find(c => c.id === product.id)?.quantity || 0}
+                                    onAddToCart={(p) => onAddToCart(p)}
+                                />
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>

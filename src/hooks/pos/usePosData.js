@@ -1,43 +1,28 @@
 import { useState, useEffect, useMemo } from 'react';
-import { productService } from '../../services/productService';
+import { useProducts } from '../common/useProducts'; // <--- NUEVO IMPORT
 import { categoryService } from '../../services/categoryService';
 import { clientService } from '../../services/clientService';
 import toast from 'react-hot-toast';
-import {getNormalizedImageUrl} from '../../utils/imageUtils';
 
 export const usePosData = () => {
-    const [allProducts, setAllProducts] = useState([]);
+    // 1. Usamos el hook compartido para productos
+    const { products: allProducts, loading: loadingProducts, refreshProducts } = useProducts();
+    
     const [categories, setCategories] = useState([]);
     const [clients, setClients] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loadingExtras, setLoadingExtras] = useState(true);
     
-    // Estados de UI para filtros
     const [activeCategory, setActiveCategory] = useState('Todos');
     const [searchTerm, setSearchTerm] = useState('');
 
-    const loadData = async () => {
-        setLoading(true);
+    // Cargamos SOLO lo extra (Categorías y Clientes)
+    const loadExtras = async () => {
+        setLoadingExtras(true);
         try {
-            const [productsData, categoriesData, clientsData] = await Promise.all([
-                productService.getAll(),
+            const [categoriesData, clientsData] = await Promise.all([
                 categoryService.getAll(),
                 clientService.getAll()
             ]);
-
-            // 1. Normalización y Filtrado de Activos
-            // Mapeamos aquí para que el resto de la app use nombres consistentes (camelCase)
-            const activeProducts = productsData
-                .filter(p => (p.isActive ?? p.IsActive) === true)
-                .map(p => ({
-                    ...p, // Mantenemos propiedades originales por seguridad
-                    id: p.id || p.Id,
-                    description: p.description || p.Description,
-                    price: Number(p.price || p.Price || 0),
-                    image: getNormalizedImageUrl(p.image || p.Image),
-                    stock: p.stock ?? p.Stock ?? 0,
-                    categoryId: String(p.categoryId || p.CategoryId), // String para comparar fácil
-                    barcode: p.barcode || p.Barcode || ""
-                }));
 
             const activeCategories = categoriesData
                 .filter(c => (c.isActive ?? c.IsActive) === true)
@@ -49,30 +34,34 @@ export const usePosData = () => {
             const normalizedClients = clientsData.map(c => ({
                 ...c,
                 id: c.id || c.Id,
-                fullName: c.fullName || c.FullName || `${c.firstName} ${c.lastName}`,
-                rfc: c.rfc || c.Rfc,
-                email: c.email || c.Email,
-                phoneNumber: c.phoneNumber || c.PhoneNumber
+                fullName: c.fullName || c.FullName || `${c.firstName} ${c.lastName}`
             }));
 
-            setAllProducts(activeProducts);
             setCategories(activeCategories);
             setClients(normalizedClients);
-
         } catch (error) {
-            console.error("Error cargando POS:", error);
-            toast.error("Error al cargar datos del sistema");
+            console.error("Error POS Extras:", error);
+            toast.error("Error cargando catálogos secundarios");
         } finally {
-            setLoading(false);
+            setLoadingExtras(false);
         }
     };
 
-    useEffect(() => { loadData(); }, []);
+    useEffect(() => { loadExtras(); }, []);
 
-    // 2. Lógica de Filtrado Memoizada (Eficiencia)
-    // El componente ya no tiene que calcular esto en cada render
+    const refreshAll = () => {
+        refreshProducts();
+        loadExtras();
+    };
+
+    // 2. Filtramos productos activos para el POS
+    const activeProducts = useMemo(() => 
+        allProducts.filter(p => p.isActive), 
+    [allProducts]);
+
+    // 3. Lógica de Filtrado Visual (Memoizada)
     const displayedProducts = useMemo(() => {
-        let filtered = allProducts;
+        let filtered = activeProducts;
 
         if (activeCategory !== 'Todos') {
             filtered = filtered.filter(p => p.categoryId === activeCategory);
@@ -86,23 +75,16 @@ export const usePosData = () => {
             );
         }
         return filtered;
-    }, [activeCategory, searchTerm, allProducts]);
+    }, [activeCategory, searchTerm, activeProducts]);
 
     return {
-        // Data
-        allProducts,
+        allProducts: activeProducts,
         displayedProducts,
         categories,
         clients,
-        loading,
-        
-        // Filtros
-        activeCategory,
-        setActiveCategory,
-        searchTerm,
-        setSearchTerm,
-        
-        // Actions
-        refreshData: loadData
+        loading: loadingProducts || loadingExtras,
+        activeCategory, setActiveCategory,
+        searchTerm, setSearchTerm,
+        refreshData: refreshAll
     };
 };
