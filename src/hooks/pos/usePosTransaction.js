@@ -95,7 +95,13 @@ export const usePosTransaction = (cart, clearCart, clients, user, refreshData) =
         }
     };
 
-    const closeSuccessModal = () => setSuccessData(null);
+    const closeSuccessModal = () => {
+        setSuccessData(null);
+
+        clearCart();
+        setSelectedClientId("");
+        setClientInfo(null);
+    };
 
     return {
         selectedClientId,
