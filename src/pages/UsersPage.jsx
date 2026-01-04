@@ -178,7 +178,7 @@ function UsersPage() {
                             {user.photo ? (
                                 <img src={user.photo} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-gray-200" />
                             ) : (
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-400 to-pink-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                                <div className="w-10 h-10 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-xs shadow-sm">
                                     {initials}
                                 </div>
                             )}
