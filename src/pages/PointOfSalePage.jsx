@@ -43,8 +43,15 @@ function PointOfSalePage() {
         activeCategory, setActiveCategory, searchTerm, setSearchTerm
     } = usePosData();
 
-    const { cart, cartTotals, addToCart, updateQuantity, removeFromCart } = usePosCart();
-    const { selectedClientId, clientInfo, handleClientChange, processSale, isProcessing, successData, closeSuccessModal, printTicket } = usePosTransaction(cart, () => { }, clients, user, refreshData);
+    const { cart, cartTotals, addToCart, updateQuantity, removeFromCart, clearCart } = usePosCart();
+    const { 
+        selectedClientId, 
+        handleClientChange, 
+        processSale, 
+        isProcessing, 
+        successData, 
+        closeSuccessModal, 
+        printTicket } = usePosTransaction(cart, clearCart, clients, user, refreshData);
 
 
     const clientOptions = clients.map(c => ({ id: c.id, name: c.fullName, rfc: c.rfc }));
@@ -170,7 +177,11 @@ function PointOfSalePage() {
                 </div>
             </div>
 
-            <SaleSuccessModal isOpen={!!successData} onClose={closeSuccessModal} saleData={successData} onPrint={printTicket} />
+            <SaleSuccessModal
+                isOpen={!!successData} 
+                onClose={closeSuccessModal} 
+                saleData={successData} 
+                onPrint={printTicket} />
         </div>
     );
 }
