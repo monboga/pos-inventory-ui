@@ -1,32 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, AlertTriangle } from 'lucide-react';
+// Importamos la lógica de normalización de fecha si fuera necesario, 
+// aunque para cálculos matemáticos directos usaremos la lógica de UTC-Z.
 
 const OrderTimer = ({ expirationDate, onExpire }) => {
     const calculateTimeLeft = () => {
-        // 1. Convertimos la fecha de expiración (que viene del server) a un objeto Date.
-        // Si el string no trae 'Z', le añadimos 'Z' para forzar al navegador a leerlo como UTC.
+        if (!expirationDate) return null;
+
+        // 1. Consistencia con dateUtils: Forzar interpretación UTC
         const expDateStr = expirationDate.endsWith('Z') ? expirationDate : `${expirationDate}Z`;
         const expiration = new Date(expDateStr).getTime();
-        
-        // 2. Obtenemos el "Ahora" en timestamp (que siempre es UTC internamente en JS)
         const now = new Date().getTime();
         
         const difference = expiration - now;
         
         if (difference > 0) {
+            // 2. Cálculo mejorado para soportar 24h o más
+            // Usamos Math.floor total para las horas sin el módulo % 24 
+            // si quieres mostrar "25:00:00", o con % 24 si prefieres días aparte.
+            // Para POS, usualmente basta con horas acumuladas.
             return {
+                hours: Math.floor(difference / (1000 * 60 * 60)), 
                 minutes: Math.floor((difference / 1000 / 60) % 60),
                 seconds: Math.floor((difference / 1000) % 60),
                 totalSeconds: Math.floor(difference / 1000)
             };
         }
-        return null; // Expirado
+        return null; 
     };
 
     const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
     const [isExpired, setIsExpired] = useState(false);
 
     useEffect(() => {
+        // Resetear estado si la fecha de expiración cambia
+        setIsExpired(false);
+        setTimeLeft(calculateTimeLeft());
+
         const timer = setInterval(() => {
             const left = calculateTimeLeft();
             if (!left) {
@@ -51,7 +61,7 @@ const OrderTimer = ({ expirationDate, onExpire }) => {
 
     if (!timeLeft) return null;
 
-    // Estilo visual: Urgente si quedan menos de 5 minutos
+    // Urgente si queda menos de 5 minutos
     const isUrgent = timeLeft.totalSeconds < 300; 
     
     return (
@@ -62,7 +72,10 @@ const OrderTimer = ({ expirationDate, onExpire }) => {
         }`}>
             <Clock size={12} className={isUrgent ? 'animate-spin-slow' : ''} />
             <span className="text-[11px] font-black font-mono tracking-tighter">
-                {String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
+                {/* Mostramos las horas siempre con 2 dígitos, ideal para lapsos de 24h */}
+                {String(timeLeft.hours).padStart(2, '0')}:
+                {String(timeLeft.minutes).padStart(2, '0')}:
+                {String(timeLeft.seconds).padStart(2, '0')}
             </span>
         </div>
     );
