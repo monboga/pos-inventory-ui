@@ -6,6 +6,7 @@ const OrdersFilterBar = ({ searchTerm, setSearchTerm, filterStatus, setFilterSta
         { id: 'Pending', label: 'Pendientes' },
         { id: 'Confirmed', label: 'Confirmados' },
         { id: 'Completed', label: 'Completados' },
+        { id: 'Incoming', label: 'En camino' },
         { id: 'All', label: 'Todos' }
     ];
 
