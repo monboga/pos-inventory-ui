@@ -22,5 +22,12 @@ export const PERMISSIONS = {
     },
     REPORTS: {
         VIEW: "Permissions.Reports.View"
+    },
+    ORDERS: {
+        VIEW: "Permissions.Orders.View",
+        CREATE: "Permissions.Orders.Create",
+        EDIT: "Permissions.Orders.Edit",
+        PROCESS: "Permissions.Orders.Process",
+        CANCEL: "Permissions.Orders.Cancel"
     }
 };
