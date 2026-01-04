@@ -17,6 +17,7 @@ const SidebarItem = ({ item, isCollapsed }) => {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
+            {/* Elemento Principal del Sidebar */}
             <NavLink 
                 to={item.path} 
                 className={({ isActive }) => 
@@ -28,20 +29,14 @@ const SidebarItem = ({ item, isCollapsed }) => {
                     ${isCollapsed ? "justify-center" : "w-full"}`
                 }
             >
-                {IconComponent && (
-                    <IconComponent 
-                        size={22} 
-                        className="flex-shrink-0"
-                    />
-                )}
+                {IconComponent && <IconComponent size={22} className="flex-shrink-0" />}
                 
-                {/* Si no está colapsado, mostramos el texto con una entrada suave */}
                 {!isCollapsed && (
                     <motion.span 
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -10 }}
-                        transition={{ delay: 0.1 }} // Pequeño delay para que no se vea el texto aplastado al abrir
+                        transition={{ delay: 0.1 }}
                         className="ml-3 font-medium text-sm whitespace-nowrap overflow-hidden"
                     >
                         {item.title}
@@ -49,23 +44,37 @@ const SidebarItem = ({ item, isCollapsed }) => {
                 )}
             </NavLink>
 
-            {/* Tooltip con rebote */}
+            {/* POPUP: Ahora con diseño y lógica de submenú */}
             <AnimatePresence>
                 {isCollapsed && isHovered && (
                     <motion.div 
-                        initial={{ opacity: 0, x: -10, scale: 0.8 }}
-                        animate={{ 
-                            opacity: 1, 
-                            x: 0, 
-                            scale: 1,
-                            transition: { type: "spring", stiffness: 300, damping: 20 }
-                        }}
-                        exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.15 } }}
-                        className="absolute left-full top-1/2 -translate-y-1/2 pl-3 z-50 ml-0"
+                        initial={{ opacity: 0, x: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.1 } }}
+                        className="absolute left-full top-0 pl-3 z-50 w-56"
                     >
-                        <div className="bg-gray-800 text-white text-xs font-bold px-3 py-2 rounded-md shadow-xl whitespace-nowrap relative">
-                            <div className="absolute top-1/2 -translate-y-1/2 -left-1 w-2 h-2 bg-gray-800 rotate-45"></div>
-                            {item.title}
+                        <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden py-2">
+                            {/* Encabezado igual a SidebarSubmenu */}
+                            <div className="px-4 py-2 text-gray-400 text-[10px] font-bold uppercase tracking-wider border-b border-gray-50 mb-1">
+                                {item.title}
+                            </div>
+                            
+                            <ul className="px-2 py-1">
+                                <li>
+                                    <NavLink
+                                        to={item.path}
+                                        className={({ isActive }) =>
+                                            `flex items-center gap-2 p-2 pl-3 text-sm transition-colors rounded-lg
+                                            ${isActive
+                                                ? "text-pink-600 font-bold bg-pink-50"
+                                                : "text-gray-500 hover:text-pink-500 hover:bg-pink-50/50"}`
+                                        }
+                                    >
+                                        {IconComponent && <IconComponent size={18} />}
+                                        <span>Ver {item.title}</span>
+                                    </NavLink>
+                                </li>
+                            </ul>
                         </div>
                     </motion.div>
                 )}
@@ -73,4 +82,5 @@ const SidebarItem = ({ item, isCollapsed }) => {
         </div>
     );
 };
+
 export default SidebarItem;

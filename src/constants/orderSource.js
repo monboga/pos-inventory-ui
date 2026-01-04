@@ -12,7 +12,7 @@ export const SOURCE_CONFIG = {
         label: 'Punto de Venta',
         shortLabel: 'Local',
         icon: Monitor,
-        color: 'bg-gray-100 text-gray-600 border-gray-200'
+        color: 'bg-pink-100 text-pink-600 border-pink-200'
     },
     [ORDER_SOURCES.WEB]: {
         label: 'Tienda Online',
