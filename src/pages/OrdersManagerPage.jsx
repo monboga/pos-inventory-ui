@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, ShoppingBag, RefreshCw, Store, Truck, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, ShoppingBag, RefreshCw, Store, Truck, ChevronLeft, ChevronRight, Globe, Monitor } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 
 // Componentes
@@ -21,16 +21,16 @@ const containerVariants = {
 };
 
 function OrdersManagerPage() {
-    const { 
-        orders, 
-        loading, 
-        searchTerm, setSearchTerm, 
-        filterStatus, setFilterStatus, 
-        refreshOrders, 
+    const {
+        orders,
+        loading,
+        searchTerm, setSearchTerm,
+        filterStatus, setFilterStatus,
+        refreshOrders,
         createOrder,
         handleCancel,
-        advanceStatus, 
-        pagination 
+        advanceStatus,
+        pagination
     } = useOrders();
 
     const [viewMode, setViewMode] = useState('grid');
@@ -52,9 +52,19 @@ function OrdersManagerPage() {
         {
             header: "Origen",
             render: (row) => (
-                <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase ${row.source === 'Web' || row.source === 2 ? 'bg-blue-50 text-blue-500' : 'bg-pink-50 text-pink-500'
+                <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase inline-flex items-center gap-1 w-fit ${row.source === 'Web' ? 'bg-blue-50 text-blue-500' : 'bg-pink-50 text-pink-500'
                     }`}>
-                    {row.source === 2 ? 'Web' : 'Local'}
+                    {row.source === 'Web' ? (
+                        <>
+                            <Globe size={10} />
+                            <span>Web</span>
+                        </>
+                    ) :
+                        <>
+                            <Monitor size={10} />
+                            <span>Local</span>
+                        </>
+                    }
                 </span>
             )
         },
@@ -78,7 +88,7 @@ function OrdersManagerPage() {
         {
             header: "Estado",
             render: (row) => (
-                <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${row.status === 'Pending' ? 'bg-orange-50 text-orange-600' :
+                <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest inline-block w-fit ${row.status === 'Pending' ? 'bg-orange-50 text-orange-600' :
                     row.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'
                     }`}>
                     {row.status}
@@ -140,7 +150,7 @@ function OrdersManagerPage() {
             </div>
 
             {/* 3. CONTENIDO PRINCIPAL (Con Padding y Max-Width) */}
-            <motion.div 
+            <motion.div
                 className="flex-1 p-6 md:p-8 max-w-[1600px] mx-auto w-full space-y-8"
                 variants={containerVariants}
                 initial="hidden"
