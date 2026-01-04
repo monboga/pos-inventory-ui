@@ -94,7 +94,7 @@ function AppContent() {
   // Solo animamos transiciones entre rutas públicas (Login <-> Forgot <-> Reset).
   // Si estamos dentro del sistema (cualquier otra ruta), usamos una llave fija 
   // para evitar que el Layout/Sidebar se desmonte y parpadee.
-  const isPublicRoute = ['/login', '/forgot-password', '/reset-password'].includes(location.pathname);
+  const isPublicRoute = ['/login', '/forgot-password', '/reset-password', '/store', '/track'].includes(location.pathname);
   const routeKey = isPublicRoute ? location.pathname : 'dashboard-static-context';
 
   useEffect(() => {
@@ -157,6 +157,8 @@ function AppContent() {
               </Route>
               <Route element={<ProtectedRoute requiredPermission={PERMISSIONS.SALES.VIEW} />}>
                 <Route path="sales-history" element={<SalesHistoryPage />} />
+              </Route>
+              <Route element={<ProtectedRoute requiredPermission={PERMISSIONS.ORDERS.CREATE} />}>
                 <Route path="orders" element={<OrdersManagerPage />} />
               </Route>
               <Route element={<ProtectedRoute requiredPermission={PERMISSIONS.PRODUCTS.VIEW} />}>
