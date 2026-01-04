@@ -76,7 +76,7 @@ const OrderDetailModal = ({ isOpen, orderId, onClose }) => {
                                 <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} className="w-8 h-8 border-4 border-pink-200 border-t-pink-500 rounded-full" />
                             </div>
                         ) : (
-                            <div className="flex-1 overflow-y-auto custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
                                 <div className="p-6 space-y-6">
 
                                     {/* SECCIÓN 1: DATOS CLIENTE */}
@@ -154,9 +154,19 @@ const OrderDetailModal = ({ isOpen, orderId, onClose }) => {
                                         </div>
 
                                         {/* Separador Punteado */}
-                                        <div className="my-6 border-t-2 border-dashed border-gray-200 relative">
-                                            <div className="absolute -left-8 -top-3 w-6 h-6 bg-gray-900 rounded-full" /> {/* Efecto corte ticket izq */}
-                                            <div className="absolute -right-8 -top-3 w-6 h-6 bg-gray-900 rounded-full" /> {/* Efecto corte ticket der */}
+                                        <div className="relative h-8 flex items-center my-4 overflow-visible">
+                                            {/* Línea Punteada */}
+                                            <div className="w-full border-t-2 border-dashed border-gray-200" />
+                                            
+                                            {/* Círculo Recorte Izquierdo */}
+                                            <div className="absolute -left-10 w-8 h-8 rounded-full bg-gray-900/60" 
+                                                 style={{ boxShadow: 'inset -8px 0 10px -5px rgba(0,0,0,0.1)' }}>
+                                            </div>
+                                            
+                                            {/* Círculo Recorte Derecho */}
+                                            <div className="absolute -right-10 w-8 h-8 rounded-full bg-gray-900/60"
+                                                 style={{ boxShadow: 'inset 8px 0 10px -5px rgba(0,0,0,0.1)' }}>
+                                            </div>
                                         </div>
 
                                         {/* Totales */}
