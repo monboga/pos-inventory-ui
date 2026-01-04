@@ -42,7 +42,7 @@ export const MENU_ITEMS = [
                 title: "Pedidos",
                 path: "/orders",
                 icon: ShoppingCart,
-                permission: PERMISSIONS.SALES.VIEW
+                permission: PERMISSIONS.ORDERS.CREATE
             }
 ]
     },
@@ -55,19 +55,19 @@ export const MENU_ITEMS = [
                         title: "Negocio",
                         path: "/business",
                         icon: Building,
-                        permission: PERMISSIONS.USERS.VIEW
+                        permission: PERMISSIONS.USERS.CREATE
                     },
                     {
                         title: "Usuarios",
                         path: "/users",
                         icon: Users,
-                        permission: PERMISSIONS.USERS.VIEW
+                        permission: PERMISSIONS.USERS.CREATE
                     },
                     {
                         title: "Clientes",
                         path: "/customers",
                         icon: IdCard,
-                        permission: PERMISSIONS.CLIENTS.VIEW
+                        permission: PERMISSIONS.CLIENTS.CREATE
                     }
                 ]
 },
@@ -80,18 +80,19 @@ export const MENU_ITEMS = [
                         title: "Productos",
                         path: "/inventory",
                         icon: Package,
-                        permission: PERMISSIONS.PRODUCTS.VIEW
+                        permission: PERMISSIONS.PRODUCTS.CREATE
                     },
                     {
                         title: "Categorías",
                         path: "/categories",
                         icon: Tags,
-                        permission: PERMISSIONS.PRODUCTS.VIEW
+                        permission: PERMISSIONS.PRODUCTS.CREATE
                     },
                     {
                         title: 'Descuentos',
                         path: '/discounts',
-                        icon: Percent
+                        icon: Percent,
+                        permission: PERMISSIONS.PRODUCTS.CREATE
                     }
                 ]
 }
