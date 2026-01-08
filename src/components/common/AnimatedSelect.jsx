@@ -108,7 +108,7 @@ const AnimatedSelect = ({
                 disabled={disabled}
                 className={`
                     w-full relative flex items-center justify-between
-                    pl-10 pr-4 py-2.5 border rounded-xl text-left bg-white
+                    pl-10 pr-4 h-10 border rounded-xl text-left bg-white
                     transition-all duration-200 outline-none
                     ${isOpen
                         ? 'border-pink-500 ring-2 ring-pink-500/10'

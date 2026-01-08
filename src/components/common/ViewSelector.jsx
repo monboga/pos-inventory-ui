@@ -74,11 +74,11 @@ function ViewSelector({ entityName, currentFilters, onApplyView }) {
         <>
             {/* CONTENEDOR FLOTANTE A LA DERECHA */}
             {/* justify-end: Empuja todo a la derecha. items-center: Alineación vertical. */}
-            <div className="flex flex-col sm:flex-row items-end sm:items-center justify-end gap-3 mb-6 w-full animate-in fade-in slide-in-from-top-1">
+            <div className="flex items-center gap-2">
                 
                 {/* 1. SELECTOR DE VISTAS */}
                 {/* Le damos un ancho fijo (w-64) para que se vea uniforme */}
-                <div className="w-full sm:w-64 z-20"> 
+                <div className="w-56 md:w-64 z-20"> 
                     <AnimatedSelect
                         label="" // Sin label externo para ser minimalista
                         icon={LayoutList} // Icono dentro del input
@@ -94,17 +94,16 @@ function ViewSelector({ entityName, currentFilters, onApplyView }) {
                 <button 
                     onClick={() => setIsModalOpen(true)}
                     className="
-                        flex items-center gap-2 px-4 py-2.5 
+                        flex items-center gap-2 px-4 h-10 
                         bg-white border border-gray-200 
                         text-pink-600 font-bold text-sm rounded-xl 
                         hover:bg-pink-50 hover:border-pink-200 hover:shadow-sm 
                         transition-all active:scale-95 whitespace-nowrap
-                        h-[42px] // Altura forzada para coincidir exactamente con el input del AnimatedSelect
                     "
                     title="Guardar filtros actuales como nueva vista"
                 >
                     <Save size={18} />
-                    <span>Guardar Vista</span>
+                    <span className='hidden xl:inline'>Guardar Vista</span>
                 </button>
             </div>
 
