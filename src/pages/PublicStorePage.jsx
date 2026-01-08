@@ -45,7 +45,7 @@ function PublicStorePage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20 font-sans relative overflow-x-hidden">
+        <div className="min-h-screen bg-gray-50 pb-20 relative overflow-x-hidden">
             <Toaster position="top-right" />
 
             {/* Header (Ref asignada al botón del carrito para la animación) */}
@@ -54,10 +54,6 @@ function PublicStorePage() {
                 logo={logoImg}
                 cartCount={storeCart.cartCount}
                 onOpenCart={() => storeCart.setIsCartOpen(true)}
-                onReturn={() => {
-                    // Cierre simple de ventana (si se abrió como popup)
-                    window.close();
-                }}
             />
 
             <main className="max-w-5xl mx-auto p-4 md:p-8 space-y-8">

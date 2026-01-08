@@ -3,15 +3,8 @@ import { ShoppingCart, Package, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // 2. Envolver el componente en forwardRef
-const StoreHeader = forwardRef(({ cartCount, onOpenCart, onReturn, logo }, ref) => (
+const StoreHeader = forwardRef(({ cartCount, onOpenCart, logo }, ref) => (
     <header className="bg-white shadow-sm sticky top-0 z-30 px-4 py-4 flex justify-between items-center">
-        <button
-            onClick={onReturn}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-xl text-gray-500 hover:text-pink-600 transition-all font-bold text-[10px] uppercase tracking-widest"
-        >
-            <ArrowLeft size={18} />
-            <span className="hidden sm:inline font-medium">Cerrar y Volver</span>
-        </button>
 
         <div className="flex items-center gap-4">
             <div className="flex items-center justify-center h-12 w-12 shadow-md rounded-xl">
