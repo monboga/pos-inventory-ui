@@ -54,10 +54,6 @@ function PublicStorePage() {
                 logo={logoImg}
                 cartCount={storeCart.cartCount}
                 onOpenCart={() => storeCart.setIsCartOpen(true)}
-                onReturn={() => {
-                    // Cierre simple de ventana (si se abrió como popup)
-                    window.close();
-                }}
             />
 
             <main className="max-w-5xl mx-auto p-4 md:p-8 space-y-8">
