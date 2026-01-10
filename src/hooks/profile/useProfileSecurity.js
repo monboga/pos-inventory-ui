@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { changePassword } from '../../services/authService'; // Asegúrate de tener este servicio o importarlo correctamente
+import {validatePassword } from '../../utils/validators';
 
 export function useProfileSecurity(user, logout) {
     const [isLoading, setIsLoading] = useState(false);
@@ -18,8 +19,10 @@ export function useProfileSecurity(user, logout) {
             toast.error("Las contraseñas nuevas no coinciden");
             return;
         }
-        if (passData.newPassword.length < 6) { // O la validación que prefieras
-            toast.error("La contraseña es muy corta");
+        const validation = validatePassword(passData.newPassword);
+        if (!validation.isValid) {
+            // Si falla aquí, el toast será consistente con la UI
+            toast.error(`La contraseña no cumple: ${validation.message}`);
             return;
         }
 
@@ -27,7 +30,7 @@ export function useProfileSecurity(user, logout) {
         const toastId = toast.loading("Actualizando contraseña...");
 
         try {
-            await changePassword(user.email, passData.currentPassword, passData.newPassword);
+            await changePassword(passData.newPassword);
             
             toast.success("Contraseña actualizada. Inicia sesión de nuevo.", { id: toastId });
             
